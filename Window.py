@@ -51,7 +51,8 @@ class MyWindow(object):
     has run. They can be referenced in the method body because that is executed
     during run time, after initscr() has been called.
     '''
-    def create(self, ht, wid, top=None, left=None, bkgnd=' ', vch=None, hch=None, title=''):
+    def create(self, ht, wid, top=None, left=None, bkgnd=' ', vch=None, \
+            hch=None, title=''):
         self.height = ht
         self.width = wid
         if not top:
@@ -82,15 +83,19 @@ class MyWindow(object):
         self.win = curses.newwin(self.height, self.width, self.top, self.left)
         self.draw_border()
         self.log.write('Created window (title='+title+')\n')
-        
+
     def draw_border(self):
         self.win.box(self.vch, self.hch)
-        self.win.addstr(0, (self.width-len(self.title))/2, self.title, curses.A_STANDOUT)
+        self.win.addstr(0, (self.width-len(self.title))/2, self.title,
+                        curses.A_STANDOUT)
         if self.windowType != 'popup' and self.windowType != 'message':
-            self.win.addstr(0, self.width-10, 'Page %d/%d'%(self.currpage,self.pages), curses.A_STANDOUT)
-            self.win.addstr(0, 2, 'Pos: %d,%d'%(self.currx,self.curry), curses.A_STANDOUT)
+            self.win.addstr(0, self.width-10, 'Page %d/%d'%
+                            (self.currpage, self.pages), curses.A_STANDOUT)
+            self.win.addstr(0, 2, 'Pos: %d,%d'%(self.currx, self.curry),
+                            curses.A_STANDOUT)
         if self.windowType == 'message':
-            self.win.addstr(self.height-1, (self.width-2)/2, ' OK ', curses.A_STANDOUT)
+            self.win.addstr(self.height-1, (self.width-2)/2, ' OK ',
+                            curses.A_STANDOUT)
         self.win.move(self.curry, self.currx)
         self.win.refresh()
         self.log.write('drawBorder[main] window (title='+self.title+')\n')
@@ -105,12 +110,16 @@ class MyWindow(object):
         lastrow = firstrow + self.pagelen
         for i in range(firstrow, lastrow):
             try:
-                if i >= len(self.contents): break # we are officially past the end of the contents array
+                # we are officially past the end of the contents array
+                if i >= len(self.contents): break
+
                 if myy < self.height-1:
                     self.win.addstr(myy, myx, self.contents[i][:self.width-2])
                     myy += 1 # go to the next line
             except:
-                quit('Exception in drawContents trying to add row i=',i,' "'+self.contents[i]+'" at (%d,%d) page=%d, firstrow=%d, lastrow=%d'%(myx, myy, self.currpage, firstrow, lastrow))
+                quit('Exception in drawContents trying to add row i=', i, ' "'+
+                     self.contents[i]+'" at (%d,%d) page=%d, firstrow=%d, lastr'
+                     'ow=%d'%(myx, myy, self.currpage, firstrow, lastrow))
 
         self.log.write('drawContents window (title='+self.title+')\n')
         self.win.refresh()
@@ -122,7 +131,7 @@ class MyWindow(object):
     based on the 0-based pageRow and current 1-based page number
     """
     def current_row(self, pageRow):
-        return (self.currpage-1)*self.pagelen + pageRow 
+        return (self.currpage-1)*self.pagelen + pageRow
 
 
     # Every window comes here
@@ -131,15 +140,19 @@ class MyWindow(object):
         self.win.refresh()
         self.log.write('delete window (title='+self.title+')\n')
         del self.win
-        WindowList.pop_window(self.log) # pops this window off the window list, then forces a redraw of all remaining windows
-        
+
+        # pops this window off the window list, then forces a redraw of all
+        # remaining windows
+        WindowList.pop_window(self.log)
+
 
     def read_content_lines(self):
         # Read in window contents as list of strings from top to bottom
-        for y in range(1, self.height): # only read in the content lines, not the border
+        # only read in the content lines, not the border
+        for y in range(1, self.height):
             self.contentLines.append(self.win.instr(y, 1))
         self.log.write('readContentLines window (title='+self.title+')\n')
-                
+
     def draw_content_lines(self):
         y = 1
         for line in self.contentLines:
@@ -162,7 +175,8 @@ class PopupWindow(MyWindow):
 
     def draw_border(self):
         self.win.box(self.vch, self.hch)
-        self.win.addstr(0, (self.width-len(self.title))/2, self.title, curses.A_STANDOUT)
+        self.win.addstr(0, (self.width-len(self.title))/2, self.title,
+                        curses.A_STANDOUT)
         self.win.move(self.curry, self.currx)
         self.win.refresh()
         self.read_content_lines()
@@ -181,8 +195,10 @@ class MessageWindow(MyWindow):
 
     def draw_border(self):
         self.win.box(self.vch, self.hch)
-        self.win.addstr(0, (self.width-len(self.title))/2, self.title, curses.A_STANDOUT)
-        self.win.addstr(self.height-1, (self.width-2)/2, ' OK ', curses.A_STANDOUT)
+        self.win.addstr(0, (self.width-len(self.title))/2, self.title,
+                        curses.A_STANDOUT)
+        self.win.addstr(self.height-1, (self.width-2)/2, ' OK ',
+                        curses.A_STANDOUT)
         self.win.move(self.curry, self.currx)
         self.win.refresh()
         self.read_content_lines()

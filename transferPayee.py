@@ -28,8 +28,12 @@ class TransferPayee(object):
         with open(fname) as f:
             for line in f:
                 # Clean up line
-                line = line.replace('\\', '\\\\') # The regexes sometimes contain the '\' character, which needs to be replaced with '\\' because it's the escape character
-                line = line.rstrip().lstrip() # strip leading and trailing blanks
+                # The regexes sometimes contain the '\' character, which needs
+                # to be replaced with '\\' because it's the escape character
+                line = line.replace('\\', '\\\\')
+
+                # strip leading and trailing blanks
+                line = line.rstrip().lstrip()
                 if not line: continue # ignore blank lines
                 if line.startswith('#'): continue # ignore comments
                 if line.startswith('//'): continue # ignore comments
@@ -37,7 +41,8 @@ class TransferPayee(object):
                 field = line.split('=') # split line by '='
 
                 # Parse the regex
-                regex = field[0].rstrip() # set regex and strip any leading spaces
+                # set regex and strip any leading spaces
+                regex = field[0].rstrip()
 
                 # Parse the budget category
                 budcat = field[1].lstrip()
@@ -45,5 +50,5 @@ class TransferPayee(object):
                 outdict[linenum] = [regex, budcat]
                 linenum += 1
             f.close()
-        print 'readPayeeFile processed',linenum,'records'
+        print 'readPayeeFile processed', linenum, 'records'
         return outdict
