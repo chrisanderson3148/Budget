@@ -139,7 +139,7 @@ class EditWindow(MyWindow):
             elif i == ord('a'):
                 newguy = ['UNKNOWN', 0.00, datetime.datetime.today()]
                 #newentry[6 if isMain else 5].append(newguy)
-                newentry[tBudarr].append(newguy)
+                newentry[g.tBudarr].append(newguy)
                 newline = tabarr[-1][1]
                 tabarr.append([1, newline+1, 'category'])
                 tabarr.append([18, newline+1, 'amount'])
@@ -156,14 +156,14 @@ class EditWindow(MyWindow):
                                                self.log)
                     continue
                 #if len(newentry[6 if isMain else 5]) < 2:
-                if len(newentry[tBudarr]) < 2:
+                if len(newentry[g.tBudarr]) < 2:
                     WindowUtils.popupMessageOk(self.s, 'You cannot delete the o'
                                                'nly budget item.',
                                                self.sWindow, self.log)
                     continue
                 row = tabarr[idx][1] - 8
                 #del newentry[6 if isMain else 5][row]
-                del newentry[tBudarr][row]
+                del newentry[g.tBudarr][row]
                 del tabarr[-1] # delete last row (3 entries per row)
                 del tabarr[-1]
                 del tabarr[-1]

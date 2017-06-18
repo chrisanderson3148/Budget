@@ -375,10 +375,10 @@ def do_check_budcat_query_asmain(budcat, theYear):
 def do_month_query(yearmonth):
     return ("select * from main where bud_date between '"+yearmonth+"-01' and '"
             +yearmonth+"-31' and tran_checknum = '0' and tran_desc not like 'CH"
-            "ECK %' order by bud_date;", "select sum(bud_amount) from main wher"
-            "e bud_date between '"+yearmonth+"-01' and '"+yearmonth+"-31' and t"
-            "ran_checknum = '0' and tran_desc not like 'CHECK %' order by bud_d"
-            "ate;")
+            "ECK %' order by bud_date;",
+            "select sum(bud_amount) from main where bud_date between '"
+            +yearmonth+"-01' and '"+yearmonth+"-31' and tran_checknum = '0' and"
+            " tran_desc not like 'CHECK %' order by bud_date;")
 
 def do_check_month_query(yearmonth):
     return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt"
@@ -632,11 +632,12 @@ def get_data_array_and_content_array_both(
         if len(bud) > 1: # multi-budget
             contentrow = '%-12s %-40s %4s %s %10.2f %-15s %s' % (
                 (row[g.tDate].strftime('%m/%d/%Y')
-                 if not row[g.tDate] is None else '---'), # transaction date
+                    if not row[g.tDate] is None else '---'), # transaction date (TODO: Need to display the budget date from the appropriate budget entry, not the transaction date)
                 row[g.tPayee][:40], # transaction description
                 row[g.tCkn],        # transaction check number (if any)
                 row[g.tType],       # transaction type
                 row[g.tAmount],     # transaction amount
+                #bud[0][1],          # budget amount (TODO: Need to display the budget amount from the same budget entry as above, not always the first one)
                 'MULTI',            # budget category
                 row[g.tComment])    # transaction comment
         else: # single-budget

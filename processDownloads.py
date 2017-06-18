@@ -200,7 +200,7 @@ def insertDictIntoChecksDB(downloadDict, keysdict):
         if doinsert:
             try:
                 cur1.execute(query)
-                cur1.commit()
+                #cur1.commit()
             except:
                 (etype, value, tb) = sys.exc_info()
                 print('insertDictIntoChecksDB(): Exception executing query: '+
@@ -244,7 +244,7 @@ def insertDictIntoMainDB(downloadDict, keysdict):
         if doinsert:
             try:
                 cur1.execute(query)
-                cur1.commit()
+                #cur1.commit()
             except:
                 (etype, value, tb) = sys.exc_info()
                 print('insertDictIntoMainDB(): Exception executing query: '+
