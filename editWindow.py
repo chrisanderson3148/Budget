@@ -32,8 +32,8 @@ class EditWindow(MyWindow):
         self.log.write('draw_border[EditWindow] window '
                        '(title='+self.title+')\n')
 
-    def draw_win(self, isMain, tdate, tdesc, ttype, tamount, budarr, tcomment, \
-            extrafield):
+    def draw_win(self, isMain, tdate, tdesc, ttype, tamount, budarr, tcomment,
+                 extrafield):
         self.win.clear()
         self.win.addstr(1, 1, 'Transaction date:')
         self.win.addstr(1, 20, (tdate.strftime('%m/%d/%Y')
@@ -72,11 +72,14 @@ class EditWindow(MyWindow):
 
     def refresh(self, isMain, entry):
         if isMain:
-            self.draw_win(True, entry[0], entry[2], entry[4], entry[5],
-                          entry[6], entry[7], '')
+            self.draw_win(True, entry[g.tDate], entry[g.tPayee],
+                          entry[g.tType], entry[g.tAmount],
+                          entry[g.tBudarr], entry[g.tComment], '')
         else:
-            self.draw_win(False, entry[3], entry[4], str(entry[1]), entry[2],
-                          entry[5], entry[6], entry[7])
+            self.draw_win(False, entry[g.tDate], entry[g.tPayee],
+                          str(entry[g.tClearDate]), entry[g.tAmount],
+                          entry[g.tBudarr], entry[g.tComment],
+                          entry[g.tClearDate])
 
     def refresh_both(self, isMain, entry):
         if isMain: # main table transactions
@@ -105,8 +108,7 @@ class EditWindow(MyWindow):
     this function and in update_transaction.
     NEW FORMAT
     '''
-    def main_event_loop(self, isMain, entry):
-        #numbudentries = (len(entry[6]) if isMain else len(entry[5]))
+    def main_event_loop(self, isMain, entry, readonly=False):
         numbudentries = len(entry[g.tBudarr])
         tabarr = list()
         tabarr.append([15, 2, 'desc'])
@@ -136,7 +138,7 @@ class EditWindow(MyWindow):
             #
             # Add a new, empty budget entry
             #
-            elif i == ord('a'):
+            elif i == ord('a') and not readonly:
                 newguy = ['UNKNOWN', 0.00, datetime.datetime.today()]
                 #newentry[6 if isMain else 5].append(newguy)
                 newentry[g.tBudarr].append(newguy)
@@ -149,17 +151,17 @@ class EditWindow(MyWindow):
             #
             # Delete selected budget entry
             #
-            elif i == ord('d'):
+            elif i == ord('d') and not readonly:
                 if tabarr[idx][1] < 8: # MAGIC number
-                    WindowUtils.popupMessageOk(self.s, 'You can only delete bud'
-                                               'get items.', self.sWindow,
-                                               self.log)
+                    WindowUtils.popup_message_ok(
+                        self.s, 'You can only delete budget items.',
+                        self.sWindow, self.log)
                     continue
                 #if len(newentry[6 if isMain else 5]) < 2:
                 if len(newentry[g.tBudarr]) < 2:
-                    WindowUtils.popupMessageOk(self.s, 'You cannot delete the o'
-                                               'nly budget item.',
-                                               self.sWindow, self.log)
+                    WindowUtils.popup_message_ok(
+                        self.s, 'You cannot delete the only budget item.',
+                        self.sWindow, self.log)
                     continue
                 row = tabarr[idx][1] - 8
                 #del newentry[6 if isMain else 5][row]
@@ -176,7 +178,8 @@ class EditWindow(MyWindow):
             #
             # Change an existing record field
             #
-            elif i == ord('r') or i == ord('e'): # edit current field
+            # edit current field
+            elif (i == ord('r') or i == ord('e')) and not readonly:
                 curses.echo()
                 text = self.win.getstr()
                 curses.noecho()
@@ -192,11 +195,11 @@ class EditWindow(MyWindow):
             # 'quit', saving all changes
             #
             elif i == ord('q'):
-                if changes:
+                if changes and not readonly:
 
                     # rounding errors will not produce an exact 0.00000
                     if abs(self.balance) >= 0.005:
-                        WindowUtils.popupMessageOk(
+                        WindowUtils.popup_message_ok(
                             self.s,
                             ['Balance between transaction amount and sum of bud'
                              'get amounts is not equal.',
@@ -260,7 +263,7 @@ class EditWindow(MyWindow):
 
                     # If it is in the database, notify and cancel
                     if numrows > 0:
-                        WindowUtils.popupMessageOk(
+                        WindowUtils.popup_message_ok(
                             self.s,
                             'Check number '+text+' is already in the database',
                             self.sWindow, self.log)
@@ -272,7 +275,7 @@ class EditWindow(MyWindow):
                     try:
                         int(text)
                     except ValueError:
-                        WindowUtils.popupMessageOk(
+                        WindowUtils.popup_message_ok(
                             self.s,
                             'Field "'+tabarr[idx][2]+'" value '+text+' is not a'
                             'n integer',
@@ -288,7 +291,7 @@ class EditWindow(MyWindow):
                     try:
                         float(text)
                     except ValueError:
-                        WindowUtils.popupMessageOk(
+                        WindowUtils.popup_message_ok(
                             self.s,
                             'Field "'+tabarr[idx][2]+'" value '+text+' is not a'
                             ' float',
@@ -305,7 +308,7 @@ class EditWindow(MyWindow):
                     try:
                         datetime.datetime.strptime(text, '%m/%d/%Y')
                     except ValueError:
-                        WindowUtils.popupMessageOk(
+                        WindowUtils.popup_message_ok(
                             self.s,
                             'Field "'+tabarr[idx][2]+'" value '+text+' is not a'
                             ' date (mm/dd/yyyy)',
@@ -329,7 +332,7 @@ class EditWindow(MyWindow):
 
                     # rounding errors will not produce an exact 0.00000
                     if abs(self.balance) >= 0.005:
-                        WindowUtils.popupMessageOk(
+                        WindowUtils.popup_message_ok(
                             self.s,
                             ['Balance between transaction amount and sum of bud'
                              'get amounts is not equal.', 'The difference is ${'
@@ -341,7 +344,7 @@ class EditWindow(MyWindow):
                     record and a new record to be inserted.
                     '''
                     if not newentry[1] or len(newentry[5]) == 0:
-                        WindowUtils.popupMessageOk(
+                        WindowUtils.popup_message_ok(
                             self.s,
                             'One or more required fields are empty.',
                             self.sWindow, self.log)
@@ -356,7 +359,7 @@ class EditWindow(MyWindow):
                 break # keep value of 'changes' the same
             if i == ord('x'): # 'exit' without saving any changes
                 if changes:
-                    answer = WindowUtils.popupGetYesNo(
+                    answer = WindowUtils.popup_get_yes_no(
                         self.s,
                         'There were changes. Exit without saving?',
                         self.sWindow, self.log, default='NO')
@@ -392,46 +395,51 @@ class EditWindow(MyWindow):
         if budgetentry < 0 and (fieldname == 'category' or
                                 fieldname == 'amount' or
                                 fieldname == 'date'):
-            WindowUtils.popupMessageOk(
+            WindowUtils.popup_message_ok(
                 self.s,
                 'fieldname='+fieldname+', but fieldy < 8: '+str(fieldy),
                 self.sWindow, self.log)
             return newtransaction
 
-        bud_array = newtransaction[(6 if isMain else 5)]
+        bud_array = newtransaction[g.tBudarr]
 
         # Overwrite the field that changed
         updatequery = ''
         if fieldname == 'checknum': # Checks only
-            newtransaction[0] = newvalue
+            newtransaction[g.tCkn] = newvalue
 
             # checknum and transaction num are the same
-            newtransaction[1] = newvalue
+            newtransaction[g.tID] = newvalue
         if fieldname == 'tamt': # Checks only
-            amount = float(newvalue)
+            try:
+                amount = float(newvalue)
+                # Check amounts are ALWAYS negative
+                amount = -1.0*abs(amount)
 
-            # Check amounts are ALWAYS negative
-            amount = -1.0*abs(amount)
+                # convert field back to floating point
+                newtransaction[g.tAmount] = amount
+            except ValueError:
+                WindowUtils.popup_message_ok(
+                       self.s, '"{}" is not a float!'.format(newvalue),
+                       self.sWindow, self.log)
 
-            # convert field back to floating point
-            newtransaction[2] = amount
         if fieldname == 'tdate': # Checks only
             try:
                 # convert field back to date object
-                newtransaction[3] = \
-                    datetime.datetime.strptime(newvalue, '%m/%d/%Y')
-            except:
-                WindowUtils.popupMessageOk(
+                newtransaction[g.tDate] = datetime.datetime.strptime(
+                    newvalue, '%m/%d/%Y')
+            except ValueError:
+                WindowUtils.popup_message_ok(
                     self.s,
                     'Bad date format. Expected format is m/d/yyyy',
                     self.sWindow, self.log)
                 return newtransaction
         if fieldname == 'tpayee': # Checks only
-            newtransaction[4] = newvalue
+            newtransaction[g.tPayee] = newvalue
         if fieldname == 'comments': # Either main or checks
-            newtransaction[(7 if isMain else 6)] = newvalue
+            newtransaction[g.tComment] = newvalue
         if fieldname == 'desc': # Either main or checks
-            newtransaction[(2 if isMain else 4)] = newvalue
+            newtransaction[g.tPayee] = newvalue
 
         '''
         This section applies to the budget item(s) in the transaction, either
@@ -440,24 +448,30 @@ class EditWindow(MyWindow):
         if fieldname == 'category':
             # all budget categories are upper-case
             bud_array[budgetentry][0] = newvalue.upper()
-            newtransaction[(6 if isMain else 5)] = bud_array
+            newtransaction[g.tBudarr] = bud_array
         if fieldname == 'amount':
             # convert field back to floating point
-            bud_array[budgetentry][1] = float(newvalue)
-            newtransaction[(6 if isMain else 5)] = bud_array
+            try:
+                bud_array[budgetentry][1] = float(newvalue)
+                newtransaction[g.tBudarr] = bud_array
+            except ValueError:
+                WindowUtils.popup_message_ok(
+                    self.s, '"{}" is not a float!'.format(newvalue),
+                    self.sWindow, self.log)
+
         if fieldname == 'date':
             try:
                 # convert field back to date object
-                bud_array[budgetentry][2] = \
-                    datetime.datetime.strptime(newvalue, '%m/%d/%Y')
-            except:
-                WindowUtils.popupMessageOk(
+                bud_array[budgetentry][2] = datetime.datetime.strptime(
+                    newvalue, '%m/%d/%Y')
+            except ValueError:
+                WindowUtils.popup_message_ok(
                     self.s,
                     'Bad date format. Expected format is m/d/yyyy ('
                     +newvalue+')',
                     self.sWindow, self.log)
                 return newtransaction
-            newtransaction[(6 if isMain else 5)] = bud_array
+            newtransaction[g.tBudarr] = bud_array
 
         return newtransaction # return the new, changed transaction record
 
@@ -469,20 +483,20 @@ class EditWindow(MyWindow):
         # First, find all the database records that match the tran_ID/tnum base
         # of the new transaction to add, and make sure there are none.
         #
-        tid = newtransaction[(1 if isMain else 0)]
+        tid = newtransaction[g.tID]
         try:
             dbcur = self.budDB.executeQuery(
                 'select * from '+('main' if isMain else 'checks')+' where '+
                 ('tran_ID' if isMain else 'tnum')+' like "'+tid+'%";')
         except MySQLdb.Error, e:
-            WindowUtils.popupMessageOk(
+            WindowUtils.popup_message_ok(
                 self.s, 'mysql exception counting transaction database records'
                 ' with transaction id '+tid+': '+str(e),
                 self.sWindow, self.log)
             return
         numrows = dbcur.rowcount
         if numrows > 0:
-            WindowUtils.popupMessageOk(
+            WindowUtils.popup_message_ok(
                 self.s,
                 'There are already '+str(numrows)+' rows in the database for tr'
                 'ansaction id '+tid+' that we want to add.',
@@ -492,30 +506,30 @@ class EditWindow(MyWindow):
         #
         # Second, insert the records from the newtransaction into the database
         #
-        newmulti = len(newtransaction[6 if isMain else 5]) > 1
+        newmulti = len(newtransaction[g.tBudarr]) > 1
         if newmulti:
             if isMain:
                 i = 0
-                for budarr in newtransaction[6]:
+                for budarr in newtransaction[g.tBudarr]:
                     query = ('insert into main ('
                              'tran_date,tran_ID,tran_desc,tran_checknum,'
                              'tran_type,tran_amount,bud_category,bud_amount,'
                              'bud_date,comment) values ('
-                             '"'+newtransaction[0].strftime('%Y-%m-%d')+'",'
+                             '"'+newtransaction[g.tDate].strftime('%Y-%m-%d')+'",'
                              '"'+tid+'-'+str(i)+'",'
-                             '"'+newtransaction[2]+'",'
-                             '"'+str(newtransaction[3])+'",'
-                             '"'+newtransaction[4]+'",'
-                             '"'+'{0:.2f}'.format(newtransaction[5])+'",'
+                             '"'+newtransaction[g.tPayee]+'",'
+                             '"'+str(newtransaction[g.tCkn])+'",'
+                             '"'+newtransaction[g.tType]+'",'
+                             '"'+'{0:.2f}'.format(newtransaction[g.tAmount])+'",'
                              '"'+budarr[0]+'",'
                              '"'+'{0:.2f}'.format(budarr[1])+'",'
                              '"'+budarr[2].strftime('%Y-%m-%d')+'",'
-                             '"'+newtransaction[7]+'");'
+                             '"'+newtransaction[g.tComment]+'");'
                             )
                     try:
                         self.budDB.executeQuery(query)
                     except MySQLdb.Error, e:
-                        WindowUtils.popupMessageOk(
+                        WindowUtils.popup_message_ok(
                             self.s,
                             [query, 'addDatabase()-main-multi:',
                              'mysql exception inserting new multibudget main tr'
@@ -524,33 +538,33 @@ class EditWindow(MyWindow):
                             self.sWindow, self.log)
                         return
                     i += 1
-            else:
+            else: # Checks
                 i = 0
-                for budarr in newtransaction[5]:
+                for budarr in newtransaction[g.tBudarr]:
                     query = ('insert into checks ('
                              'tnum,tchecknum,tamt,tdate,tpayee,bud_cat,bud_amt,'
                              'bud_date,comments,clear_date) values ('
                              '"'+tid+'-'+str(i)+'",'
-                             '"'+str(newtransaction[1])+'",'
-                             '"'+'{0:.2f}'.format((newtransaction[2] \
-                                     if newtransaction[2] else 0.0))+'",'
-                             +('"'+newtransaction[3].strftime('%Y-%m-%d')+'"' \
-                                     if newtransaction[3] else 'NULL')+','
-                             '"'+newtransaction[4]+'",'
+                             '"'+str(newtransaction[g.tCkn])+'",'
+                             '"'+'{0:.2f}'.format((newtransaction[g.tAmount] \
+                                     if newtransaction[g.tAmount] else 0.0))+'",'
+                             +('"'+newtransaction[g.tDate].strftime('%Y-%m-%d')+'"' \
+                                     if newtransaction[g.tDate] else 'NULL')+','
+                             '"'+newtransaction[g.tPayee]+'",'
                              '"'+budarr[0]+'",'
                              '"'+'{0:.2f}'.format((budarr[1] \
                                      if budarr[1] else 0.0))+'",'
                              +('"'+budarr[2].strftime('%Y-%m-%d')+'"' \
                                      if budarr[2] else 'NULL')+','
                              '"'+budarr[2].strftime('%Y-%m-%d')+'",'
-                             '"'+newtransaction[6]+'",'
-                             +('"'+newtransaction[7].strftime('%Y-%m-%d')+'"' \
-                                     if newtransaction[7] else 'NULL')+');'
+                             '"'+newtransaction[g.tComment]+'",'
+                             +('"'+newtransaction[g.tClearDate].strftime('%Y-%m-%d')+'"' \
+                                     if newtransaction[g.tClearDate] else 'NULL')+');'
                             )
                     try:
                         self.budDB.executeQuery(query)
                     except MySQLdb.Error, e:
-                        WindowUtils.popupMessageOk(
+                        WindowUtils.popup_message_ok(
                             self.s,
                             [query, 'addDatabase()-checks-multi:',
                                 'mysql exception inserting new multibudget chec'
@@ -564,51 +578,51 @@ class EditWindow(MyWindow):
                          'tran_date,tran_ID,tran_desc,tran_checknum,tran_type,'
                          'tran_amount,bud_category,bud_amount,bud_date,comment)'
                          ' values ('
-                        '"'+newtransaction[0].strftime('%Y-%m-%d')+'",'
-                        '"'+newtransaction[1]+'",'
-                        '"'+newtransaction[2]+'",'
-                        '"'+str(newtransaction[3])+'",'
-                        '"'+newtransaction[4]+'",'
-                        '"'+'{0:.2f}'.format(newtransaction[5])+'",'
-                        '"'+newtransaction[6][0][0]+'",'
-                        '"'+'{0:.2f}'.format(newtransaction[6][0][1])+'",'
-                        '"'+newtransaction[6][0][2].strftime('%Y-%m-%d')+'",'
-                        '"'+newtransaction[7]+'");'
+                        '"'+newtransaction[g.tDate].strftime('%Y-%m-%d')+'",'
+                        '"'+newtransaction[g.tID]+'",'
+                        '"'+newtransaction[g.tPayee]+'",'
+                        '"'+str(newtransaction[g.tCkn])+'",'
+                        '"'+newtransaction[g.tType]+'",'
+                        '"'+'{0:.2f}'.format(newtransaction[g.tAmount])+'",'
+                        '"'+newtransaction[g.tBudarr][0][0]+'",'
+                        '"'+'{0:.2f}'.format(newtransaction[g.tBudarr][0][1])+'",'
+                        '"'+newtransaction[g.tBudarr][0][2].strftime('%Y-%m-%d')+'",'
+                        '"'+newtransaction[g.tComment]+'");'
                         )
                 try:
                     self.budDB.executeQuery(query)
                 except MySQLdb.Error, e:
-                    WindowUtils.popupMessageOk(
+                    WindowUtils.popup_message_ok(
                         self.s,
                         [query, 'addDatabase()-main-single:', 'mysql exception '
                          'inserting new single budget main transaction record:',
                          str(e)],
                         self.sWindow, self.log)
                     return
-            else:
+            else: # Checks
                 query = ('insert into checks ('
                          'tnum,tchecknum,tamt,tdate,tpayee,bud_cat,bud_amt,'
                          'bud_date,comments,clear_date) values ('
-                        '"'+newtransaction[0]+'",'
-                        '"'+str(newtransaction[1])+'",'
-                        '"'+'{0:.2f}'.format((newtransaction[2] \
-                                if newtransaction[2] else 0.0))+'",'
-                        +('"'+newtransaction[3].strftime('%Y-%m-%d')+'"' \
-                                if newtransaction[3] else 'NULL')+','
-                        '"'+newtransaction[4]+'",'
-                        '"'+newtransaction[5][0][0]+'",'
-                        '"'+'{0:.2f}'.format((newtransaction[5][0][1] \
-                                if newtransaction[5][0][1] else 0.0))+'",'
-                        +('"'+newtransaction[5][0][2].strftime('%Y-%m-%d')+'"' \
-                                if newtransaction[5][0][2] else 'NULL')+','
-                        '"'+newtransaction[6]+'",'
-                        +('"'+newtransaction[7].strftime('%Y-%m-%d')+'"' \
-                                if newtransaction[7] else 'NULL')+');'
+                        '"'+newtransaction[g.tID]+'",'
+                        '"'+str(newtransaction[g.tCkn])+'",'
+                        '"'+'{0:.2f}'.format((newtransaction[g.tAmount] \
+                                if newtransaction[g.tAmount] else 0.0))+'",'
+                        +('"'+newtransaction[g.tDate].strftime('%Y-%m-%d')+'"' \
+                                if newtransaction[g.tDate] else 'NULL')+','
+                        '"'+newtransaction[g.tPayee]+'",'
+                        '"'+newtransaction[g.tBudarr][0][0]+'",'
+                        '"'+'{0:.2f}'.format((newtransaction[g.tBudarr][0][1] \
+                                if newtransaction[g.tBudarr][0][1] else 0.0))+'",'
+                        +('"'+newtransaction[g.tBudarr][0][2].strftime('%Y-%m-%d')+'"' \
+                                if newtransaction[g.tBudarr][0][2] else 'NULL')+','
+                        '"'+newtransaction[g.tComment]+'",'
+                        +('"'+newtransaction[g.tClearDate].strftime('%Y-%m-%d')+'"' \
+                                if newtransaction[g.tClearDate] else 'NULL')+');'
                         )
                 try:
                     self.budDB.executeQuery(query)
                 except MySQLdb.Error, e:
-                    WindowUtils.popupMessageOk(
+                    WindowUtils.popup_message_ok(
                         self.s,
                         [query, 'addDatabase()-checks-single:',
                             'mysql exception inserting new single budget checks'
@@ -626,7 +640,7 @@ class EditWindow(MyWindow):
         # '...-<one or more digits>'
         # If the number of database records equals the number of budget entries
         # in the old transaction record, then go to the next step.
-        oldtid = oldtransaction[(1 if isMain else 0)]
+        oldtid = oldtransaction[g.tID]
         t = oldtid.split('-')
         oldmulti = len(t) > 1 and t[-1].isdigit()
         if oldmulti:
@@ -637,15 +651,15 @@ class EditWindow(MyWindow):
 
         # Make sure transaction ID matches with multiple or single budget
         # entries
-        if not oldmulti and len(oldtransaction[(6 if isMain else 5)]) > 1:
-            WindowUtils.popupMessageOk(
+        if not oldmulti and len(oldtransaction[g.tBudarr]) > 1:
+            WindowUtils.popup_message_ok(
                 self.s,
                 'This transaction ID implies single budget, but the transaction'
                 ' record has more than 1 entry.',
                 self.sWindow, self.log)
             return
-        elif oldmulti and len(oldtransaction[(6 if isMain else 5)]) < 2:
-            WindowUtils.popupMessageOk(
+        elif oldmulti and len(oldtransaction[g.tBudarr]) < 2:
+            WindowUtils.popup_message_ok(
                 self.s,
                 'This transaction ID implies multi budget, but the transaction '
                 'record has less than 2 entries.',
@@ -657,7 +671,7 @@ class EditWindow(MyWindow):
                 'select * from '+('main' if isMain else 'checks')+' where '+
                 ('tran_ID' if isMain else 'tnum')+' like "'+oldtidbase+'%";')
         except MySQLdb.Error, e:
-            WindowUtils.popupMessageOk(
+            WindowUtils.popup_message_ok(
                 self.s,
                 'mysql exception counting old transaction database records: '+
                  str(e),
@@ -667,9 +681,8 @@ class EditWindow(MyWindow):
 
         # Make sure multiple budget entries have the same number in the
         # transaction and database
-        if oldmulti and not numrows == \
-                len(oldtransaction[(6 if isMain else 5)]):
-            WindowUtils.popupMessageOk(
+        if oldmulti and not numrows == len(oldtransaction[g.tBudarr]):
+            WindowUtils.popup_message_ok(
                 self.s,
                 'This transaction has multiple budget entries, but the database'
                 ' and transaction don\'t agree how many',
@@ -678,7 +691,7 @@ class EditWindow(MyWindow):
         # Make sure transaction IDs that imply single budget only have 1 record
         # in the database
         elif not oldmulti and numrows != 1:
-            WindowUtils.popupMessageOk(
+            WindowUtils.popup_message_ok(
                 self.s,
                 'This transaction has only one budget entry, but the database h'
                 'as '+str(numrows)+' rows instead.',
@@ -693,7 +706,7 @@ class EditWindow(MyWindow):
                 'delete from '+('main' if isMain else 'checks')+' where '+
                 ('tran_ID' if isMain else 'tnum')+' like "'+oldtidbase+'%";')
         except MySQLdb.Error, e:
-            WindowUtils.popupMessageOk(
+            WindowUtils.popup_message_ok(
                 self.s,
                 ['update_database():', 'mysql exception deleting old transactio'
                  'n database record(s):', str(e)],
@@ -709,7 +722,7 @@ class EditWindow(MyWindow):
 
         # we can't change the transaction ID, so the old one is carried through
         # to the new one.
-        newtid = newtransaction[(1 if isMain else 0)]
+        newtid = newtransaction[g.tID]
 
         # The new one may or may not be multi just like the old one may or may
         # not be multi. It needs to represent the new transaction, not the old
@@ -720,29 +733,29 @@ class EditWindow(MyWindow):
             newtidbase = newtid[:idx]
         else:
             newtidbase = newtid
-        newmulti = len(newtransaction[6 if isMain else 5]) > 1
+        newmulti = len(newtransaction[g.tBudarr]) > 1
         if newmulti:
             if isMain:
                 i = 0
-                for budarr in newtransaction[6]:
+                for budarr in newtransaction[g.tBudarr]:
                     query = ('insert into main (tran_date, tran_ID, tran_desc, '
                              'tran_checknum, tran_type, tran_amount, bud_catego'
                              'ry, bud_amount, bud_date, comment) values ('
-                            '"'+newtransaction[0].strftime('%Y-%m-%d')+'",'
+                            '"'+newtransaction[g.tDate].strftime('%Y-%m-%d')+'",'
                             '"'+oldtidbase+'-'+str(i)+'",'
-                            '"'+newtransaction[2]+'",'
-                            '"'+str(newtransaction[3])+'",'
-                            '"'+newtransaction[4]+'",'
-                            '"'+'{0:.2f}'.format(newtransaction[5])+'",'
+                            '"'+newtransaction[g.tPayee]+'",'
+                            '"'+str(newtransaction[g.tCkn])+'",'
+                            '"'+newtransaction[g.tType]+'",'
+                            '"'+'{0:.2f}'.format(newtransaction[g.tAmount])+'",'
                             '"'+budarr[0]+'",'
                             '"'+'{0:.2f}'.format(budarr[1])+'",'
                             '"'+budarr[2].strftime('%Y-%m-%d')+'",'
-                            '"'+newtransaction[7]+'");'
+                            '"'+newtransaction[g.tComment]+'");'
                             )
                     try:
                         self.budDB.executeQuery(query)
                     except MySQLdb.Error, e:
-                        WindowUtils.popupMessageOk(
+                        WindowUtils.popup_message_ok(
                             self.s,
                             [query, 'update_database()-main-multi: mysql except'
                              'ion inserting new multibudget main transaction re'
@@ -752,30 +765,30 @@ class EditWindow(MyWindow):
                     i += 1
             else:
                 i = 0
-                for budarr in newtransaction[5]:
+                for budarr in newtransaction[g.tBudarr]:
                     query = ('insert into checks (tnum, tchecknum, tamt, tdate,'
                              ' tpayee, bud_cat, bud_amt, bud_date, comments, cl'
                              'ear_date) values ('
                             '"'+oldtidbase+'-'+str(i)+'",'
-                            '"'+str(newtransaction[1])+'",'
-                            '"'+'{0:.2f}'.format((newtransaction[2] \
-                                    if newtransaction[2] else 0.0))+'",'
-                            +('"'+newtransaction[3].strftime('%Y-%m-%d')+'"' \
-                                    if newtransaction[3] else 'NULL')+','
-                            '"'+newtransaction[4]+'",'
+                            '"'+str(newtransaction[g.tCkn])+'",'
+                            '"'+'{0:.2f}'.format((newtransaction[g.tAmount] \
+                                    if newtransaction[g.tAmount] else 0.0))+'",'
+                            +('"'+newtransaction[g.tDate].strftime('%Y-%m-%d')+'"' \
+                                    if newtransaction[g.tDate] else 'NULL')+','
+                            '"'+newtransaction[g.tPayee]+'",'
                             '"'+budarr[0]+'",'
                             '"'+'{0:.2f}'.format((budarr[1] \
                                     if budarr[1] else 0.0))+'",'
                             +('"'+budarr[2].strftime('%Y-%m-%d')+'"' \
                                     if budarr[2] else 'NULL')+','
-                            '"'+newtransaction[6]+'",'
-                            +('"'+newtransaction[7].strftime('%Y-%m-%d')+'"' \
-                                    if newtransaction[7] else 'NULL')+');'
+                            '"'+newtransaction[g.tComment]+'",'
+                            +('"'+newtransaction[g.tClearDate].strftime('%Y-%m-%d')+'"' \
+                                    if newtransaction[g.tClearDate] else 'NULL')+');'
                             )
                     try:
                         self.budDB.executeQuery(query)
                     except MySQLdb.Error, e:
-                        WindowUtils.popupMessageOk(
+                        WindowUtils.popup_message_ok(
                             self.s,
                             [query, 'update_database()-checks-multi: mysql exce'
                              'ption inserting new multibudget checks transactio'
@@ -788,21 +801,21 @@ class EditWindow(MyWindow):
                 query = ('insert into main (tran_date,tran_ID,tran_desc,'
                          'tran_checknum,tran_type,tran_amount,bud_category,'
                          'bud_amount,bud_date,comment) values ('
-                        '"'+newtransaction[0].strftime('%Y-%m-%d')+'",'
-                        '"'+newtransaction[1]+'",'
-                        '"'+newtransaction[2]+'",'
-                        '"'+str(newtransaction[3])+'",'
-                        '"'+newtransaction[4]+'",'
-                        '"'+'{0:.2f}'.format(newtransaction[5])+'",'
-                        '"'+newtransaction[6][0][0]+'",'
-                        '"'+'{0:.2f}'.format(newtransaction[6][0][1])+'",'
-                        '"'+newtransaction[6][0][2].strftime('%Y-%m-%d')+'",'
-                        '"'+newtransaction[7]+'");'
+                        '"'+newtransaction[g.tDate].strftime('%Y-%m-%d')+'",'
+                        '"'+newtransaction[g.tID]+'",'
+                        '"'+newtransaction[g.tPayee]+'",'
+                        '"'+str(newtransaction[g.tCkn])+'",'
+                        '"'+newtransaction[g.tType]+'",'
+                        '"'+'{0:.2f}'.format(newtransaction[g.tAmount])+'",'
+                        '"'+newtransaction[g.tBudarr][0][0]+'",'
+                        '"'+'{0:.2f}'.format(newtransaction[g.tBudarr][0][1])+'",'
+                        '"'+newtransaction[g.tBudarr][0][2].strftime('%Y-%m-%d')+'",'
+                        '"'+newtransaction[g.tComment]+'");'
                         )
                 try:
                     self.budDB.executeQuery(query)
                 except MySQLdb.Error, e:
-                    WindowUtils.popupMessageOk(
+                    WindowUtils.popup_message_ok(
                         self.s,
                         [query, 'update_database()-main-single: mysql exception'
                          ' inserting new single budget main transaction '
@@ -813,26 +826,26 @@ class EditWindow(MyWindow):
                 query = ('insert into checks (tnum,tchecknum,tamt,tdate,tpayee,'
                          'bud_cat,bud_amt,bud_date,comments,clear_date)'
                          ' values ('
-                         '"'+newtransaction[0]+'",'
-                         '"'+str(newtransaction[1])+'",'
-                         '"'+'{0:.2f}'.format((newtransaction[2] \
-                                 if newtransaction[2] else 0.0))+'",'
-                         +('"'+newtransaction[3].strftime('%Y-%m-%d')+'"' \
-                                 if newtransaction[3] else 'NULL')+','
-                         '"'+newtransaction[4]+'",'
-                         '"'+newtransaction[5][0][0]+'",'
-                         '"'+'{0:.2f}'.format((newtransaction[5][0][1] \
-                                 if newtransaction[5][0][1] else 0.0))+'",'
-                         +('"'+newtransaction[5][0][2].strftime('%Y-%m-%d')+'"'\
-                                 if newtransaction[5][0][2] else 'NULL')+','
-                         '"'+newtransaction[6]+'",'
-                         +('"'+newtransaction[7].strftime('%Y-%m-%d')+'"' \
-                                 if newtransaction[7] else 'NULL')+');'
+                         '"'+newtransaction[g.tID]+'",'
+                         '"'+str(newtransaction[g.tCkn])+'",'
+                         '"'+'{0:.2f}'.format((newtransaction[g.tAmount] \
+                                 if newtransaction[g.tAmount] else 0.0))+'",'
+                         +('"'+newtransaction[g.tDate].strftime('%Y-%m-%d')+'"' \
+                                 if newtransaction[g.tDate] else 'NULL')+','
+                         '"'+newtransaction[g.tPayee]+'",'
+                         '"'+newtransaction[g.tBudarr][0][0]+'",'
+                         '"'+'{0:.2f}'.format((newtransaction[g.tBudarr][0][1] \
+                                 if newtransaction[g.tBudarr][0][1] else 0.0))+'",'
+                         +('"'+newtransaction[g.tBudarr][0][2].strftime('%Y-%m-%d')+'"'\
+                                 if newtransaction[g.tBudarr][0][2] else 'NULL')+','
+                         '"'+newtransaction[g.tComment]+'",'
+                         +('"'+newtransaction[g.tClearDate].strftime('%Y-%m-%d')+'"' \
+                                 if newtransaction[g.tClearDate] else 'NULL')+');'
                         )
                 try:
                     self.budDB.executeQuery(query)
                 except MySQLdb.Error, e:
-                    WindowUtils.popupMessageOk(
+                    WindowUtils.popup_message_ok(
                         self.s,
                         [query, 'update_database()-main-single: mysql exception'
                          ' inserting new single budget checks transaction recor'
