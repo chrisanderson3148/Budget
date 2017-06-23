@@ -406,6 +406,11 @@ def do_check_month_query_asmain(yearmonth):
             "select sum(bud_amt) from checks where bud_date between '"
             +yearmonth+"-01' and '"+yearmonth+"-31';")
 
+def do_uncleared_checks_query():
+    return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt"
+            ",bud_date,comments from checks where clear_date is null and tdate "
+            "> '2005-12-31' and tamt != 0 order by tdate,tchecknum;")
+
 def do_check_all_query():
     return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt"
             ",bud_date,comments from checks where tnum < 5000 order by tnum;")
@@ -1034,7 +1039,20 @@ def handle_missing_unrecorded_checks():
     WindowUtils.popup_message_ok(
         s, groupedmissingchecks, sw, log, title=' Missing check numbers ')
 
-def handleAllRecordedChecks():
+def handle_uncleared_checks():
+    query = do_uncleared_checks_query()
+    elemarray, contentarray, total = get_check_data_array_and_content_array(
+        query)
+    if elemarray is None:
+        WindowUtils.popup_message_ok(
+            s, 'No uncleared checks', sw, log)
+        return
+    do_transaction_list_window(
+        elemarray, contentarray,
+        'All uncleared checks since January 1, 2006',
+        False, True, get_check_data_array_and_content_array, query)
+
+def handle_all_recorded_checks():
     query = do_check_all_query()
     elemarray, contentarray, total = get_check_data_array_and_content_array(
         query)
@@ -1047,7 +1065,7 @@ def handleAllRecordedChecks():
         'Total='+(str(total) if total else ''),
         False, True, get_check_data_array_and_content_array, query)
 
-def handleTransactionSearch():
+def handle_transaction_search():
     table, field, isorlike, value = get_search_parameters()
     if not field: return
 
@@ -1216,6 +1234,7 @@ menus = ['Select by budget category for given year',
          'Add uncleared checks',
          'Add cleared checks',
          'All recorded checks',
+         'All uncleared checks',
          'All missing/unrecorded checks',
          'Search transactions',
          'Quit']
@@ -1270,12 +1289,14 @@ while True:
         handle_cleared_unrecorded_checks()
     elif 'All mi' in menus[entry]: # Add cleared checks
         handle_missing_unrecorded_checks()
+    elif 'All uncl' in menus[entry]:
+        handle_uncleared_checks()
     elif 'All re' in menus[entry]:
         # manage all recorded check transactions for all years
-        handleAllRecordedChecks()
+        handle_all_recorded_checks()
     elif 'Search tr' in menus[entry]:
         # manage all non-check transactions that match the search criteria
-        handleTransactionSearch()
+        handle_transaction_search()
 
 quit('Quit selected')
 
