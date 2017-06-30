@@ -1,0 +1,5 @@
+*.pyc
+catfiles
+downloads
+log
+payee
