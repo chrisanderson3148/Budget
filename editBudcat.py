@@ -148,7 +148,7 @@ def do_edit_win(entry):
     # Sometimes this function is called with entry coming from a 'main' table
     # query but of a check. That entry won't have a cleardate field because
     # it's from the 'main' table. Replace that field with 'xxx'.
-    else: 
+    else:
         win.draw_win(False,               # isMain
                      entry[g.tDate],      # transaction date
                      entry[g.tPayee],     # transaction payee
@@ -520,23 +520,19 @@ def get_data_array_and_content_array(listquery, totalquery):
         # differently
         if len(bud_array) > 1: # multi-budget
             contentrow = '%-12s %4d %-40s %s %10.2f %-15s %s' % (
-                                                        # transaction date
-                (row[g.tDate].strftime('%m/%d/%Y') if row[g.tDate] else '---'),
+                (row[g.tDate].strftime('%m/%d/%Y') if row[g.tDate] else '---'), # transaction date
                 row[g.tCkn],                            # transaction check number
                 row[g.tPayee][:40],                     # transaction description
-                                                        # transaction type
-                (row[g.tType] if 'str' in str(type(row[g.tType])) else 'b'),
+                (row[g.tType] if 'str' in str(type(row[g.tType])) else 'b'), # transaction type
                 row[g.tAmount],                         # transaction amount
                 'MULTI',                                # budget category
                 row[g.tCommentQ])                       # transaction comment
         else: # single budget
             contentrow = '%-12s %4d %-40s %s %10.2f %-15s %s' % (
-                                                      # bud_date
-                (thebud[2].strftime('%m/%d/%Y') if thebud[2] else '---'),
+                (thebud[2].strftime('%m/%d/%Y') if thebud[2] else '---'), # bud_date
                 row[g.tCkn],                          # transaction check number
                 row[g.tPayee][:40],                   # transaction description
-                                                      # transaction type
-                (row[g.tType] if 'str' in str(type(row[g.tType])) else 'b'),
+                (row[g.tType] if 'str' in str(type(row[g.tType])) else 'b'), # transaction type
                 thebud[1],                            # bud_amount
                 thebud[0],                            # bud_category
                 row[g.tCommentQ])                     # transaction comment
