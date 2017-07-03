@@ -4,3 +4,5 @@ downloads
 log
 payee
 new
+__init__.py
+pylintrc
