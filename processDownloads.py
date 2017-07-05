@@ -20,8 +20,8 @@ def clearCUChecks():
 
     updated = 0
     try:
-        query = ('select tran_checknum,tran_date from main where tran_checknum '
-                 '!= "0" and tran_type = "b";')
+        query = ('select tran_checknum,tran_date from main where tran_checknum != "0" and tran_type = "b'
+                 '";')
         cur1.execute(query)
     except:
         (etype, value, tb) = sys.exc_info()
@@ -33,8 +33,7 @@ def clearCUChecks():
         checknum = str(inner_row[0])
         trandate = inner_row[1]
 
-        query = ('update checks set clear_date = "'+str(trandate)+
-                '" where tchecknum = "'+checknum+'";')
+        query = ('update checks set clear_date = "'+str(trandate)+'" where tchecknum = "'+checknum+'";')
         try:
             cur2.execute(query)
         except:
@@ -57,22 +56,20 @@ def printUnknownNonCheckTransactions():
     print('%-12s %-40s %10s' % ("Tran date", "Description", "Amount"))
 
     try:
-        query = ('select tran_date,tran_desc,tran_amount from main where bud_ca'
-                 'tegory = "UNKNOWN" and tran_date > "2005-12-31" and tran_desc'
-                 ' not like "CHECK%" and tran_desc not like "Check%" order by t'
-                 'ran_date;')
+        query = ('select tran_date,tran_desc,tran_amount from main where bud_category = "UNKNOWN" and tr'
+                 'an_date > "2005-12-31" and tran_desc not like "CHECK%" and tran_desc not like "Check%"'
+                 ' order by tran_date;')
         cur1.execute(query)
     except:
         (etype, value, tb) = sys.exc_info()
-        print('printUnknownNonCheckTransactions(): Exception executing query: '
-              +query)
+        print('printUnknownNonCheckTransactions(): Exception executing query: '+query)
         globalExceptionPrinter(etype, value, tb)
         sys.exit(1)
 
     amount = 0
     for inner_row in cur1:
         print('%-12s %-40s $%10.2f' % (inner_row[0].strftime('%m/%d/%Y'),
-              inner_row[1][:40], inner_row[2]))
+                                       inner_row[1][:40], inner_row[2]))
         amount += inner_row[2]
     print('-----------------------------------------------------------------')
     print('%-53s $%10.2f' % ('Total:', amount))
@@ -84,8 +81,8 @@ def printUnRecordedChecks():
     print('%-5s %-12s %8s' % ("CNum", "Cleared date", "Amount"))
 
     try:
-        query = ('select tran_checknum,tran_date,tran_amount from main where tr'
-                 'an_checknum != "0" and tran_type = "b";')
+        query = ('select tran_checknum,tran_date,tran_amount from main where tran_checknum != "0" and tr'
+                 'an_type = "b";')
         cur1.execute(query)
     except:
         (etype, value, tb) = sys.exc_info()
@@ -97,8 +94,8 @@ def printUnRecordedChecks():
     # the checks database, with at least an amount
     for inner_row in cur1:
         try:
-            query = ('select tchecknum from checks where tchecknum = "'+
-                     str(inner_row[0])+'" and tamt is not null;')
+            query = ('select tchecknum from checks where tchecknum = "'+str(inner_row[0])
+                     +'" and tamt is not null;')
             cur2.execute(query)
         except:
             (etype, value, tb) = sys.exc_info()
@@ -107,8 +104,8 @@ def printUnRecordedChecks():
             sys.exit(1)
 
         if cur2.rowcount == 0:
-            print('%-5d %-12s $%7.2f' % (inner_row[0],
-                  inner_row[1].strftime('%m/%d/%Y'), abs(inner_row[2])))
+            print('%-5d %-12s $%7.2f' % (inner_row[0], inner_row[1].strftime('%m/%d/%Y'),
+                                         abs(inner_row[2])))
 
 
 def printUnclearedChecks():
@@ -116,11 +113,12 @@ def printUnclearedChecks():
 
     mydict = dict()
     print('\nUncleared checks since 1/1/2006: ')
-    print('%-5s %-10s %8s %-30s %s' % ("CNum", "Date", "Amt", "Payee",
-          "Comments"))
+    print('%-5s %-10s %8s %-30s %s' % ("CNum", "Date", "Amt", "Payee", "Comments"))
     try:
-        query = ('select tnum,tdate,tamt,tpayee,comments from checks where clea'
-                 'r_date is null and tdate > "2005-12-31" order by tnum;')
+        # uncleared checks have no cleared date, transacted in 2006 or later, and have an amount (not
+        # cancelled)
+        query = ('select tnum,tdate,tamt,tpayee,comments from checks where clear_date is null and tdate '
+                 '> "2005-12-31" and tamt != 0.0 order by tnum;') 
         cur1.execute(query)
     except:
         (etype, value, tb) = sys.exc_info()
@@ -129,15 +127,14 @@ def printUnclearedChecks():
         sys.exit(1)
 
     for inner_row in cur1:
-        key = (str(inner_row[1]) + inner_row[0] + str(abs(inner_row[2]))+
-               inner_row[3] + inner_row[4])
+        key = (str(inner_row[1])+inner_row[0]+str(abs(inner_row[2]))+inner_row[3]+inner_row[4])
         mydict[key] = ('%-5s %10s $%7.2f %-30s %s' %
                        (inner_row[0], inner_row[1].strftime('%m/%d/%Y'),
                         abs(inner_row[2]), inner_row[3], inner_row[4]))
 
     try:
-        query = ('select tnum,tdate,tamt,tpayee,comments from chasechecks where'
-                 ' clear_date is null and tdate > "2005-12-31" order by tnum;')
+        query = ('select tnum,tdate,tamt,tpayee,comments from chasechecks where clear_date is null and t'
+                 'date > "2005-12-31" and tamt != 0.0  order by tnum;')
         cur1.execute(query)
     except:
         (etype, value, tb) = sys.exc_info()
@@ -146,40 +143,17 @@ def printUnclearedChecks():
         sys.exit(1)
 
     for inner_row in cur1:
-        key = (str(inner_row[1]) + inner_row[0] + str(abs(inner_row[2])) +
-               inner_row[3] + inner_row[4])
+        key = (str(inner_row[1]) + inner_row[0] + str(abs(inner_row[2])) + inner_row[3] + inner_row[4])
         mydict[key] = ('%-5s %10s $%7.2f %-30s %s' %
                       (inner_row[0], inner_row[1].strftime('%m/%d/%Y'),
                        abs(inner_row[2]), inner_row[3], inner_row[4]))
     for entry in sorted(mydict):
         print(mydict[entry])
 
-'''
-def mergeDictIntoChecksDB(val):
-    global cur1, doinsert
-
-    # don't insert existing records into database, but check if existing record should be UPDATED
-    # with tamt/tdate/tpayee/bud_cat/bud_amt/bud_date of new record
-    cur1.execute('select tamt,tdate,tpayee from checks where tchecknum = "'+key+'";') # There may be multiple entries for this check if it's a multi-budget item
-    cur1.fetchone() # only look at one record (of possible multiples)
-    for row in cur1:
-        if row[0] is None or row[1] is None or row[2] is None or not row[2]: # existing record is missing required fields
-            if val[1] and val[2] and val[3]: # downloaded record with same key has all required fields
-                if doinsert: # update the existing record with the required fields
-                    cur1.execute('update checks set tamt="'+val[1]+'",tdate=STR_TO_DATE("'+val[2]+'","%m/%d/%Y"),tpayee="'+val[3]+'" where tchecknum = "'+key+'";')
-                print('%spdated existing check # %s' % ('U' if doinsert else 'Would have u', key))
-            else: # downloaded record does not have all required fields which existing record needs -- fail immediately
-                print('Existing check '+key+' in checks database has empty required fields, but the downloaded record of the same key is missing required fields')
-                print(val)
-                sys.exit(1)
-        else:
-            print('Existing check # '+key+' does not need updating -- skipping')
-'''
-
 def insertDictIntoChecksDB(downloadDict, keysdict):
     '''
-    The records in the downloadDict have all been processed so that bud_cat,
-    bud_amt, and bud_date are filled in.
+    The records in the downloadDict have all been processed so that bud_cat, bud_amt, and bud_date are
+    filled in.
     '''
     global cur1, inserted, doinsert
 
@@ -190,12 +164,10 @@ def insertDictIntoChecksDB(downloadDict, keysdict):
         # downloaded record is new and does not exist in the checks database
         # key, checknum, amt, date, payee, bud[0], bud[1], bud[2], comment
         #         0       1    2      3     4cat     5amt   6date     7
-        query = ('insert into checks (tnum,tchecknum,tamt,tdate,tpayee,bud_cat,'
-                 'bud_amt,bud_date,comments) values ("'+val[0]+'","'+val[0]+'",'
-                 '"'+val[1]+'","STR_TO_DATE("'+val[2]+'","%m/%d/%Y"),"'+val[3]+
-                 '","'+val[4]+'","'+val[5]+'",STR_TO_DATE("'+val[6]+'","%m/%d/%'
-                 'Y"),"'+val[7]+'");')
-
+        query = ('insert into checks (tnum,tchecknum,tamt,tdate,tpayee,bud_cat,bud_amt,bud_date,comments'
+                 ') values ("'+val[0]+'","'+val[0]+'","'+val[1]+'","STR_TO_DATE("'+val[2]+'","%m/%d/%Y")'
+                 ',"'+val[3]+'","'+val[4]+'","'+val[5]+'",STR_TO_DATE("'+val[6]+'","%m/%d/%Y"),"'+val[7]
+                 +'");') 
         # If inserting is enabled, insert into database
         if doinsert:
             try:
@@ -203,17 +175,13 @@ def insertDictIntoChecksDB(downloadDict, keysdict):
                 #cur1.commit()
             except:
                 (etype, value, tb) = sys.exc_info()
-                print('insertDictIntoChecksDB(): Exception executing query: '+
-                      query)
+                print('insertDictIntoChecksDB(): Exception executing query: '+query)
                 globalExceptionPrinter(etype, value, tb)
                 sys.exit(1)
 
-        print('Key '+key+' is not in "checks" database -- '+
-              ('' if doinsert else 'would have ')+'inserted')
+        print('Key '+key+' is not in "checks" database -- '+('' if doinsert else 'would have ')
+              +'inserted')
         inserted += 1
-
-
-
 
 def insertDictIntoMainDB(downloadDict, keysdict):
     global cur1, inserted, doinsert
@@ -229,16 +197,15 @@ def insertDictIntoMainDB(downloadDict, keysdict):
 
         # don't insert existing records into database, but check if should
         # UPDATE the existing record
-        if oldkey in keysdict or oldkey+'-0' in keysdict or newkey in keysdict \
-           or newkey+'-0' in keysdict:
+        if oldkey in keysdict or oldkey+'-0' in keysdict or newkey in keysdict or newkey+'-0' \
+                in keysdict:
             continue
 
-        query = ('INSERT into main (tran_date,tran_ID,tran_desc,tran_checknum,t'
-                 'ran_type,tran_amount,bud_category,bud_amount,bud_date,comment'
-                 ') VALUES (STR_TO_DATE("'+val[0]+'","%m/%d/%Y"), "'+newkey+'",'
-                 ' "'+val[2]+'", "'+(val[3] if val[3] else "0") +'", "'+val[4]+
-                 '", "'+val[5]+'", "'+val[6]+'", "'+str(val[7])+'", STR_TO_DATE'
-                 '("'+val[8]+'","%m/%d/%Y"), "'+val[9]+'");')
+        query = ('INSERT into main (tran_date,tran_ID,tran_desc,tran_checknum,tran_type,tran_amount,bud_'
+                 'category,bud_amount,bud_date,comment) VALUES (STR_TO_DATE("'+val[0]+'","%m/%d/%Y"), "'
+                 +newkey+'", "'+val[2]+'", "'+(val[3] if val[3] else "0") +'", "'+val[4]+'", "'+val[5]
+                 +'", "'+val[6]+'", "'+str(val[7])+'", STR_TO_DATE("'+val[8]+'","%m/%d/%Y"), "'+val[9]
+                 +'");')
 
         # If inserting is enabled, insert into the appropriate database
         if doinsert:
@@ -247,8 +214,7 @@ def insertDictIntoMainDB(downloadDict, keysdict):
                 #cur1.commit()
             except:
                 (etype, value, tb) = sys.exc_info()
-                print('insertDictIntoMainDB(): Exception executing query: '+
-                      query)
+                print('insertDictIntoMainDB(): Exception executing query: '+query)
                 globalExceptionPrinter(etype, value, tb)
                 sys.exit(1)
         else:
@@ -275,12 +241,10 @@ cifile = 'downloads/Citi-RecentActivity.csv'
 if os.path.isdir('downloads'):
     if os.path.islink('downloads') and \
             not os.path.exists(os.readlink('downloads')):
-        print('The folder "downloads" is a symbolic link, but its target does n'
-              'ot exist.')
+        print('The folder "downloads" is a symbolic link, but its target does not exist.')
         print('To restore it as a symbolic link, re-install vmware-tools:')
         print('1. cd /home/chrisanderson/Desktop/vmware-tools-distrib')
-        print('2. "sudo perl vmware-install.pl" and enter password for chrisand'
-              'erson')
+        print('2. "sudo perl vmware-install.pl" and enter password for chrisanderson')
         print('3. Answer all questions with the default (just hit <return>)')
         sys.exit(1)
 
@@ -297,10 +261,8 @@ doinsert = True # set to True to actually insert into database
 inserted = 0
 
 # Open a connection to the database
-db = MySQLdb.connect(host='localhost', user='root', passwd='sawtooth',
-                     db='officialBudget')
-#db = pymysql.connect(host='localhost', user='root', password='sawtooth',
-#                     db='officialBudget')
+db = MySQLdb.connect(host='localhost', user='root', passwd='sawtooth', db='officialBudget')
+#db = pymysql.connect(host='localhost', user='root', password='sawtooth', db='officialBudget')
 cur1 = db.cursor()
 cur2 = db.cursor()
 
@@ -372,8 +334,7 @@ if os.path.isfile(byfile):
     BC_dict = tf.readDownloadBarclayFile(byfile)
     insertDictIntoMainDB(BC_dict, dbkeys)
 
-print('\n'+('Inserted ' if doinsert else 'Did not insert ')+str(inserted)+
-      ' records into DB')
+print('\n'+('Inserted ' if doinsert else 'Did not insert ')+str(inserted)+' records into DB')
 
 printUnclearedChecks()
 printUnRecordedChecks()
