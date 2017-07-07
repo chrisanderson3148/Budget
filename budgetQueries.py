@@ -10,17 +10,15 @@ class budgetDB(object):
 
         # Save the official list of column names for table main
         self.maincolumns = []
-        self.cur.execute("select column_name from information_schema.columns wh"
-                         "ere table_schema = 'officialBudget' and table_name='m"
-                         "ain';")
+        self.cur.execute("select column_name from information_schema.columns where table_schema = "
+                         "'officialBudget' and table_name='main';")
         for row in self.cur:
             self.maincolumns.append(row[0].upper())
 
         # Save the official list of column names for table checks
         self.checkscolumns = []
-        self.cur.execute("select column_name from information_schema.columns wh"
-                         "ere table_schema = 'officialBudget' and table_name='c"
-                         "hecks';")
+        self.cur.execute("select column_name from information_schema.columns where table_schema = "
+                         "'officialBudget' and table_name='checks';")
         for row in self.cur:
             self.checkscolumns.append(row[0].upper())
 

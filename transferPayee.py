@@ -28,8 +28,8 @@ class TransferPayee(object):
         with open(fname) as f:
             for line in f:
                 # Clean up line
-                # The regexes sometimes contain the '\' character, which needs
-                # to be replaced with '\\' because it's the escape character
+                # The regexes sometimes contain the '\' character, which needs to be replaced with '\\'
+                # because it's the escape character
                 line = line.replace('\\', '\\\\')
 
                 # strip leading and trailing blanks

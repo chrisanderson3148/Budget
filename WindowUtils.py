@@ -28,8 +28,7 @@ def popup_message_ok_dialog(d, message, title=' Message '):
 def popup_message_ok(s, message, sw, log, title=' Message '):
     _my_win = MessageWindow(s, 5, curses.COLOR_BLACK, curses.COLOR_YELLOW, sw, log)
 
-    # Sometimes we get unicode strings from our source. Just in case we do,
-    # convert it to ASCII.
+    # Sometimes we get unicode strings from our source. Just in case we do, convert it to ASCII.
     if type(message) is unicode:
         message = message.encode('ascii', 'replace')
 
@@ -81,10 +80,10 @@ def popup_message_ok(s, message, sw, log, title=' Message '):
     _my_win.delete()
 
 '''
-Displays a short list of strings horizontally that the user can choose from,
-tabbing to highlight and select.
-e.g., choice = popupGetMultipleChoice('Choose one:', ['Yes', 'No', 'Elephant',
-'Mouse', 'Green', 'Red'], 'Mouse')
+Displays a short list of strings horizontally that the user can choose from, tabbing to highlight and
+select.
+e.g., choice = popupGetMultipleChoice('Choose one:', ['Yes', 'No', 'Elephant', 'Mouse', 'Green', 'Red'],
+'Mouse')
 '''
 def popup_get_multiple_choice(s, wintitle, choices, default, sw, log):
     _my_win = PopupWindow(s, 5, curses.COLOR_BLACK, curses.COLOR_YELLOW, sw, log)
@@ -148,10 +147,10 @@ def popup_get_multiple_choice(s, wintitle, choices, default, sw, log):
     return _tabarr[_idx][2]
 
 '''
-Displays a short list of strings vertically that the user can choose from,
-tabbing to highlight and select.
-e.g., choice = popupGetMultipleChoice('Choose one:', ['Yes', 'No', 'Elephant',
-'Mouse', 'Green', 'Red'], 'Mouse')
+Displays a short list of strings vertically that the user can choose from, tabbing to highlight and
+select.
+e.g., choice = popupGetMultipleChoice('Choose one:', ['Yes', 'No', 'Elephant', 'Mouse', 'Green', 'Red'],
+'Mouse')
 '''
 def popup_get_multiple_choice_vert(s, wintitle, choices, default, sw, log):
     _my_win = PopupWindow(s, 5, curses.COLOR_BLACK, curses.COLOR_YELLOW, sw, log)
@@ -218,8 +217,7 @@ def popup_get_multiple_choice_vert(s, wintitle, choices, default, sw, log):
     return _tab_arr[_idx][2]
 
 '''
-Lets user choose between 'YES' and 'NO', tabbing to highlight and select each
-choice.
+Lets user choose between 'YES' and 'NO', tabbing to highlight and select each choice.
 e.g., choice = popupGetYesNo('Continue?')
 '''
 def popup_get_yes_no(s, wintitle, sw, log, default='YES'):

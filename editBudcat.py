@@ -233,11 +233,9 @@ def get_search_parameters():
 
     return table, field, compare, value
 
-def do_transaction_list_window(dataArray, contentArray, myTitle, addEdit,
-                               lastPage, qFunc, *args):
+def do_transaction_list_window(dataArray, contentArray, myTitle, addEdit, lastPage, qFunc, *args):
     numrows = len(contentArray)
-    listwin = EditWindow(s, budDB, 2, curses.COLOR_BLACK, curses.COLOR_GREEN,
-                         sw, log)
+    listwin = EditWindow(s, budDB, 2, curses.COLOR_BLACK, curses.COLOR_GREEN, sw, log)
 
     winrows = min(numrows, listwin.sheight-5)
     listwin.create(winrows+2, 120, title=myTitle)
@@ -245,33 +243,29 @@ def do_transaction_list_window(dataArray, contentArray, myTitle, addEdit,
     listwin.win.bkgd(' ', curses.color_pair(2))
     listwin.contents = contentArray
     listwin.pages = int(math.ceil(len(contentArray)/float(listwin.height-2)))
-    listwin.draw_contents(lastpage=lastPage) # readContentLines is called in
-                                             # draw_contents()
+    listwin.draw_contents(lastpage=lastPage) # readContentLines is called in draw_contents()
 
     # check number is 0 for main transactions
     # display the list of transactions
     while True:
         # handle navigation and selection of window list - returns row number
         # of selection
-        entryindex, command = getListItem(1, 1, winrows, listwin.win,
-                                          mywin=listwin)
+        entryindex, command = getListItem(1, 1, winrows, listwin.win, mywin=listwin)
         if command == 'quit':
             listwin.delete()
             return
 
         if addEdit:
             resp = do_add_check(entry=dataArray[entryindex])
-        elif len(args) == 4: # main and check transactions are combined
-            # edit the selected list item, either check or main -- This may
-            # change the contents of this window
+        elif len(args) == 4: # main and check transactions are combined edit the selected list item,
+            # either check or main -- This may change the contents of this window
             resp = do_edit_win_both(dataArray[entryindex])
         else:
-            # edit the selected list item -- This may change the contents of
-            # this window
+            # edit the selected list item -- This may change the contents of this window
             resp = do_edit_win(dataArray[entryindex])
 
-        # There were changes made so re-query the database and update the
-        # listwin contents and data arrays
+        # There were changes made so re-query the database and update the listwin contents and data
+        # arrays
         if resp:
             dataArray, contentArray, total = qFunc(*args)
 
@@ -280,13 +274,11 @@ def do_transaction_list_window(dataArray, contentArray, myTitle, addEdit,
                 return
 
             listwin.contents = contentArray
-            listwin.pages = int(math.ceil(len(contentArray)/
-                                          float(listwin.height-2)))
+            listwin.pages = int(math.ceil(len(contentArray)/float(listwin.height-2)))
         else:
             # redraw the list window contents after edit window is deleted
             listwin.draw_contents()
-            WindowUtils.popup_message_ok(s, 'No changes made in edit window',
-                                         sw, log)
+            WindowUtils.popup_message_ok(s, 'No changes made in edit window', sw, log)
 
         # redraw the list window contents after edit window is deleted
         listwin.draw_contents()
@@ -297,62 +289,54 @@ def do_budcat_query(budcat, theyear):
     budcat = budcat.upper()
     if budcat == 'ALL':
         if theyear == 'all':
-            return ("select * from main where tran_checknum = '0' and tran_desc"
-                    " not like 'CHECK %' order by bud_date;",
-                    "select sum(bud_amount) from main where tran_checknum = '0'"
-                    " and tran_desc not like 'CHECK %' order by bud_date;")
+            return ("select * from main where tran_checknum = '0' and tran_desc not like 'CHECK %' order"
+                    "by bud_date;",
+                    "select sum(bud_amount) from main where tran_checknum = '0' and tran_desc not like"
+                    "'CHECK %' order by bud_date;")
         else:
-            return ("select * from main where bud_date between '"+theyear+"-01-"
-                    "01' and '"+theyear+"-12-31' and tran_checknum = '0' and tr"
-                    "an_desc not like 'CHECK %' order by bud_date;",
-                    "select sum(bud_amount) from main where bud_date between '"
-                    +theyear+"-01-01' and '"+theyear+"-12-31' and tran_checknum"
-                    " = '0' and tran_desc not like 'CHECK %' order by bud_date;"
+            return ("select * from main where bud_date between '"+theyear+"-01-01' and '"+theyear
+                    +"-12-31' and tran_checknum = '0' and tran_desc not like 'CHECK %' "
+                    "order by bud_date;",
+                    "select sum(bud_amount) from main where bud_date between '"+theyear+"-01-01' and '"
+                    +theyear+"-12-31' and tran_checknum = '0' and tran_desc not like 'CHECK %' "
+                    "order by bud_date;"
                    )
     else:
         if theyear == 'all':
-            return ("select * from main where bud_category = '"+budcat+"' and t"
-                    "ran_checknum = '0' and tran_desc not like 'CHECK %' order "
-                    "by bud_date;",
-                    "select sum(bud_amount) from main where bud_category = '"
-                    +budcat+"' and tran_checknum = '0' and tran_desc not like 'C"
-                    "HECK %' order by bud_date;")
+            return ("select * from main where bud_category = '"+budcat+"' and tran_checknum = '0' and"
+                    " tran_desc not like 'CHECK %' order by bud_date;",
+                    "select sum(bud_amount) from main where bud_category = '"+budcat+"' and "
+                    "tran_checknum = '0' and tran_desc not like 'CHECK %' order by bud_date;")
         else:
-            return ("select * from main where bud_category = '"+budcat+"' and b"
-                    "ud_date between '"+theyear+"-01-01' and '"+theyear+"-12-31"
-                    "' and tran_checknum = '0' and tran_desc not like 'CHECK %'"
-                    " order by bud_date;",
-                    "select sum(bud_amount) from main where bud_category = '"
-                    +budcat+"' and bud_date between '"+theyear+"-01-01' and '"
-                    +theyear+"-12-31' and tran_checknum = '0' and tran_desc not"
-                    " like 'CHECK %' order by bud_date;")
+            return ("select * from main where bud_category = '"+budcat+"' and bud_date between '"
+                    +theyear+"-01-01' and '"+theyear+"-12-31' and tran_checknum = '0' and tran_desc "
+                    "not like 'CHECK %' order by bud_date;",
+                    "select sum(bud_amount) from main where bud_category = '"+budcat+"' and "
+                    "bud_date between '"+theyear+"-01-01' and '"+theyear+"-12-31' and "
+                    "tran_checknum = '0' and tran_desc not like 'CHECK %' order by bud_date;")
 
 def do_check_budcat_query(budcat, theYear):
     if not budcat: budcat = 'UNKNOWN'
     budcat = budcat.upper()
     if budcat == 'ALL':
         if theYear == 'all':
-            return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat"
-                    ",bud_amt,bud_date,comments from checks order by bud_date;")
+            return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt,bud_date,"
+                    "comments from checks order by bud_date;")
         else:
-            return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat"
-                    ",bud_amt,bud_date,comments from checks where bud_date betw"
-                    "een '"+theYear+"-01-01' and '"+theYear+"-12-31' order by b"
-                    "ud_date;")
+            return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt,bud_date,"
+                    "comments from checks where bud_date between '"+theYear+"-01-01' and '"
+                    +theYear+"-12-31' order by bud_date;")
     else:
         if theYear == 'all':
-            return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat"
-                    ",bud_amt,bud_date,comments from checks where bud_cat = '"
-                    +budcat+"' order by bud_date;")
+            return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt,bud_date,"
+                    "comments from checks where bud_cat = '"+budcat+"' order by bud_date;")
         else:
-            return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat"
-                    ",bud_amt,bud_date,comments from checks where bud_cat = '"
-                    +budcat+"' and bud_date between '"+theYear+"-01-01' and '"
-                    +theYear+"-12-31' order by bud_date;")
+            return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt,bud_date,"
+                    "comments from checks where bud_cat = '"+budcat+"' and bud_date between '"
+                    +theYear+"-01-01' and '"+theYear+"-12-31' order by bud_date;")
 
 '''
-Same as do_check_budcat_query() above, but order the fields as 
-do_budcat_query() for main
+Same as do_check_budcat_query() above, but order the fields as do_budcat_query() for main
 NEW FORMAT
 '''
 def do_check_budcat_query_asmain(budcat, theYear):
@@ -360,82 +344,69 @@ def do_check_budcat_query_asmain(budcat, theYear):
     budcat = budcat.upper()
     if budcat == 'ALL':
         if theYear == 'all':
-            return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat"
-                    ",bud_amt,bud_date,comments from checks order by bud_date;",
+            return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt,bud_date,"
+                    "comments from checks order by bud_date;",
                     "select sum(bud_amt) from checks;")
         else:
-            return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat"
-                    ",bud_amt,bud_date,comments from checks where bud_date betw"
-                    "een '"+theYear+"-01-01' and '"+theYear+"-12-31' order by b"
-                    "ud_date;",
-                    "select sum(bud_amt) from checks where bud_date between '"
-                    +theYear+"-01-01' and '"+theYear+"-12-31';")
+            return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt,bud_date,"
+                    "comments from checks where bud_date between '"+theYear+"-01-01' and '"
+                    +theYear+"-12-31' order by bud_date;",
+                    "select sum(bud_amt) from checks where bud_date between '"+theYear+"-01-01' and '"
+                    +theYear+"-12-31';")
     else:
         if theYear == 'all':
-            return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat"
-                    ",bud_amt,bud_date,comments from checks where bud_cat = '"
-                    +budcat+"' order by bud_date;",
-                    "select sum(bud_amt) from checks where bud_cat = '"+budcat
-                    +"';")
+            return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt,bud_date,"
+                    "comments from checks where bud_cat = '"+budcat+"' order by bud_date;",
+                    "select sum(bud_amt) from checks where bud_cat = '"+budcat+"';")
         else:
-            return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat"
-                    ",bud_amt,bud_date,comments from checks where bud_cat = '"
-                    +budcat+"' and bud_date between '"+theYear+"-01-01' and '"
-                    +theYear+"-12-31' order by bud_date;",
-                    "select sum(bud_amt) from checks where bud_cat = '"+budcat
-                    +"' and bud_date between '"+theYear+"-01-01' and '"+theYear
-                    +"-12-31' order by bud_date;")
+            return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt,bud_date,"
+                    "comments from checks where bud_cat = '"+budcat+"' and bud_date between '"+theYear
+                    +"-01-01' and '"+theYear+"-12-31' order by bud_date;",
+                    "select sum(bud_amt) from checks where bud_cat = '"+budcat+"' and "
+                    "bud_date between '"+theYear+"-01-01' and '"+theYear+"-12-31' order by bud_date;")
 
 def do_month_query(yearmonth):
-    return ("select * from main where bud_date between '"+yearmonth+"-01' and '"
-            +yearmonth+"-31' and tran_checknum = '0' and tran_desc not like 'CH"
-            "ECK %' order by bud_date;",
-            "select sum(bud_amount) from main where bud_date between '"
-            +yearmonth+"-01' and '"+yearmonth+"-31' and tran_checknum = '0' and"
-            " tran_desc not like 'CHECK %' order by bud_date;")
+    return ("select * from main where bud_date between '"+yearmonth+"-01' and '"+yearmonth+"-31' and "
+            "tran_checknum = '0' and tran_desc not like 'CHECK %' order by bud_date;",
+            "select sum(bud_amount) from main where bud_date between '"+yearmonth+"-01' and '"
+            +yearmonth+"-31' and tran_checknum = '0' and tran_desc not like 'CHECK %' "
+            "order by bud_date;")
 
 def do_check_month_query(yearmonth):
-    return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt"
-            ",bud_date,comments from checks where bud_date between '"+yearmonth
-            +"-01' and '"+yearmonth+"-31' order by bud_date;")
+    return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt,bud_date,comments from "
+            "checks where bud_date between '"+yearmonth+"-01' and '"+yearmonth+"-31' order by bud_date;")
 
 def do_check_month_query_asmain(yearmonth):
-    return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt"
-            ",bud_date,comments from checks where bud_date between '"+yearmonth
-            +"-01' and '"+yearmonth+"-31' order by bud_date;",
-            "select sum(bud_amt) from checks where bud_date between '"
-            +yearmonth+"-01' and '"+yearmonth+"-31';")
+    return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt,bud_date,comments from "
+            "checks where bud_date between '"+yearmonth+"-01' and '"+yearmonth+"-31' order by bud_date;",
+            "select sum(bud_amt) from checks where bud_date between '"+yearmonth+"-01' and '"
+            +yearmonth+"-31';")
 
 def do_uncleared_checks_query():
-    return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt"
-            ",bud_date,comments from checks where clear_date is null and tdate "
-            "> '2005-12-31' and tamt != 0 order by tdate,tchecknum;")
+    return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt,bud_date,comments from "
+            "checks where clear_date is null and tdate > '2005-12-31' and tamt != 0 "
+            "order by tdate,tchecknum;")
 
 def do_check_all_query():
-    return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt"
-            ",bud_date,comments from checks where tnum < 5000 order by tnum;")
+    return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt,bud_date,comments from "
+            "checks where tnum < 5000 order by tnum;")
 
 '''
-Create a query string based on 'field =/like value', where value is matched 
-case-sensitive or not
-TODO: This function has to be reworked so it can create a query for either main
-or checks
+Create a query string based on 'field =/like value', where value is matched case-sensitive or not
+TODO: This function has to be reworked so it can create a query for either main or checks
 '''
 def get_search_query(table, field, isorlike, value, casesensitive=True):
     if table == 'main':
-        return ("select * from main where "+("BINARY " if casesensitive else "")
-                +field+" "+isorlike+" '"+value+"' order by bud_date;", "select "
-                "sum(bud_amount) from main where "
-                +("BINARY " if casesensitive else "")
-                +field+" "+isorlike+" '"+value+"' order by bud_date;")
+        return ("select * from main where "+("BINARY " if casesensitive else "")+field+" "+isorlike+" '"
+                +value+"' order by bud_date;", "select sum(bud_amount) from main where "+
+                ("BINARY " if casesensitive else "")+field+" "+isorlike+" '"+value+"' "
+                "order by bud_date;")
     else:
-        return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud"
-                "_amt,bud_date,comments from checks where "
-                +("BINARY " if casesensitive else "")+field+" "+isorlike+" '"
+        return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt,bud_date,comments "
+                "from checks where "+("BINARY " if casesensitive else "")+field+" "+isorlike+" '"
                 +value+"' order by bud_date;",
-                "select sum(bud_amt) from checks where "
-                +("BINARY " if casesensitive else "")+field+" "+isorlike+" '"
-                +value+"' order by bud_date;")
+                "select sum(bud_amt) from checks where "+("BINARY " if casesensitive else "")+field+" "
+                +isorlike+" '"+value+"' order by bud_date;")
 
 '''
 Returns elemarray, contentarray, total
@@ -472,11 +443,8 @@ def get_data_array_and_content_array(listquery, totalquery):
             t = row[g.tID].split('-') # Check transaction ID for multibudget tag
         except:
             (etype, value, tb) = sys.exc_info()
-            WindowUtils.popup_message_ok(
-                s,
-                ['transaction ID type ('+str(type(row[g.tID]))+'): '
-                 +value.message, listquery],
-                sw, log)
+            WindowUtils.popup_message_ok(s, ['transaction ID type ('+str(type(row[g.tID]))+'): '
+                                         +value.message, listquery], sw, log)
             return
 
         # Handle multibudget items
@@ -488,9 +456,8 @@ def get_data_array_and_content_array(listquery, totalquery):
 
             # Do second query to grab all records matching the shortened
             # transaction ID
-            cur2 = budDB.executeQuery2(
-                'select bud_category, bud_amount, bud_date from main where tran'
-                '_ID like "'+tran_ID_pre+'-%" order by bud_date;')
+            cur2 = budDB.executeQuery2('select bud_category, bud_amount, bud_date from main where '
+                                       'tran_ID like "'+tran_ID_pre+'-%" order by bud_date;')
 
             # Add all budget results to bud_array
             for brow in cur2:
@@ -549,14 +516,13 @@ def get_data_array_and_content_array(listquery, totalquery):
     return elemarray, contentarray, total
 
 '''
-This function combines getting data arrays for both main and checks tables,
-and combines them together in one data array and content array, displayed mixed
-together. To do this more easily, the format of the checks query has changed so
-the fields between the two arrays match.
+This function combines getting data arrays for both main and checks tables, and combines them together
+in one data array and content array, displayed mixed together. To do this more easily, the format of the
+checks query has changed so the fields between the two arrays match.
 NEW FORMAT
 '''
-def get_data_array_and_content_array_both(
-        mainlistquery, maintotalquery, checkslistquery, checkstotalquery):
+def get_data_array_and_content_array_both(mainlistquery, maintotalquery, checkslistquery,
+                                          checkstotalquery):
     # Do the main list query
     cur = budDB.executeQuery(mainlistquery)
 
@@ -565,8 +531,8 @@ def get_data_array_and_content_array_both(
     # Fill out the mainelemarray
     mainelemarray = []
     for row in cur:
-        bud = list() # list of lists - contains all budget arrays for the given
-                     # transaction (multibudget can have more than one)
+        bud = list() # list of lists - contains all budget arrays for the given transaction
+        # (multibudget can have more than one)
         thebud = list() # list - contains the ONE budget array to be displayed
         t = row[g.tID].split('-') # Check transaction ID for multibudget tag
 
@@ -576,11 +542,9 @@ def get_data_array_and_content_array_both(
             idx = row[g.tID].rfind('-')
             tran_ID_pre = row[g.tID][:idx]
 
-            # Do second query to grab all records matching the shortened
-            # transaction ID
-            cur2 = budDB.executeQuery2(
-                'select bud_category, bud_amount, bud_date from main where tran'
-                '_ID like "'+tran_ID_pre+'-%" order by bud_date;')
+            # Do second query to grab all records matching the shortened transaction ID
+            cur2 = budDB.executeQuery2('select bud_category, bud_amount, bud_date from main where '
+                                       'tran_ID like "'+tran_ID_pre+'-%" order by bud_date;')
 
             # Add all budget results to bud
             for brow in cur2:
@@ -625,9 +589,8 @@ def get_data_array_and_content_array_both(
         if len(t) > 1 and t[-1].isdigit():
             idx = row[g.tID].rfind('-')
             tnum_pre = row[g.tID][:idx]
-            cur2 = budDB.executeQuery2(
-                'select bud_cat, bud_amt, bud_date from checks where tnum like'
-                ' "'+tnum_pre+'-%" order by bud_date;')
+            cur2 = budDB.executeQuery2('select bud_cat, bud_amt, bud_date from checks where tnum like "'
+                                       +tnum_pre+'-%" order by bud_date;')
             for brow in cur2:
                 bud.append([brow[0], brow[1], brow[2]])
             thebud = [row[6], row[7], row[8]]
@@ -652,21 +615,17 @@ def get_data_array_and_content_array_both(
             checkselemarray.append(elem)
 
     # Combine arrays for both queries and sort on budget date (element 6,0,2)
-    # TODO: need to sort by transaction date (x[0]) for multi-budget
-    #       transactions
-    # TODO: cannot sort null dates (all canceled checks) -- FIXED do not
-    #       include transactions with null dates (transaction or budget) in
-    #       elemarray
+    # TODO: need to sort by transaction date (x[0]) for multi-budget transactions
+    # TODO: cannot sort null dates (all canceled checks) -- FIXED do not include transactions with
+    #       null dates (transaction or budget) in elemarray
 
     # cool way to sort list of lists by element in sub-list
-    # elemarray = sorted(mainelemarray+checkselemarray, key=lambda x: x[6][0][2])
     elemarray = sorted(mainelemarray+checkselemarray, key=lambda x: x[9][2])
 
     contentarray = []
     for row in elemarray:
         thebud = row[9]
-        # Create the entry in contentarray. Multibudget entries are displayed
-        # differently
+        # Create the entry in contentarray. Multibudget entries are displayed differently
         if len(row[g.tBudarr]) > 1: # multibudget
             contentrow = '%-12s %-40s %4s %s %10.2f %-15s %s' % (
                 (thebud[2].strftime('%m/%d/%Y')
@@ -732,9 +691,8 @@ def get_check_data_array_and_content_array(query):
         if len(t) > 1 and t[-1].isdigit():
             idx = row[g.tID].rfind('-')
             tnum_pre = row[g.tID][:idx]
-            cur2 = budDB.executeQuery2(
-                'select bud_cat,bud_amt,bud_date from checks where tnum like "'
-                +tnum_pre+'-%" order by bud_date;')
+            cur2 = budDB.executeQuery2('select bud_cat,bud_amt,bud_date from checks where tnum like "'
+                                       +tnum_pre+'-%" order by bud_date;')
             for brow in cur2:
                 bud_array.append([brow[0], brow[1], brow[2]])
             thebud = [row[6], row[7], row[8]]
@@ -784,8 +742,7 @@ def get_check_data_array_and_content_array(query):
     return elemarray, contentarray, None
 
 '''
-Should only be called in combination with doCheck_asmain_BudcatQuery() as the
-fields order is different
+Should only be called in combination with doCheck_asmain_BudcatQuery() as the fields order is different
 NEW FORMAT
 '''
 def get_check_data_array_asmain(listquery, totalquery):
@@ -803,9 +760,8 @@ def get_check_data_array_asmain(listquery, totalquery):
         if len(t) > 1 and t[-1].isdigit():
             idx = row[g.tID].rfind('-')
             tnum_pre = row[g.tID][:idx]
-            cur2 = budDB.executeQuery2(
-                'select bud_cat,bud_amt,bud_date from checks where tnum like "'
-                +tnum_pre+'-%" order by bud_date;')
+            cur2 = budDB.executeQuery2('select bud_cat,bud_amt,bud_date from checks where tnum like "'
+                                       +tnum_pre+'-%" order by bud_date;')
             for brow in cur2:
                 bud_array.append([brow[0], brow[1], brow[2]])
 
@@ -836,35 +792,28 @@ def handle_edit_budget_by_budcat_both(budcat, theYear='all'):
     listquery, totalquery = do_budcat_query(budcat, theYear)
 
     # query to return checks with fields in same order as main query
-    checklistquery, checktotalquery = do_check_budcat_query_asmain(
-        budcat, theYear)
+    checklistquery, checktotalquery = do_check_budcat_query_asmain(budcat, theYear)
 
     elemarray, contentarray, total = get_data_array_and_content_array_both(
         listquery, totalquery, checklistquery, checktotalquery)
 
     # elem array is empty
     if not elemarray:
-        WindowUtils.popup_message_ok(
-            s, 'Budget category "'+budcat+'" is not in the database for year "'
-            +theYear+'"', sw, log)
+        WindowUtils.popup_message_ok(s, 'Budget category "'+budcat+'" is not in the database for year "'
+                                     +theYear+'"', sw, log)
         return
 
-    do_transaction_list_window(
-        elemarray, contentarray,
-        'Budcat='+budcat+',Year='+theYear+(' Total='+str(total)
-                                           if not total is None else ''),
-        False, False, get_data_array_and_content_array_both, listquery,
-        totalquery, checklistquery, checktotalquery)
+    do_transaction_list_window(elemarray, contentarray, 'Budcat='+budcat+',Year='+theYear
+                               +(' Total='+str(total) if not total is None else ''),
+                               False, False, get_data_array_and_content_array_both, listquery,
+                               totalquery, checklistquery, checktotalquery)
 
 def handle_edit_budget_by_month_both(yearmonth):
     try:
         testdate = datetime.datetime.strptime(yearmonth+'-01', '%Y-%m-%d')
     except:
         (etype, value, tb) = sys.exc_info()
-        WindowUtils.popup_message_ok(
-            s,
-            'User entered "'+yearmonth+'": '+value.message,
-            sw, log)
+        WindowUtils.popup_message_ok(s, 'User entered "'+yearmonth+'": '+value.message, sw, log)
         return
 
     listquery, totalquery = do_month_query(yearmonth)
@@ -873,58 +822,41 @@ def handle_edit_budget_by_month_both(yearmonth):
         listquery, totalquery, checklistquery, checktotalquery)
 
     if elemarray is None:
-        WindowUtils.popup_message_ok(
-            s,
-            'Month "'+yearmonth+'" is not in the database',
-            sw, log)
+        WindowUtils.popup_message_ok(s, 'Month "'+yearmonth+'" is not in the database', sw, log)
         return
 
-    do_transaction_list_window(
-        elemarray, contentarray, 'Month='+yearmonth+(
-            ' Total='+str(total) if not total is None else ''),
-        False, False, get_data_array_and_content_array_both, listquery,
-        totalquery, checklistquery, checktotalquery)
-
+    do_transaction_list_window(elemarray, contentarray, 'Month='+yearmonth
+                               +(' Total='+str(total) if not total is None else ''),
+                               False, False, get_data_array_and_content_array_both, listquery,
+                               totalquery, checklistquery, checktotalquery)
 
 def handle_edit_check_by_budcat(budcat, theYear='all'):
     query = do_check_budcat_query(budcat, theYear)
-    elemarray, contentarray, total = get_check_data_array_and_content_array(
-        query)
+    elemarray, contentarray, total = get_check_data_array_and_content_array(query)
     if elemarray is None:
-        WindowUtils.popup_message_ok(
-            s, 'Budget category "'+budcat+'" is not in the "checks" database fo'
-            'r year '+year, sw, log)
+        WindowUtils.popup_message_ok(s, 'Budget category "'+budcat+'" is not in the "checks" database '
+                                     'for year '+year, sw, log)
         return
-    do_transaction_list_window(
-        elemarray, contentarray, 'Budcat='+budcat+', Year='+year+(
-            ' Total='+str(total) if not total is None else ''),
-        False, False, get_check_data_array_and_content_array, query)
-
+    do_transaction_list_window(elemarray, contentarray, 'Budcat='+budcat+', Year='+year
+                               +(' Total='+str(total) if not total is None else ''),
+                               False, False, get_check_data_array_and_content_array, query)
 
 def handle_edit_check_by_month(yearmonth):
     try:
         testdate = datetime.datetime.strptime(yearmonth+'-01', '%Y-%m-%d')
     except:
         (etype, value, tb) = sys.exc_info()
-        WindowUtils.popup_message_ok(s, 'User entered "'+yearmonth+'": '
-                                     +value.message, sw, log)
+        WindowUtils.popup_message_ok(s, 'User entered "'+yearmonth+'": '+value.message, sw, log)
         return
 
     query = do_check_month_query(yearmonth)
-    elemarray, contentarray, total = get_check_data_array_and_content_array(
-        query)
+    elemarray, contentarray, total = get_check_data_array_and_content_array(query)
     if elemarray is None:
-        WindowUtils.popup_message_ok(
-            s,
-            'Month "'+yearmonth+'" is not in the "checks" database',
-            sw, log)
+        WindowUtils.popup_message_ok(s, 'Month "'+yearmonth+'" is not in the "checks" database', sw, log)
         return
-    do_transaction_list_window(
-        elemarray, contentarray, 'Month='+yearmonth+(
-            ' Total='+str(total) if not total is None else ''),
-        False, False, get_check_data_array_and_content_array,
-        query)
-
+    do_transaction_list_window(elemarray, contentarray, 'Month='+yearmonth
+                               +(' Total='+str(total) if not total is None else ''),
+                               False, False, get_check_data_array_and_content_array, query)
 
 # OLD FORMAT
 def do_query_cleared_unrecorded_checks():
@@ -936,23 +868,20 @@ def do_query_cleared_unrecorded_checks():
 
     # tnum, tchecknum, tamt, tdate, tpayee, bud_cat, bud_amt, bud_date, comments, clear_date
     #  0       1        2      3       4       5        6        7         8          9
-    cur = budDB.executeQuery(
-        'select tran_checknum,tran_date,tran_amount from main where tran_checkn'
-        'um != "0" and tran_type = "b" order by tran_checknum;')
+    cur = budDB.executeQuery('select tran_checknum,tran_date,tran_amount from main where '
+                             'tran_checknum != "0" and tran_type = "b" order by tran_checknum;')
     mytotal = 0.0
 
-    # for every cleared CU check, see if it also exists as a transaction in the
-    # checks database, with at least an amount
+    # for every cleared CU check, see if it also exists as a transaction in the checks database, with at
+    # least an amount
     for row in cur:
-        cur2 = budDB.executeQuery2(
-            'select tchecknum from checks where tchecknum = "'+str(row[0])+'" a'
-            'nd tamt is not null;')
+        cur2 = budDB.executeQuery2('select tchecknum from checks where tchecknum = "'
+                                   +str(row[0])+'" and tamt is not null;')
         if cur2.rowcount == 0: # The row is a cleared, unrecorded check
             checkentry = []
             budarray = list()
-            checkentry.append(None)        # tdate is None because the check's
-                                           # transaction date is not known at
-                                           # this time
+            checkentry.append(None)        # tdate is None because the check's transaction date is not
+                                           # known at this time
             checkentry.append(str(row[0])) # tnum (varchar)
             checkentry.append('')          # tpayee (varchar), unknown
             checkentry.append(row[0])      # tchecknum (int)
@@ -961,62 +890,48 @@ def do_query_cleared_unrecorded_checks():
             budarray.append(['', row[2], None])
             checkentry.append(budarray)    # budarray
             checkentry.append('')          # comments (varchar), unknown
-            checkentry.append(row[1])      # clear_date is the main table's
-                                           # transaction date, the date it
-                                           # cleared the bank
+            checkentry.append(row[1])      # clear_date is the main table's transaction date,
+                                           # the date it cleared the bank
             elemarray.append(checkentry)
-            contentarray.append(
-                '%d %12s %7.2f' % (row[0], row[1].strftime('%m/%d/%Y'),
-                                   row[2]))
+            contentarray.append('%d %12s %7.2f' % (row[0], row[1].strftime('%m/%d/%Y'), row[2]))
             mytotal += float(row[2])
+
     return elemarray, contentarray, mytotal
 
 def do_query_missing_unrecorded_checks():
     cnumdict = {}
     missingchecks = []
-    cur = budDB.executeQuery(
-        'select tnum from checks where tnum < 5000 order by tnum;')
+    cur = budDB.executeQuery('select tnum from checks where tnum < 5000 order by tnum;')
     first = True
     lastcheck = ''
     for row in cur:
         if first:
-            # some checknumbers have hyphens (multi-budget). Only keep the
-            # checknumber part.
+            # some checknumbers have hyphens (multi-budget). Only keep the checknumber part.
             firstcheck = row[0].split('-')[0]
             first = False
         cnumdict[row[0].split('-')[0]] = True
         lastcheck = row[0].split('-')[0]
 
-    # Check #s 2869-2929 and 3882-3989 are missing because of ordering new
-    # checkbooks and skipping these ranges.
-    # Just skip them as they clutter up the real missing checks.
-
-    # adding ranges like this is not valid in Python 3
-    for i in (range(int(firstcheck), 2869)
+    # Check #s 2869-2929 and 3882-3989 are missing because of ordering new checkbooks and skipping these
+    # ranges. Just skip them as they clutter up the real missing checks.
+    for i in (range(int(firstcheck), 2869) # adding ranges like this is not valid in Python 3
               +range(2930, 3882)
               +range(3990, int(lastcheck))):
         if not str(i) in cnumdict:
             missingchecks.append(str(i))
 
-    WindowUtils.popup_message_ok(
-        s,
-        'There are '+str(len(missingchecks))+' missing checks.',
-        sw, log)
+    WindowUtils.popup_message_ok(s, 'There are '+str(len(missingchecks))+' missing checks.', sw, log)
     return missingchecks
 
 # OLD FORMAT
 def handle_cleared_unrecorded_checks():
     elemarray, contentarray, total = do_query_cleared_unrecorded_checks()
     if len(elemarray) > 0:
-        do_transaction_list_window(
-            elemarray, contentarray, 'Cleared, unrecorded checks'
-            +(' Total='+str(total) if total else ''),
-            True, False, do_query_cleared_unrecorded_checks)
+        do_transaction_list_window(elemarray, contentarray, 'Cleared, unrecorded checks'
+                                   +(' Total='+str(total) if total else ''),
+                                   True, False, do_query_cleared_unrecorded_checks)
     else:
-        WindowUtils.popup_message_ok(
-            s,
-            'There are no cleared, unrecorded checks at this time.',
-            sw, log)
+        WindowUtils.popup_message_ok(s, 'There are no cleared, unrecorded checks at this time.', sw, log)
 
 def handle_missing_unrecorded_checks():
     missingchecks = do_query_missing_unrecorded_checks()
@@ -1032,61 +947,46 @@ def handle_missing_unrecorded_checks():
                 (missingchecks[i+2] if i+2 < lmci else ''),
                 (missingchecks[i+3] if i+3 < lmci else ''),
                 (missingchecks[i+4] if i+4 < lmci else '')))
-    WindowUtils.popup_message_ok(
-        s, groupedmissingchecks, sw, log, title=' Missing check numbers ')
+    WindowUtils.popup_message_ok(s, groupedmissingchecks, sw, log, title=' Missing check numbers ')
 
 def handle_uncleared_checks():
     query = do_uncleared_checks_query()
-    elemarray, contentarray, total = get_check_data_array_and_content_array(
-        query)
+    elemarray, contentarray, total = get_check_data_array_and_content_array(query)
     if elemarray is None:
-        WindowUtils.popup_message_ok(
-            s, 'No uncleared checks', sw, log)
+        WindowUtils.popup_message_ok(s, 'No uncleared checks', sw, log)
         return
-    do_transaction_list_window(
-        elemarray, contentarray,
-        'All uncleared checks since January 1, 2006',
-        False, True, get_check_data_array_and_content_array, query)
+    do_transaction_list_window(elemarray, contentarray, 'All uncleared checks since January 1, 2006',
+                               False, True, get_check_data_array_and_content_array, query)
 
 def handle_all_recorded_checks():
     query = do_check_all_query()
-    elemarray, contentarray, total = get_check_data_array_and_content_array(
-        query)
+    elemarray, contentarray, total = get_check_data_array_and_content_array(query)
     if elemarray is None:
-        WindowUtils.popup_message_ok(
-            s, 'Nothing in the "checks" database', sw, log)
+        WindowUtils.popup_message_ok(s, 'Nothing in the "checks" database', sw, log)
         return
-    do_transaction_list_window(
-        elemarray, contentarray,
-        'Total='+(str(total) if total else ''),
-        False, True, get_check_data_array_and_content_array, query)
+    do_transaction_list_window(elemarray, contentarray, 'Total='+(str(total) if total else ''),
+                               False, True, get_check_data_array_and_content_array, query)
 
 def handle_transaction_search():
     table, field, isorlike, value = get_search_parameters()
     if not field: return
 
-    # create the mysql query strings. Default is to match value case-sensitive
+    # create the mysql query strings. Default is to match value case-sensitive.
     # The listquery may be for 'main' or 'checks'
-    listquery, totalquery = get_search_query(
-        table, field, isorlike, value, casesensitive=False)
+    listquery, totalquery = get_search_query(table, field, isorlike, value, casesensitive=False)
 
     # Run the queries and get the results
     if table == 'main':
-        elemarray, contentarray, total = get_data_array_and_content_array(
-            listquery, totalquery)
+        elemarray, contentarray, total = get_data_array_and_content_array(listquery, totalquery)
     else:
-        elemarray, contentarray, total = get_check_data_array_and_content_array(
-            listquery)
+        elemarray, contentarray, total = get_check_data_array_and_content_array(listquery)
     if not elemarray:
-        WindowUtils.popup_message_ok(
-            s, 'Nothing returned from search "'+listquery+'"', sw, log)
+        WindowUtils.popup_message_ok(s, 'Nothing returned from search "'+listquery+'"', sw, log)
         return
 
     # Display the results and manage the window
-    do_transaction_list_window(
-        elemarray, contentarray,
-        'Total='+(str(total) if total else ''),
-        False, True, get_data_array_and_content_array, listquery, totalquery)
+    do_transaction_list_window(elemarray, contentarray, 'Total='+(str(total) if total else ''),
+                               False, True, get_data_array_and_content_array, listquery, totalquery)
 
 """
 A handler for a list of numrows items that begin at window offset topoflist.
@@ -1116,8 +1016,8 @@ def getListItem(topoflist, leftmargin, numrows, win, mywin=None):
     while True:
         i = s.getch()
 
-        # 'f' brings up filter dialog, then queries the database and redraws
-        # window based on the filter selected
+        # 'f' brings up filter dialog, then queries the database and redraws window based on the filter
+        # selected
 
         # short-cut: menu item number selection
         if numrows < 10:
@@ -1186,7 +1086,6 @@ def getListItem(topoflist, leftmargin, numrows, win, mywin=None):
         except:
             quit('getListItem win.move({},{}) exception'.format(y, x))
 
-
 def globalExceptionHandler(exctype, value, tb):
     trs = ''
     for tr in traceback.format_list(traceback.extract_tb(tb)):
@@ -1194,7 +1093,6 @@ def globalExceptionHandler(exctype, value, tb):
     quit('**********************************\nException occured\nType: '
          +str(exctype)+'\nValue: '+str(value)+'\nTraceback:\n'+trs
          +'*********************************')
-
 
 global sw, log
 
@@ -1241,43 +1139,36 @@ while True:
     entry, command = getListItem(1, 1, len(menus), s)
     # if quit selected, affirm
     if command == 'quit' or 'quit' in menus[entry].lower():
-        response = WindowUtils.popup_get_yes_no(
-            s, 'Really quit?', sw, log, default='NO')
+        response = WindowUtils.popup_get_yes_no(s, 'Really quit?', sw, log, default='NO')
         if response.lower() == 'yes':
             break
     elif 'Select by budget category for given' in menus[entry]:
         # manage all non-check transactions for the given budget category for
         # this year
-        budcat = WindowUtils.popup_get_text(
-            s, 'What is the budget category?', sw, log)
+        budcat = WindowUtils.popup_get_text(s, 'What is the budget category?', sw, log)
         handle_edit_budget_by_budcat_both(budcat, theYear=year)
     elif 'Select by budget category for all' in menus[entry]:
         # manage all non-check transactions for the given budget category for
         # all years
-        budcat = WindowUtils.popup_get_text(
-            s, 'What is the budget category?', sw, log)
+        budcat = WindowUtils.popup_get_text(s, 'What is the budget category?', sw, log)
         handle_edit_budget_by_budcat_both(budcat)
     elif 'Select by year' in menus[entry]:
         # manage all non-check transactions for the given year and month
-        yearmonth = WindowUtils.popup_get_text(
-            s, 'Enter the year and month as yyyy-mm', sw, log)
+        yearmonth = WindowUtils.popup_get_text(s, 'Enter the year and month as yyyy-mm', sw, log)
         handle_edit_budget_by_month_both(yearmonth)
     elif 'Select checks by budget category for given' in menus[entry]:
         # manage all check transactions for a given budget category for this
         # year
-        budcat = WindowUtils.popup_get_text(
-            s, 'What is the budget category?', sw, log)
+        budcat = WindowUtils.popup_get_text(s, 'What is the budget category?', sw, log)
         handle_edit_check_by_budcat(budcat, theYear=year)
     elif 'Select checks by budget category for all' in menus[entry]:
         # manage all check transactions for a given budget category for all
         # years
-        budcat = WindowUtils.popup_get_text(
-            s, 'What is the budget category?', sw, log)
+        budcat = WindowUtils.popup_get_text(s, 'What is the budget category?', sw, log)
         handle_edit_check_by_budcat(budcat)
     elif 'Select checks by year' in menus[entry]:
         # manage all check transactions for the given year and month
-        yearmonth = WindowUtils.popup_get_text(
-            s, 'Enter the year and month as yyyy-mm', sw, log)
+        yearmonth = WindowUtils.popup_get_text(s, 'Enter the year and month as yyyy-mm', sw, log)
         handle_edit_check_by_month(yearmonth)
     elif 'Add un' in menus[entry]: # Add uncleared checks
         do_add_check()

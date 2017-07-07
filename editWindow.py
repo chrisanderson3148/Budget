@@ -95,9 +95,8 @@ class EditWindow(MyWindow):
                                                # transactions only)
 
     '''
-    With the new combined main/checks transactions, the format of the checks
-    entry is the same as the format of the main entry. This has implications in
-    this function and in update_transaction.
+    With the new combined main/checks transactions, the format of the checks entry is the same as the
+    format of the main entry. This has implications in this function and in update_transaction.
     NEW FORMAT
     '''
     def main_event_loop(self, isMain, entry, readonly=False):

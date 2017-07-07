@@ -22,17 +22,12 @@ class TransferChecks(object):
         with open(fname, 'w') as f:
             f.truncate()
             for row in chkslist:
-                if row[1] is None and row[2] is None and \
-                        not row[3] and not row[4]:
-                    f.write('%7d%s\n' % (row[0], ' # %s' % row[6] \
-                            if row[6] else ''))
+                if row[1] is None and row[2] is None and not row[3] and not row[4]:
+                    f.write('%7d%s\n' % (row[0], ' # %s' % row[6] if row[6] else ''))
                 else:
                     f.write('%7d%11s|%s|%s%s%s\n' % (row[0], '%11.2f' % row[1]
-                            if row[1] is not None else '',
-                            row[2].strftime('%m/%d/%Y')
-                            if row[2] is not None else '',
-                            row[3],
-                            '|%s' % row[4]
+                            if row[1] is not None else '', row[2].strftime('%m/%d/%Y')
+                            if row[2] is not None else '', row[3], '|%s' % row[4]
                             if row[4] and row[4] != 'UNKNOWN' else '',
                             ' # %s' % row[6] if row[6] else ''))
         print 'Wrote out file '+fname
@@ -108,14 +103,12 @@ class TransferChecks(object):
                 # Parse line
                 if len(line) < 7:
                     checknum = line.strip() # check number but nothing else
-                    outdict[checknum] = [checknum, '', '', '', '', '', '',
-                                         comment]
+                    outdict[checknum] = [checknum, '', '', '', '', '', '', comment]
                     linenum += 1
                     continue
                 checknum = line[:6].strip() # other info after check number
 
-                # split line part after check number into fields delimited by
-                # '|'
+                # split line part after check number into fields delimited by '|'
                 field = line[6:].split('|')
 
                 # set amt and strip any leading spaces
@@ -142,47 +135,39 @@ class TransferChecks(object):
 
                 # remainder is a double and is always POSITIVE
                 remainder = abs(float(amt))
-                for key, val in collections.OrderedDict(
-                        sorted(buddict.items())).iteritems():
+                for key, val in collections.OrderedDict(sorted(buddict.items())).iteritems():
                     if not val[0]:
                         buddict[key][0] = 'UNKNOWN' # default
 
-                    # The assumption is that all budget amounts are positive,
-                    # but use the same sign as the transaction amount
+                    # The assumption is that all budget amounts are positive, but use the same sign as
+                    # the transaction amount
                     if not val[1]: # no budget amount?
 
                         # assign any remainder to it
-                        buddict[key][1] = '%.2f' % (-1.0*remainder \
-                                if tran_amt_isneg else remainder)
+                        buddict[key][1] = '%.2f' % (-1.0*remainder if tran_amt_isneg else remainder)
 
                         remainder = 0.0
                     else: # otherwise decrement remainder by the budget amount
                         # keep track of the remainder
                         remainder = remainder - float(val[1])
-                        if tran_amt_isneg and \
-                                not buddict[key][1].startswith('-'):
+                        if tran_amt_isneg and not buddict[key][1].startswith('-'):
                             buddict[key][1] = '-'+buddict[key][1]
                         if remainder < 0.0: # something didn't add up
                             remainder = 0.0
-                            print('Calculating amount for', val, 'and got a rem'
-                                  'ainder less than zero (tid='+field[itid]+', '
-                                  'extra fields='+','.join(field[expfields:])+
-                                  ')')
+                            print('Calculating amount for', val, 'and got a remainder less than zero '
+                                  '(tid='+field[itid]+', extra fields='+','.join(field[expfields:])+')')
                     if not val[2]: # no budget date?
                         buddict[key][2] = date # assign transaction date
 
                 if len(buddict) == 1:
                     outdict[checknum] = [checknum, amt, date, payee,
-                                         buddict[0][0], buddict[0][1],
-                                         buddict[0][2], comment]
+                                         buddict[0][0], buddict[0][1], buddict[0][2], comment]
                 else:
                     keyprefix = checknum
                     # print 'Multiline transaction: '+checknum,buddict
-                    for key, bud in collections.OrderedDict(
-                            sorted(buddict.items())).iteritems():
+                    for key, bud in collections.OrderedDict(sorted(buddict.items())).iteritems():
                         mykey = keyprefix + '-' + str(key)
-                        outdict[mykey] = [checknum, amt, date, payee, bud[0],
-                                          bud[1], bud[2], comment]
+                        outdict[mykey] = [checknum, amt, date, payee, bud[0], bud[1], bud[2], comment]
                         transactions += 1
                 linenum += 1
             f.close()
