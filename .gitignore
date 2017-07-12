@@ -6,3 +6,4 @@ payee
 new
 __init__.py
 pylintrc
+.idea/
