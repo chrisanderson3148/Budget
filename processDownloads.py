@@ -1,21 +1,31 @@
 #!/usr/bin/python2
 
+from __future__ import print_function
 import MySQLdb
-#import pymysql.cursors
-import sys, os
+import sys
+import os
 import traceback
 from transferFilesToDB import TransferMonthlyFilesToDB
 from transferChecks import TransferChecks
 
-def globalExceptionPrinter(exctype, value, tb):
+
+def global_exception_printer(exception_type, val, trace_back):
+    """Prints exceptions that are caught globally, ie, uncaught elsewhere
+    
+    :param types.ExceptionType exception_type: the caught exception type
+    :param int val: the exception value
+    :param Any trace_back: the exception traceback object
+    """
     trs = ''
-    for tr in traceback.format_list(traceback.extract_tb(tb)):
+    for tr in traceback.format_list(traceback.extract_tb(trace_back)):
         trs += tr
-    print('**********************************\nException occured\nType: '+
-          str(exctype)+'\nValue: '+str(value)+'\nTraceback:\n'+trs+
+    print('**********************************\nException occurred\nType: ' +
+          str(exception_type) + '\nValue: ' + str(val) + '\nTraceback:\n' + trs +
           '*********************************')
 
-def clearCUChecks():
+
+def clear_cu_checks():
+    """Runs query to identify main table check entries and attempt to clear them"""
     global cur1, cur2
 
     updated = 0
@@ -26,7 +36,7 @@ def clearCUChecks():
     except:
         (etype, value, tb) = sys.exc_info()
         print('clearCUChecks(): Exception executing query: '+query)
-        globalExceptionPrinter(etype, value, tb)
+        global_exception_printer(etype, value, tb)
         sys.exit(1)
 
     for inner_row in cur1:
@@ -39,7 +49,7 @@ def clearCUChecks():
         except:
             (etype, value, tb) = sys.exc_info()
             print('clearCUChecks(): Exception executing query: '+query)
-            globalExceptionPrinter(etype, value, tb)
+            global_exception_printer(etype, value, tb)
             sys.exit(1)
 
         updated += 1
@@ -47,9 +57,8 @@ def clearCUChecks():
     print('Updated', updated, 'checks in checks database')
 
 
-
-
 def printUnknownNonCheckTransactions():
+    """Print a list of unknown, non-check transactions"""
     global cur1
 
     print('\nNon-check transactions marked "UNKNOWN" since 1/1/2006:')
@@ -63,7 +72,7 @@ def printUnknownNonCheckTransactions():
     except:
         (etype, value, tb) = sys.exc_info()
         print('printUnknownNonCheckTransactions(): Exception executing query: '+query)
-        globalExceptionPrinter(etype, value, tb)
+        global_exception_printer(etype, value, tb)
         sys.exit(1)
 
     amount = 0
@@ -75,6 +84,7 @@ def printUnknownNonCheckTransactions():
     print('%-53s $%10.2f' % ('Total:', amount))
 
 def printUnRecordedChecks():
+    """Print a list of unrecorded checks"""
     global cur1, cur2
 
     print('\nCleared, unrecorded checks: ')
@@ -87,7 +97,7 @@ def printUnRecordedChecks():
     except:
         (etype, value, tb) = sys.exc_info()
         print('printUnRecordedChecks(): Exception executing query: '+query)
-        globalExceptionPrinter(etype, value, tb)
+        global_exception_printer(etype, value, tb)
         sys.exit(1)
 
     # for every cleared CU check, see if it also exists as a transaction in
@@ -100,7 +110,7 @@ def printUnRecordedChecks():
         except:
             (etype, value, tb) = sys.exc_info()
             print('printUnRecordedChecks(): Exception executing query: '+query)
-            globalExceptionPrinter(etype, value, tb)
+            global_exception_printer(etype, value, tb)
             sys.exit(1)
 
         if cur2.rowcount == 0:
@@ -109,6 +119,7 @@ def printUnRecordedChecks():
 
 
 def printUnclearedChecks():
+    """Print a list of uncleared checks"""
     global cur1
 
     mydict = dict()
@@ -123,7 +134,7 @@ def printUnclearedChecks():
     except:
         (etype, value, tb) = sys.exc_info()
         print('printUnclearedChecks(): Exception executing query: '+query)
-        globalExceptionPrinter(etype, value, tb)
+        global_exception_printer(etype, value, tb)
         sys.exit(1)
 
     for inner_row in cur1:
@@ -139,7 +150,7 @@ def printUnclearedChecks():
     except:
         (etype, value, tb) = sys.exc_info()
         print('printUnclearedChecks(): Exception executing query: '+query)
-        globalExceptionPrinter(etype, value, tb)
+        global_exception_printer(etype, value, tb)
         sys.exit(1)
 
     for inner_row in cur1:
@@ -151,10 +162,14 @@ def printUnclearedChecks():
         print(mydict[entry])
 
 def insertDictIntoChecksDB(downloadDict, keysdict):
-    '''
+    """Insert checks in downloadDict into the checks database
+    
     The records in the downloadDict have all been processed so that bud_cat, bud_amt, and bud_date are
     filled in.
-    '''
+    
+    :param dict downloadDict: the records to insert
+    :param dict keysdict: Later
+    """
     global cur1, inserted, doinsert
 
     for key, val in downloadDict.iteritems():
@@ -176,7 +191,7 @@ def insertDictIntoChecksDB(downloadDict, keysdict):
             except:
                 (etype, value, tb) = sys.exc_info()
                 print('insertDictIntoChecksDB(): Exception executing query: '+query)
-                globalExceptionPrinter(etype, value, tb)
+                global_exception_printer(etype, value, tb)
                 sys.exit(1)
 
         print('Key '+key+' is not in "checks" database -- '+('' if doinsert else 'would have ')
@@ -184,6 +199,11 @@ def insertDictIntoChecksDB(downloadDict, keysdict):
         inserted += 1
 
 def insertDictIntoMainDB(downloadDict, keysdict):
+    """Insert records from downloadDict into the main table
+    
+    :param dict downloadDict: 
+    :param dict keysdict: 
+    """
     global cur1, inserted, doinsert
 
     for key, val in downloadDict.iteritems():
@@ -215,7 +235,7 @@ def insertDictIntoMainDB(downloadDict, keysdict):
             except:
                 (etype, value, tb) = sys.exc_info()
                 print('insertDictIntoMainDB(): Exception executing query: '+query)
-                globalExceptionPrinter(etype, value, tb)
+                global_exception_printer(etype, value, tb)
                 sys.exit(1)
         else:
             val[1] = newkey
@@ -273,7 +293,7 @@ try:
 except:
     (etype, value, tb) = sys.exc_info()
     print('Main(): Exception executing query: '+query)
-    globalExceptionPrinter(etype, value, tb)
+    global_exception_printer(etype, value, tb)
     sys.exit(1)
 
 dbkeys = set()
@@ -286,7 +306,7 @@ try:
 except:
     (etype, value, tb) = sys.exc_info()
     print('Main(): Exception executing query: '+query)
-    globalExceptionPrinter(etype, value, tb)
+    global_exception_printer(etype, value, tb)
     sys.exit(1)
 
 ckkeys = set()
@@ -307,7 +327,7 @@ if os.path.isfile(cufile): # process cleared transactions second
     CU_dict = tf.readMonthlyCUFile(cufile)
     insertDictIntoMainDB(CU_dict, dbkeys)
 
-clearCUChecks() # mark cleared checks
+clear_cu_checks() # mark cleared checks
 
 if os.path.isfile(axfile):
     print('\nprocessing American Express download file...')

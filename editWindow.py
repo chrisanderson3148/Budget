@@ -1,36 +1,37 @@
-import MySQLdb
+"""Module encapsulates methods relating to transaction edit windows"""
 import curses
+import datetime
+import MySQLdb
 from Window import MyWindow
 from Window import ScreenWindow
 import WindowUtils
-import datetime
 from mysettings import g
 
 
 class EditWindow(MyWindow):
     """Class to handle all editable windows
-    
-    :param budgetDB bud_db: instance of database object
-    :param int n: a number to identify color schemes
+
+    :param BudgetDB bud_db: instance of database object
+    :param int color_pair: a number to identify color schemes
     :param int fg_color: the foreground color of the window
     :param int bg_color: the background color of the window
-    :param Any s_window: the window identifier
     """
 
-    def __init__(self, bud_db, n, fg_color, bg_color):
+    def __init__(self, bud_db, color_pair, fg_color, bg_color):
         self.bud_db = bud_db
-        self.n = n
+        self.color_pair = color_pair
         self.fg_color = fg_color
         self.bg_color = bg_color
         self.balance = 0.0
-        curses.init_pair(n, fg_color, bg_color)
+        curses.init_pair(color_pair, fg_color, bg_color)
         super(EditWindow, self).__init__('edit')
 
     def draw_border(self):
         """Draw a border around me"""
         self.win.box(self.vch, self.hch)
         self.win.addstr(0, (self.width-len(self.title))/2, self.title, curses.A_STANDOUT)
-        self.win.addstr(0, self.width - 10, 'Page %d/%d' % (self.current_page, self.pages), curses.A_STANDOUT)
+        self.win.addstr(0, self.width - 10, 'Page %d/%d' % (self.current_page, self.pages),
+                        curses.A_STANDOUT)
         self.win.addstr(0, 2, 'Pos: %d,%d'%(self.curr_x, self.curr_y), curses.A_STANDOUT)
         self.win.move(self.curr_y, self.curr_x)
         self.win.refresh()
@@ -39,7 +40,7 @@ class EditWindow(MyWindow):
     def draw_win(self, is_main, transaction_date, transaction_description, transaction_type,
                  transaction_amount, budget_array, transaction_comment, extra_field):
         """Draw me as an edit window with the given values.
-        
+
         :param bool is_main: whether the transaction is from the main table or the checks table
         :param Any transaction_date: the transaction date
         :param str transaction_description: the payee
@@ -82,14 +83,14 @@ class EditWindow(MyWindow):
                             curses.A_REVERSE)
             row_num += 1
             self.balance -= float(bud_list[1])
-        self.win.addstr(6, 20, 'Balance: '+'%5.2f'%self.balance)
+        self.win.addstr(6, 20, 'Balance: '+'%5.2f' % self.balance)
         self.draw_border()
         self.read_content_lines()
         self.log.write('draw_win[EditWindow] window (title='+self.title+')\n')
 
     def refresh(self, is_main, entry):
         """Redraw me
-        
+
         :param bool is_main: whether I am editing a main transaction or a check transaction
         :param dict entry: The dictionary containing my information
         """
@@ -116,7 +117,7 @@ class EditWindow(MyWindow):
         """With the new combined main/checks transactions, the format of the checks entry is the same
         as the format of the main entry. This has implications in this function and in
         update_transaction.
-        
+
         :param bool is_main: whether the entry is from the main table or the checks table
         :param dict entry: a dictionary of the transaction data
         :param bool readonly: whether this transaction can be edited or is read-only
@@ -132,7 +133,7 @@ class EditWindow(MyWindow):
             tab_array.append([35, i, 'date'])
 
         # all this call does is copy-by-value the entry to the returned list
-        new_entry = self.update_transaction(is_main, entry, '', [])
+        new_entry = self.update_transaction(entry, '', [])
         changes = False
         idx = 0
 
@@ -193,7 +194,7 @@ class EditWindow(MyWindow):
                 # replace all " with ' because of the mysql update query will fail on " (it uses " to
                 # delimit field values)
                 text = text.replace('"', "'")
-                new_entry = self.update_transaction(is_main, new_entry, text, tab_array[idx])
+                new_entry = self.update_transaction(new_entry, text, tab_array[idx])
                 self.refresh(is_main, new_entry)
                 changes = True
             #
@@ -226,7 +227,7 @@ class EditWindow(MyWindow):
 
     def check_event_loop(self, entry, add):
         """Handle the edit check window.
-        
+
         :param dict entry: the original check entry dictionary
         :param bool add: whether or not to add a new entry, or update entry
         :rtype: bool
@@ -241,7 +242,7 @@ class EditWindow(MyWindow):
 
         # all this call does is copy-by-value the entry (which itself can be an
         # empty transaction) to the returned list
-        new_entry = self.update_transaction(False, entry, '', [])
+        new_entry = self.update_transaction(entry, '', [])
         changes = False
         idx = 0
         while True:
@@ -263,8 +264,8 @@ class EditWindow(MyWindow):
 
                 # Verify that the value of checknum is not already in the database and is an integer
                 if tab_array[idx][2] == 'checknum':
-                    db_cursor = self.bud_db.executeQuery('SELECT * FROM checks WHERE tnum = "'
-                                                         + text + '";')
+                    db_cursor = self.bud_db.execute_query('SELECT * FROM checks WHERE tnum = "'
+                                                          + text + '";')
                     num_rows = db_cursor.rowcount
 
                     # If it is in the database, notify and cancel
@@ -309,7 +310,7 @@ class EditWindow(MyWindow):
                         self.win.addstr(tab_array[idx][1], tab_array[idx][0], '          ')
                         continue
 
-                new_entry = self.update_transaction(False, new_entry, text, tab_array[idx])
+                new_entry = self.update_transaction(new_entry, text, tab_array[idx])
                 self.draw_win(False, new_entry[g.tDate], new_entry[g.tPayee], str(new_entry[g.tCkn]),
                               new_entry[g.tAmount], new_entry[g.tBudarr], new_entry[g.tComment],
                               new_entry[g.tClearDate])
@@ -326,13 +327,13 @@ class EditWindow(MyWindow):
 
                     # Somehow have to differentiate between an updated check record and a new record to
                     # be inserted.
-                    if not new_entry[1] or len(new_entry[5]) == 0:
+                    if not new_entry[1] or not new_entry[5]:
                         WindowUtils.popup_message_ok('One or more required fields are empty.')
                         continue
 
                     if add:
                         # if add==True, then the original entry was empty
-                        self.addDatabase(False, new_entry)
+                        self.add_database(False, new_entry)
                     else:
                         # if add==False, then the original entry was full
                         self.update_database(False, entry, new_entry)
@@ -350,11 +351,13 @@ class EditWindow(MyWindow):
 
         return changes
 
-    def update_transaction(self, is_main, transaction, new_value, field_array):
+    def update_transaction(self, transaction, new_value, field_array):
         """Update transaction with any changes in new_value/field_array
         Returns the new, updated transaction dictionary
         
-        :param bool is_main: whether the transaction is from main or from checks
+        Apparently this method makes no reference to any class objects and so could be a static or
+        class method or function instead of an instance method.
+
         :param dict transaction: the transaction dictionary (checks or main)
         :param str new_value: the new value of the named field
         :param list field_array: a 3-element array as [x-pos, y-pos, name]
@@ -368,7 +371,7 @@ class EditWindow(MyWindow):
 
         # All we wanted to do was make a copy of the incoming transaction
         # SIDE-EFFECT
-        if len(field_array) == 0:
+        if not field_array:
             return new_transaction
 
         # Set from constants for field_array elements
@@ -446,7 +449,7 @@ class EditWindow(MyWindow):
 
     def add_database(self, is_main, new_transaction):
         """This function adds new records to the database
-        
+
         :param bool is_main: whether new_transaction if from main or checks
         :param dict new_transaction: the new transaction to add to the database
         """
@@ -456,12 +459,12 @@ class EditWindow(MyWindow):
         #
         tid = new_transaction[g.tID]
         try:
-            db_cursor = self.bud_db.executeQuery('select * from ' + ('main' if is_main else 'checks')
-                                                 + ' where ' + ('tran_ID' if is_main else 'tnum')
-                                                 + ' like "' + tid + '%";')
-        except MySQLdb.Error, e:
+            db_cursor = self.bud_db.execute_query('select * from ' + ('main' if is_main else 'checks')
+                                                  + ' where ' + ('tran_ID' if is_main else 'tnum')
+                                                  + ' like "' + tid + '%";')
+        except MySQLdb.Error, excp:
             WindowUtils.popup_message_ok('mysql exception counting transaction database records with '
-                                         'transaction id ' + tid + ': ' + str(e))
+                                         'transaction id ' + tid + ': ' + str(excp))
             return
         num_rows = db_cursor.rowcount
         if num_rows > 0:
@@ -489,11 +492,11 @@ class EditWindow(MyWindow):
                              + bud_array[2].strftime('%Y-%m-%d') + '","'
                              + new_transaction[g.tComment] + '");')
                     try:
-                        self.bud_db.executeQuery(query)
-                    except MySQLdb.Error, e:
-                        WindowUtils.popup_message_ok([query, 'addDatabase()-main-multi:', 'mysql '
+                        self.bud_db.execute_query(query)
+                    except MySQLdb.Error, excp:
+                        WindowUtils.popup_message_ok([query, 'add_database()-main-multi:', 'mysql '
                                                       'exception inserting new multibudget '
-                                                      'main transaction records:', str(e)])
+                                                      'main transaction records:', str(excp)])
                         return
                     i += 1
             else:  # Checks
@@ -503,9 +506,9 @@ class EditWindow(MyWindow):
                              'ate,comments,clear_date) values ("' + tid + '-' + str(i) + '","'
                              + str(new_transaction[g.tCkn]) + '","'
                              + '{0:.2f}'.format((new_transaction[g.tAmount]
-                                                if new_transaction[g.tAmount] else 0.0))
+                                                 if new_transaction[g.tAmount] else 0.0))
                              + '",' + ('"' + new_transaction[g.tDate].strftime('%Y-%m-%d') + '"'
-                                    if new_transaction[g.tDate] else 'NULL')
+                                       if new_transaction[g.tDate] else 'NULL')
                              + ',"' + new_transaction[g.tPayee] + '","'
                              + bud_array[0] + '","'
                              + '{0:.2f}'.format((bud_array[1] if bud_array[1] else 0.0)) + '",'
@@ -515,11 +518,11 @@ class EditWindow(MyWindow):
                              + ('"' + new_transaction[g.tClearDate].strftime('%Y-%m-%d')
                                 + '"' if new_transaction[g.tClearDate] else 'NULL') + ');')
                     try:
-                        self.bud_db.executeQuery(query)
-                    except MySQLdb.Error, e:
-                        WindowUtils.popup_message_ok([query, 'addDatabase()-checks-multi:',
+                        self.bud_db.execute_query(query)
+                    except MySQLdb.Error, excp:
+                        WindowUtils.popup_message_ok([query, 'add_database()-checks-multi:',
                                                       'mysql exception inserting new multibudget checks '
-                                                      'transaction records:', str(e)])
+                                                      'transaction records:', str(excp)])
                         return
                     i += 1
         else:  # single budget items
@@ -535,14 +538,13 @@ class EditWindow(MyWindow):
                          '"' + new_transaction[g.tBudarr][0][0] + '",'
                          '"' + '{0:.2f}'.format(new_transaction[g.tBudarr][0][1]) + '",'
                          '"' + new_transaction[g.tBudarr][0][2].strftime('%Y-%m-%d') + '",'
-                         '"' + new_transaction[g.tComment] + '");'
-                         )
+                         '"' + new_transaction[g.tComment] + '");')
                 try:
-                    self.bud_db.executeQuery(query)
-                except MySQLdb.Error, e:
-                    WindowUtils.popup_message_ok([query, 'addDatabase()-main-single:', 'mysql exception '
+                    self.bud_db.execute_query(query)
+                except MySQLdb.Error, excp:
+                    WindowUtils.popup_message_ok([query, 'add_database()-main-single:', 'mysql exception '
                                                   'inserting new single budget main transaction record:',
-                                                  str(e)])
+                                                  str(excp)])
                     return
             else:  # Checks
                 query = ('insert into checks (tnum,tchecknum,tamt,tdate,tpayee,bud_cat,bud_amt,bud_date,'
@@ -550,30 +552,29 @@ class EditWindow(MyWindow):
                          + new_transaction[g.tID] + '","'
                          + str(new_transaction[g.tCkn]) + '","'
                          + '{0:.2f}'.format((new_transaction[g.tAmount]
-                                            if new_transaction[g.tAmount] else 0.0)) + '",'
+                                             if new_transaction[g.tAmount] else 0.0)) + '",'
                          + ('"' + new_transaction[g.tDate].strftime('%Y-%m-%d') + '"'
                             if new_transaction[g.tDate] else 'NULL') + ',"'
                          + new_transaction[g.tPayee] + '","'
                          + new_transaction[g.tBudarr][0][0] + '","'
                          + '{0:.2f}'.format((new_transaction[g.tBudarr][0][1]
-                                            if new_transaction[g.tBudarr][0][1] else 0.0)) + '",'
+                                             if new_transaction[g.tBudarr][0][1] else 0.0)) + '",'
                          + ('"' + new_transaction[g.tBudarr][0][2].strftime('%Y-%m-%d') + '"'
                             if new_transaction[g.tBudarr][0][2] else 'NULL') + ',"'
                          + new_transaction[g.tComment] + '",'
                          + ('"' + new_transaction[g.tClearDate].strftime('%Y-%m-%d') + '"'
-                            if new_transaction[g.tClearDate] else 'NULL') + ');'
-                         )
+                            if new_transaction[g.tClearDate] else 'NULL') + ');')
                 try:
-                    self.bud_db.executeQuery(query)
-                except MySQLdb.Error, e:
-                    WindowUtils.popup_message_ok([query, 'addDatabase()-checks-single:',
+                    self.bud_db.execute_query(query)
+                except MySQLdb.Error, excp:
+                    WindowUtils.popup_message_ok([query, 'add_database()-checks-single:',
                                                   'mysql exception inserting new single budget checks '
-                                                  'transaction record:', str(e)])
+                                                  'transaction record:', str(excp)])
                     return
 
     def update_database(self, is_main, old_transaction, new_transaction):
         """Update existing record in the database.
-        
+
         :param bool is_main: whether the database table to update is main or checks
         :param dict old_transaction: database entry to delete
         :param dict new_transaction: database entry to add
@@ -585,8 +586,8 @@ class EditWindow(MyWindow):
         # If the number of database records equals the number of budget entries
         # in the old transaction record, then go to the next step.
         old_tid = old_transaction[g.tID]
-        t = old_tid.split('-')
-        old_is_multi = len(t) > 1 and t[-1].isdigit()
+        temp = old_tid.split('-')
+        old_is_multi = len(temp) > 1 and temp[-1].isdigit()
         if old_is_multi:
             idx = old_tid.rfind('-')
             old_tid_base = old_tid[:idx]
@@ -604,12 +605,12 @@ class EditWindow(MyWindow):
             return
 
         try:
-            db_cursor = self.bud_db.executeQuery('select * from ' + ('main' if is_main else 'checks')
-                                                 + ' where ' + ('tran_ID' if is_main else 'tnum')
-                                                 + ' like "' + old_tid_base + '%";')
-        except MySQLdb.Error, e:
+            db_cursor = self.bud_db.execute_query('select * from ' + ('main' if is_main else 'checks')
+                                                  + ' where ' + ('tran_ID' if is_main else 'tnum')
+                                                  + ' like "' + old_tid_base + '%";')
+        except MySQLdb.Error, excp:
             WindowUtils.popup_message_ok('mysql exception counting old transaction database records: '
-                                         + str(e))
+                                         + str(excp))
             return
 
         num_rows = db_cursor.rowcount
@@ -617,7 +618,7 @@ class EditWindow(MyWindow):
         # Make sure multiple budget entries have the same number in the transaction and database
         if old_is_multi and not num_rows == len(old_transaction[g.tBudarr]):
             WindowUtils.popup_message_ok('This transaction has multiple budget entries, but the database'
-                                         ' and transaction don\'t agree how many')
+                                         ' and transaction don\'temp agree how many')
             return
 
         # Make sure transaction IDs that imply single budget only have 1 record in the database
@@ -631,13 +632,13 @@ class EditWindow(MyWindow):
         # record(s) for the old transaction
         #
         try:
-            self.bud_db.executeQuery('delete from ' + ('main' if is_main else 'checks') + ' where '
-                                     + ('tran_ID' if is_main else 'tnum')
-                                     + ' like "' + old_tid_base + '%";')
-        except MySQLdb.Error, e:
+            self.bud_db.execute_query('delete from ' + ('main' if is_main else 'checks') + ' where '
+                                      + ('tran_ID' if is_main else 'tnum')
+                                      + ' like "' + old_tid_base + '%";')
+        except MySQLdb.Error, excp:
             WindowUtils.popup_message_ok(['update_database():',
                                           'mysql exception deleting old transaction database record(s):',
-                                          str(e)])
+                                          str(excp)])
             return
 
         #
@@ -645,13 +646,13 @@ class EditWindow(MyWindow):
         # transaction may not be the same multi as the old transaction. The number of budget entries in
         # the new transaction is independent of the old transaction.
 
-        # We can't change the base transaction ID, so the old one is carried through to the new one.
+        # We can'temp change the base transaction ID, so the old one is carried through to the new one.
         new_tid = new_transaction[g.tID]
 
         # The new one may or may not be multi just like the old one may or may not be multi. It needs to
         # represent the new transaction, not the old one.
-        t = new_tid.split('-')
-        if len(t) > 1 and t[-1].isdigit():
+        temp = new_tid.split('-')
+        if len(temp) > 1 and temp[-1].isdigit():
             idx = new_tid.rfind('-')
             new_tid_base = new_tid[:idx]
         else:
@@ -676,12 +677,12 @@ class EditWindow(MyWindow):
                              + bud_array[2].strftime('%Y-%m-%d') + '","'
                              + new_transaction[g.tComment] + '");')
                     try:
-                        self.bud_db.executeQuery(query)
-                    except MySQLdb.Error, e:
+                        self.bud_db.execute_query(query)
+                    except MySQLdb.Error, excp:
                         WindowUtils.popup_message_ok([query,
                                                       'update_database()-main-multi: mysql exception '
                                                       'inserting new multibudget main transaction '
-                                                      'records:', str(e)])
+                                                      'records:', str(excp)])
                         return
                     i += 1
             else:
@@ -704,12 +705,12 @@ class EditWindow(MyWindow):
                              + ('"' + new_transaction[g.tClearDate].strftime('%Y-%m-%d') + '"'
                                 if new_transaction[g.tClearDate] else 'NULL') + ');')
                     try:
-                        self.bud_db.executeQuery(query)
-                    except MySQLdb.Error, e:
+                        self.bud_db.execute_query(query)
+                    except MySQLdb.Error, excp:
                         WindowUtils.popup_message_ok([query,
                                                       'update_database()-checks-multi: mysql exception '
                                                       'inserting new multibudget checks transaction '
-                                                      'records:', str(e)])
+                                                      'records:', str(excp)])
                         return
                     i += 1
         else:  # single budget items
@@ -725,15 +726,14 @@ class EditWindow(MyWindow):
                          + new_transaction[g.tBudarr][0][0] + '","'
                          + '{0:.2f}'.format(new_transaction[g.tBudarr][0][1]) + '","'
                          + new_transaction[g.tBudarr][0][2].strftime('%Y-%m-%d') + '","'
-                         + new_transaction[g.tComment] + '");'
-                         )
+                         + new_transaction[g.tComment] + '");')
                 try:
-                    self.bud_db.executeQuery(query)
-                except MySQLdb.Error, e:
+                    self.bud_db.execute_query(query)
+                except MySQLdb.Error, excp:
                     WindowUtils.popup_message_ok([query,
                                                   'update_database()-main-single: mysql exception '
                                                   'inserting new single budget main transaction record:',
-                                                  str(e)])
+                                                  str(excp)])
                     return
             else:  # checks
                 query = ('insert into checks (tnum,tchecknum,tamt,tdate,tpayee,bud_cat,bud_amt,bud_date,'
@@ -752,15 +752,12 @@ class EditWindow(MyWindow):
                             if new_transaction[g.tBudarr][0][2] else 'NULL') + ',"'
                          + new_transaction[g.tComment] + '",'
                          + ('"' + new_transaction[g.tClearDate].strftime('%Y-%m-%d') + '"'
-                            if new_transaction[g.tClearDate] else 'NULL') + ');'
-                         )
+                            if new_transaction[g.tClearDate] else 'NULL') + ');')
                 try:
-                    self.bud_db.executeQuery(query)
-                except MySQLdb.Error, e:
+                    self.bud_db.execute_query(query)
+                except MySQLdb.Error, excp:
                     WindowUtils.popup_message_ok([query,
                                                   'update_database()-main-single: mysql exception '
                                                   'inserting new single budget checks transaction '
-                                                  'record:', str(e)])
+                                                  'record:', str(excp)])
                     return
-
-

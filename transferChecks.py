@@ -1,23 +1,30 @@
-#!/usr/bin/python
-
-import os, sys
 import collections
 
+
 class TransferChecks(object):
+    """Manages transfer of check information"""
 
     def pretty(self, d, indent=0):
+        """Recursively pretty prints the dictionary 'd'
+        
+        :param dict d: the dictionary to print
+        :param int indent: the indent to use for each level (default to 0)
+        """
         for key, value in d.iteritems():
             # if indent == 0: print '\n'
             print '  ' * indent + str(key)
             if isinstance(value, dict):
-                pretty(value, indent+1)
+                self.pretty(value, indent+1)
             else:
                 print '  ' * (indent+1) + str(value)
 
-    def processBudcat(self, fieldInfo, dt):
-        return fieldInfo, dt
-
     def writeChecksFile(self, chkslist, fname):
+        """Writes out the checks file
+        UNUSED
+        
+        :param list chkslist: the list of checks
+        :param str fname: the file name
+        """
         fname = fname+'/checks'
         with open(fname, 'w') as f:
             f.truncate()
@@ -33,11 +40,14 @@ class TransferChecks(object):
         print 'Wrote out file '+fname
 
     def parseBudgetFields(self, extfield):
-        '''
+        """Parse the budget fields
+        
         Each field in extfield can be like:
         'BUDCAT[=BUDAMT[=BUDDATE]]', or
         'DATE=<BUDDATE>'
-        '''
+        
+        :param str extfield: 
+        """
         budcat = ''
         budamt = ''
         buddat = ''
@@ -76,6 +86,10 @@ class TransferChecks(object):
         return arr
 
     def readChecksFile(self, fname):
+        """Read in the named checks file
+        
+        :param str fname: the name of the checks file to read in
+        """
         outdict = dict()
         transactions = 0
         linenum = 0
@@ -173,4 +187,3 @@ class TransferChecks(object):
             f.close()
         print 'readChecksFile processed', linenum, 'records from '+fname
         return outdict
-

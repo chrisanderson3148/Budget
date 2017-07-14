@@ -1,20 +1,29 @@
-#!/usr/bin/python
-
-import os, sys
-import collections
+"""Module to handle the payee file"""
 
 class TransferPayee(object):
+    """Simple class definition"""
 
     def pretty(self, d, indent=0):
+        """Recursive method to print contents of a dictionary
+        
+        :param dict d: dictionary to print
+        :param int indent: number of spaces to indent each new level (default = 0)
+        """
         for key, value in d.iteritems():
             # if indent == 0: print '\n'
             print '  ' * indent + str(key)
             if isinstance(value, dict):
-                pretty(value, indent+1)
+                self.pretty(value, indent+1)
             else:
                 print '  ' * (indent+1) + str(value)
 
     def writePayeeFile(self, plist, fname):
+        """Write out the payee file to the named directory
+        UNUSED
+        
+        :param list plist: the contents to write to the file, one entry per line
+        :param str fname: the directory to put the file in
+        """
         fname = fname + '/payee'
         with open(fname, 'w') as f:
             f.truncate()
@@ -23,6 +32,11 @@ class TransferPayee(object):
         print 'Wrote out file '+fname
 
     def readPayeeFile(self, fname):
+        """Read the contents of the payee file and return results in a dictionary
+        
+        :param str fname: the name of the payee file
+        :rtype: dict
+        """
         outdict = dict()
         linenum = 0
         with open(fname) as f:

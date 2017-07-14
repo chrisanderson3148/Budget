@@ -1,13 +1,12 @@
-#!/usr/bin/python
+"""Module contains methods to etc"""
 
-import os, sys
+import sys
 import re
 import datetime
 import glob
 from os import path
 from warnings import filterwarnings
 import collections
-import traceback
 import pprint
 import hashlib
 import MySQLdb as Database
@@ -44,6 +43,10 @@ filterwarnings('ignore', category=Database.Warning)
 #   data is created to replace it.
 
 class TransferMonthlyFilesToDB(object):
+    """Class to transfer monthly files to database
+    
+    :param Any cursor: the database cursor object
+    """
 
     def __init__(self, cursor):
         self.cur = cursor
@@ -58,15 +61,26 @@ class TransferMonthlyFilesToDB(object):
         self.inserted = 0
 
     def Results(self):
+        """Just returns a tuple of totalfiles, filesprocessed, inserted, and unexpectedheader
+        
+        :rtype: tuple
+        """
         return self.totalfiles, self.filesprocessed, self.inserted, self.unexpectedheader
 
     def clearCommasInQuotes(self, repl_char, line):
+        """Replaces all commas ',' inside double-quotes with the given replacement character.
+        Returns the same line with all the bad commas replaced.
+        
+        :param str repl_char: the character to replace the bad comma
+        :param str line: the line containing the potentially bad comma(s)
+        :rtype: str
+        """
         start = 0
         while line.find('"', start) != -1:
             idx1 = line.find('"', start) # index of opening quote
             if idx1 == -1: break
             idx2 = line.find('"', idx1+1) # index of closing quote
-            if idx2 == -1: # Didn't find a closing quote? Barf
+            if idx2 == -1:  # Didn't find a closing quote? Barf
                 print('Improperly formed line: opening " but no closing " in line\n{}'.format(line))
                 sys.exit(1)
 
@@ -85,6 +99,11 @@ class TransferMonthlyFilesToDB(object):
         return line
 
     def pretty(self, d, indent=0):
+        """Recursively prints the elements of the given dictionary
+        
+        :param dict d: the dictionary to print
+        :param int indent: the number of spaces to indent each new level (default = 0)
+        """
         for key, value in d.iteritems():
             # if indent == 0: print '\n'
             print '  ' * indent + str(key)
@@ -94,6 +113,13 @@ class TransferMonthlyFilesToDB(object):
                 print '  ' * (indent+1) + str(value)
 
     def lookupCUCheckCat(self, checknum, amount, trandate):
+        """Return the payee and budget dictionary for the given check number
+        
+        :param str checknum: the check number as a string
+        :param str amount: the check amount as a string
+        :param str trandate: the check transaction date as a string
+        :rtype: tuple
+        """
         buddict = {}
         payee = 'Unknown'
         self.cur.execute('SELECT tnum,tpayee,bud_cat,bud_amt,bud_date FROM checks WHERE tchecknum = "'
@@ -116,11 +142,20 @@ class TransferMonthlyFilesToDB(object):
         return payee, buddict
 
     def lookupPayeeCat(self, payee, buddate):
-        # format examples: cat
-        #                  cat1,date1;cat2,date2;...;catN
-        # The assumption is that each succeeding date is later than the
-        # preceding ones and that the last category applies to all later dates
+        """Return a budget category based on the payee string passed in, and the budget date
+        
+        Budget assignments based on the payee string change over time. That's why the budget date is 
+        needed to differentiate which budget category is returned.
+        
+        format examples: cat
+                         cat1,date1;cat2,date2;...;catN
+        The assumption is that each succeeding date is later than the
+        preceding ones and that the last category applies to all later dates
 
+        :param str payee: the payee string
+        :param str buddate: the budget date string
+        :rtype: str
+        """
         bud_date = datetime.datetime.strptime(buddate, "%m/%d/%Y").date()
 
         #
@@ -195,8 +230,19 @@ class TransferMonthlyFilesToDB(object):
         return 'UNKNOWN'
 
     def processBudgetFields(self, extfield, transAmt, defaultCat, transDate, transRef):
-        '''
+        """Process the budget fields in the payee file (???)
+        Returns a dictionary of the payee file
+        
         Each field in extfield can be like: 'BUDCAT[=BUDAMT[=BUDDATE]]', or 'DATE=<BUDDATE>'
+        
+        :param str extfield: 
+        :param str transAmt: 
+        :param str defaultCat: 
+        :param str transDate: 
+        :param str transRef: 
+        :rtype: dict
+        """
+        '''
         '''
         budcat = ''
         budamt = ''
@@ -269,6 +315,19 @@ class TransferMonthlyFilesToDB(object):
 
     def insertEntryIntoDict(self, buddict, transRef, transDate, transPayee, transChecknum, transType,
                             transAmt, transComment, outdict):
+        """Insert the transaction (possibly multi-budget) in to the outdict dictionary
+        
+        :param dict buddict: 
+        :param str transRef: 
+        :param str transDate: 
+        :param str transPayee: 
+        :param str transChecknum: 
+        :param str transType: 
+        :param str transAmt: 
+        :param str transComment: 
+        :param dict outdict: 
+        :return: 
+        """
         if len(buddict) == 1: # there is only one line for this transaction
             bud = buddict[0]
             outdict[transRef] = [transDate, transRef, transPayee, transChecknum, transType, transAmt,
@@ -282,6 +341,12 @@ class TransferMonthlyFilesToDB(object):
                                   bud[0], bud[1], bud[2], transComment]
 
     def readMonthlyCUFile(self, fname):
+        """Read in the downloaded Credit Union file line-by-line, and insert transactions in a dictionary
+        Return the dictionary with the downloaded transactions.
+        
+        :param str fname: name of the Credit Union download file
+        :rtype: dict
+        """
         '''
         The old format of the Credit Union output files of the C# budget program was the same as the
         download files and included many fields that are not used in budget calculations. This wasted
@@ -454,6 +519,13 @@ class TransferMonthlyFilesToDB(object):
 
 
     def readMonthlyAmexFile(self, fname):
+        """Read in the downloaded American Express file line-by-line, and insert transactions in a
+        dictionary. OBSOLETE
+        Return the dictionary with the downloaded transactions.
+        
+        :param str fname: name of the American Express download file
+        :rtype: dict
+        """
         linenum = 0
         transactions = 0
         expfields = 5
@@ -523,6 +595,12 @@ class TransferMonthlyFilesToDB(object):
         return outdict
 
     def readMonthlyCitiFile(self, fname):
+        """Read in the downloaded Citibank file line-by-line, and insert transactions in a dictionary.
+        Return the dictionary with the downloaded transactions.
+        
+        :param str fname: name of the Citibank download file
+        :rtype: dict
+        """
         '''
         Citi Card took over all Costco American Express card accounts on June 3, 2016. Citi has all
         historical Costco AMEX card transactions back to May 2014, if needed.  But those Amex-era
@@ -658,6 +736,13 @@ class TransferMonthlyFilesToDB(object):
 
 
     def readMonthlyDiscoverFile(self, fname, download=False):
+        """Read in the downloaded Discover Card file line-by-line, and insert transactions in a
+        dictionary.
+        Return the dictionary with the downloaded transactions.
+        
+        :param str fname: name of the Discover Card download file
+        :rtype: dict
+        """
         '''
         There are two formats for Discover files, one for downloads, and the other for legacy monthly
         files
@@ -813,6 +898,13 @@ class TransferMonthlyFilesToDB(object):
 
 
     def readMonthlyChaseFile(self, fname):
+        """Read in the downloaded Chase Bank file line-by-line, and insert transactions in a dictionary.
+        OBSOLETE
+        Return the dictionary with the downloaded transactions.
+        
+        :param str fname: name of the Chase Bank download file
+        :rtype: dict
+        """
         '''
           0            1                                     2                                       3
         CREDIT,20100216120000[0:GMT],"Online Transfer from  MMA XXXXXX6306 transaction#: 313944149",19.79
@@ -893,6 +985,13 @@ class TransferMonthlyFilesToDB(object):
 
 
     def readDownloadBarclayFile(self, fname):
+        """Read in the downloaded Barclay Card file line-by-line, and insert transactions in a
+        dictionary. OBSOLETE
+        Return the dictionary with the downloaded transactions.
+        
+        :param str fname: name of the Barclay Card download file
+        :rtype: dict
+        """
         # This is the download file format:
         #
         # ...<STMTTRN><TRNTYPE>CREDIT<DTPOSTED>20150203050000.000<DTUSER>20150203050000.000<TRNAMT>566.64<FITID>75140215034020315130448108<NAME>PAYMENT RECV'D CHECKFREE</STMTTRN>...
@@ -964,6 +1063,13 @@ class TransferMonthlyFilesToDB(object):
         return outdict
 
     def readMonthlyBarclayFile(self, fname):
+        """Read in the downloaded Barclay Card file line-by-line, and insert transactions in a
+        dictionary. OBSOLETE
+        Return the dictionary with the downloaded transactions.
+        
+        :param str fname: name of the Barclay Card download file
+        :rtype: dict
+        """
         # This is the monthly file format:
         #   0  1  2             3                      4         5
         # 2011,04,04,252478010910000016899273001,BOMBAY MASALA,31.00
@@ -1035,8 +1141,8 @@ class TransferMonthlyFilesToDB(object):
         print('readMonthlyBarclayFile processed {} records from {}\n'.format(linenum, fname))
         return outdict
 
-
     def processFile(self, fname):
+        """NOT USED"""
         local_inserted = 0
 
         if not fname.endswith('.txt'): return
@@ -1089,6 +1195,7 @@ class TransferMonthlyFilesToDB(object):
         return
 
     def mergeOTCChecks(self):
+        """NOT USED"""
         for fname in glob.glob('decoded-dbs/*.txt'):
             if '2004' in fname or '2005' in fname: continue
             if 'Discover' in fname: continue

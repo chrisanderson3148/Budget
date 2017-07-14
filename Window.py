@@ -1,7 +1,7 @@
 import sys
 import curses
-import WindowList
 import random
+import WindowList
 
 
 class ScreenWindow(object):
@@ -13,10 +13,7 @@ class ScreenWindow(object):
 
     @classmethod
     def init_screen(cls):
-        """Starts up curses and returns the screen object
-        
-        :rtype Any:
-        """
+        """Starts up curses and logging"""
         cls.screen = curses.initscr()
         cls.log = open('log', 'w')
 
@@ -39,14 +36,11 @@ class ScreenWindow(object):
         curses.cbreak()
         cls.screen.keypad(1)
 
-        # return the screen
-        return cls.screen
-
     @classmethod
     def my_quit(cls, message):
         """Properly clean up and close curses before sys.exit() otherwise it leaves the terminal in a bad
         state. Optionally leave a quit message on the terminal.
-        
+
         :param str message: the message to optionally print to the console after curses is gracefully
         closed.
         """
@@ -62,7 +56,7 @@ class ScreenWindow(object):
 
     def draw_menu(self, menus):
         """Draw the menus on the screen
-        
+
         :param list menus: a list of strings, one for each menu item
         """
         curses.init_pair(1, curses.COLOR_YELLOW, curses.COLOR_BLUE)
@@ -74,7 +68,7 @@ class ScreenWindow(object):
 
     def refresh(self, title):
         """Redraw the screen
-        
+
         :param str title: the title for the screen window
         """
         self.screen.refresh()
@@ -83,8 +77,7 @@ class ScreenWindow(object):
 
 class MyWindow(ScreenWindow):
     """Modified Curses windows class used for displaying multiple windows at the same time
-    
-    :param Any screen: the curses screen object to initialize the screen object
+
     :param str window_type: internal window type (like 'edit', 'dialog', etc)
     """
 
@@ -113,15 +106,14 @@ class MyWindow(ScreenWindow):
     def __del__(self):
         pass
 
-    '''
-    '''
-    def create(self, ht, wid, top=None, left=None, background_char=' ', vch=None, hch=None, title=''):
+    def create(self, height, wid, top=None, left=None, background_char=' ', vch=None, hch=None,
+               title=''):
         """Call string parameters vch and hch cannot be defaulted to curses.ACS_VLINE and
         curses.ACS_HLINE, respectively, in the call string because initscr() has not yet been called
         when the call string is compiled, before any code has run. They can be referenced in the method
         body because that is executed during run time, after initscr() has been called.
-        
-        :param int ht: height of the window
+
+        :param int height: height of the window
         :param int wid: width of the window
         :param int top: the top of the window in screen coordinates
         :param int left: the left of the window in screen coordinates
@@ -130,11 +122,11 @@ class MyWindow(ScreenWindow):
         :param char hch: the character to draw the horizontal boundaries of the window
         :param str title: the title of the window, drawn centered on the top border
         """
-        self.height = ht
+        self.height = height
         self.width = wid
         if not top:
-            if self.s_height - ht > 0:
-                self.top = random.randrange(1, self.s_height - ht)
+            if self.s_height - height > 0:
+                self.top = random.randrange(1, self.s_height - height)
             else:
                 self.top = 1
         else:
@@ -146,7 +138,7 @@ class MyWindow(ScreenWindow):
                 self.left = 1
         else:
             self.left = left
-        self.page_len = ht - 2
+        self.page_len = height - 2
         self.background_char = background_char
         if not vch:
             self.vch = curses.ACS_VLINE
@@ -177,7 +169,7 @@ class MyWindow(ScreenWindow):
 
     def draw_contents(self, last_page=False):
         """Draw my contents
-        
+
         :param bool last_page: whether or not this is the last displayed page
         """
         self.win.clear()
@@ -206,50 +198,62 @@ class MyWindow(ScreenWindow):
         self.read_content_lines()
         self.draw_border()
 
-    """
-    Returns the overall 0-based current row of the cursor in the content array 
-    based on the 0-based pageRow and current 1-based page number
-    """
     def current_row(self, page_row):
+        """Returns the overall 0-based current row of the cursor in the content array
+
+        Based on the 0-based pageRow and current 1-based page number
+
+        :rtype: int
+        """
         return (self.current_page - 1) * self.page_len + page_row
 
-    # Every window comes here
     def delete(self):
+        """Delete myself as a window and my entry in the WindowList."""
         self.win.clear()
         self.win.refresh()
         self.log.write('delete window (title='+self.title+')\n')
         del self.win
 
         # pops this window off the window list, then forces a redraw of all remaining windows
-        WindowList.pop_window(self.log)
+        WindowList.pop_window()
 
     def read_content_lines(self):
-        # Read in window contents as list of strings from top to bottom only read in the content lines,
-        # not the border
-        for y in range(1, self.height):
-            self.content_lines.append(self.win.instr(y, 1))
+        """Read in window contents as list of strings from top to bottom only read in the content lines,
+        not the border
+
+        This is needed to redraw all the windows.
+        """
+        for pos_y in range(1, self.height):
+            self.content_lines.append(self.win.instr(pos_y, 1))
         self.log.write('readContentLines window (title='+self.title+')\n')
 
     def draw_content_lines(self):
-        y = 1
+        """Draw my content lines and border"""
+        pos_y = 1
         for line in self.content_lines:
-            self.win.addstr(y, 1, line)
-            y += 1
+            self.win.addstr(pos_y, 1, line)
+            pos_y += 1
         self.win.refresh()
-        self.drawBorder()
+        self.draw_border()
         self.log.write('drawContentLines window (title='+self.title+')\n')
 
 
 class PopupWindow(MyWindow):
+    """A simple sub-class of MyWindow. Used for short informational popups.
 
-    def __init__(self, n, fgcolor, bgcolor):
-        self.n = n
-        self.fgcolor = fgcolor
-        self.bgcolor = bgcolor
-        curses.init_pair(n, fgcolor, bgcolor)
+    :param int color_pair: a number to use to refer to a particular background and foreground color-pair
+    :param int fg_color: foreground color
+    :param int bg_color: background color
+    """
+    def __init__(self, color_pair, fg_color, bg_color):
+        self.color_pair = color_pair
+        self.fg_color = fg_color
+        self.bg_color = bg_color
+        curses.init_pair(color_pair, fg_color, bg_color)
         super(PopupWindow, self).__init__('popup')
 
     def draw_border(self):
+        """Draw my border"""
         self.win.box(self.vch, self.hch)
         self.win.addstr(0, (self.width-len(self.title))/2, self.title, curses.A_STANDOUT)
         self.win.move(self.curr_y, self.curr_x)
@@ -258,19 +262,24 @@ class PopupWindow(MyWindow):
 
 
 class MessageWindow(MyWindow):
+    """A sub-class of MyWindow. Used for more complicated display of information.
 
-    def __init__(self, n, fg_color, bg_color):
-        self.n = n
+    :param int color_pair: a number to use to refer to a particular background and foreground color-pair
+    :param int fg_color: foreground color
+    :param int bg_color: background color
+    """
+    def __init__(self, color_pair, fg_color, bg_color):
+        self.color_pair = color_pair
         self.fg_color = fg_color
         self.bg_color = bg_color
-        curses.init_pair(n, fg_color, bg_color)
+        curses.init_pair(color_pair, fg_color, bg_color)
         super(MessageWindow, self).__init__('message')
 
     def draw_border(self):
+        """Draw my border"""
         self.win.box(self.vch, self.hch)
         self.win.addstr(0, (self.width-len(self.title))/2, self.title, curses.A_STANDOUT)
         self.win.addstr(self.height-1, (self.width-2)/2, ' OK ', curses.A_STANDOUT)
         self.win.move(self.curr_y, self.curr_x)
         self.win.refresh()
         self.read_content_lines()
-

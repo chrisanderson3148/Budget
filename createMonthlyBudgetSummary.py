@@ -34,6 +34,11 @@ cur = db.cursor()
 
 # month is 1-based
 def writeMonthCsv(year, month):
+    """Write the CSV file with 'year' and 'month' part of the file name
+    
+    :param str year: the year as a string
+    :param str month: the month name
+    """
     month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
     # get the budget categories and sums for the time period from 'main'
@@ -92,6 +97,11 @@ def writeMonthCsv(year, month):
 
 # month is 1-based
 def writeMonthText(year, month):
+    """Write the txt file with 'year' and 'month' part of the file name
+    
+    :param str year: the year as a string
+    :param str month: the month name
+    """
     month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
     # get the budget categories and sums for the time period from 'main'
