@@ -11,14 +11,14 @@ from transferChecks import TransferChecks
 
 def global_exception_printer(exception_type, val, trace_back):
     """Prints exceptions that are caught globally, ie, uncaught elsewhere
-    
+
     :param types.ExceptionType exception_type: the caught exception type
     :param int val: the exception value
     :param Any trace_back: the exception traceback object
     """
     trs = ''
-    for tr in traceback.format_list(traceback.extract_tb(trace_back)):
-        trs += tr
+    for trcbck in traceback.format_list(traceback.extract_tb(trace_back)):
+        trs += trcbck
     print('**********************************\nException occurred\nType: ' +
           str(exception_type) + '\nValue: ' + str(val) + '\nTraceback:\n' + trs +
           '*********************************')
@@ -29,9 +29,8 @@ def clear_cu_checks():
     global cur1, cur2
 
     updated = 0
+    query = ('select tran_checknum,tran_date from main where tran_checknum != "0" and tran_type = "b";')
     try:
-        query = ('select tran_checknum,tran_date from main where tran_checknum != "0" and tran_type = "b'
-                 '";')
         cur1.execute(query)
     except:
         (etype, value, tb) = sys.exc_info()
@@ -129,7 +128,7 @@ def printUnclearedChecks():
         # uncleared checks have no cleared date, transacted in 2006 or later, and have an amount (not
         # cancelled)
         query = ('select tnum,tdate,tamt,tpayee,comments from checks where clear_date is null and tdate '
-                 '> "2005-12-31" and tamt != 0.0 order by tnum;') 
+                 '> "2005-12-31" and tamt != 0.0 order by tnum;')
         cur1.execute(query)
     except:
         (etype, value, tb) = sys.exc_info()
@@ -156,17 +155,17 @@ def printUnclearedChecks():
     for inner_row in cur1:
         key = (str(inner_row[1]) + inner_row[0] + str(abs(inner_row[2])) + inner_row[3] + inner_row[4])
         mydict[key] = ('%-5s %10s $%7.2f %-30s %s' %
-                      (inner_row[0], inner_row[1].strftime('%m/%d/%Y'),
-                       abs(inner_row[2]), inner_row[3], inner_row[4]))
+                       (inner_row[0], inner_row[1].strftime('%m/%d/%Y'),
+                        abs(inner_row[2]), inner_row[3], inner_row[4]))
     for entry in sorted(mydict):
         print(mydict[entry])
 
 def insertDictIntoChecksDB(downloadDict, keysdict):
     """Insert checks in downloadDict into the checks database
-    
+
     The records in the downloadDict have all been processed so that bud_cat, bud_amt, and bud_date are
     filled in.
-    
+
     :param dict downloadDict: the records to insert
     :param dict keysdict: Later
     """
@@ -182,7 +181,7 @@ def insertDictIntoChecksDB(downloadDict, keysdict):
         query = ('insert into checks (tnum,tchecknum,tamt,tdate,tpayee,bud_cat,bud_amt,bud_date,comments'
                  ') values ("'+val[0]+'","'+val[0]+'","'+val[1]+'","STR_TO_DATE("'+val[2]+'","%m/%d/%Y")'
                  ',"'+val[3]+'","'+val[4]+'","'+val[5]+'",STR_TO_DATE("'+val[6]+'","%m/%d/%Y"),"'+val[7]
-                 +'");') 
+                 +'");')
         # If inserting is enabled, insert into database
         if doinsert:
             try:
@@ -200,9 +199,9 @@ def insertDictIntoChecksDB(downloadDict, keysdict):
 
 def insertDictIntoMainDB(downloadDict, keysdict):
     """Insert records from downloadDict into the main table
-    
-    :param dict downloadDict: 
-    :param dict keysdict: 
+
+    :param dict downloadDict:
+    :param dict keysdict:
     """
     global cur1, inserted, doinsert
 

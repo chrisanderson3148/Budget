@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
+import sys
+import os
 import MySQLdb
-import sys, os
-from transferFilesToDB import TransferMonthlyFilesToDB
 
 '''
 We create the monthly budget summary file by combining the results of the 'main' table and the 'checks'
