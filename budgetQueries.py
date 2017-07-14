@@ -1,7 +1,8 @@
 import sys
 import MySQLdb
 
-class budgetDB(object):
+
+class BudgetDB(object):
     def __init__(self, host, user, passwd, db):
         # Open a connection to the database
         self.db = MySQLdb.connect(host=host, user=user, passwd=passwd, db=db)
@@ -27,6 +28,12 @@ class budgetDB(object):
         self.cur.execute("select bud_category from main group by bud_category;")
         for row in self.cur:
             self.budcatlist.append(row[0].upper())
+
+    def __del__(self):
+        self.cur.close()
+        self.cur2.close()
+        self.db.close()
+        print "Closed database connection"
 
     def executeQuery(self, query):
         self.cur.execute(query)

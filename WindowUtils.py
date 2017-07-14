@@ -3,12 +3,13 @@ import curses
 import WindowList
 from Window import PopupWindow
 from Window import MessageWindow
+from Window import ScreenWindow
 
 '''
 Displays message for 1 second, then removes the popup
 '''
-def popup_message_auto(s, message, sw, log):
-    _my_win = MessageWindow(s, 5, curses.COLOR_BLACK, curses.COLOR_YELLOW, sw, log)
+def popup_message_auto(message):
+    _my_win = MessageWindow(5, curses.COLOR_BLACK, curses.COLOR_YELLOW)
     _my_win.create(5, len(message)+5, title=' Message ')
     WindowList.add_window(_my_win.win)
     _my_win.win.bkgd(' ', curses.color_pair(5))
@@ -19,14 +20,14 @@ def popup_message_auto(s, message, sw, log):
 
     _my_win.delete()
 
-'''
-Displays message until user hits <enter>
-'''
+
 def popup_message_ok_dialog(d, message, title=' Message '):
+    """Displays message until user hits <enter>"""
     d.msgbox(message, title=title)
 
-def popup_message_ok(s, message, sw, log, title=' Message '):
-    _my_win = MessageWindow(s, 5, curses.COLOR_BLACK, curses.COLOR_YELLOW, sw, log)
+
+def popup_message_ok(message, title=' Message '):
+    _my_win = MessageWindow(5, curses.COLOR_BLACK, curses.COLOR_YELLOW)
 
     # Sometimes we get unicode strings from our source. Just in case we do, convert it to ASCII.
     if type(message) is unicode:
@@ -38,8 +39,8 @@ def popup_message_ok(s, message, sw, log, title=' Message '):
             _msg_chunks = [message[i:i+_max_len] for i in range(0, len(message), _max_len)]
             _my_ht = len(_msg_chunks) + 4
 
-            _my_win.create(_my_ht, _max_len+5, top=max(1, _my_win.sheight/3-_my_ht/2),
-                           left=max(1, (_my_win.swidth-(_max_len+5))/2), title=title)
+            _my_win.create(_my_ht, _max_len + 5, top=max(1, _my_win.s_height / 3 - _my_ht / 2),
+                           left=max(1, (_my_win.s_width - (_max_len + 5)) / 2), title=title)
             WindowList.add_window(_my_win.win)
             _my_win.win.bkgd(' ', curses.color_pair(5))
             y = 2
@@ -48,8 +49,8 @@ def popup_message_ok(s, message, sw, log, title=' Message '):
                 y += 1
         else:
             _my_wid = max(len(message) + 5, len(title)+5)
-            _my_win.create(5, _my_wid, top=max(1, (_my_win.sheight/3 - 2)),
-                           left=max(1, (_my_win.swidth-_my_wid)/2), title=title)
+            _my_win.create(5, _my_wid, top=max(1, (_my_win.s_height / 3 - 2)),
+                           left=max(1, (_my_win.s_width - _my_wid) / 2), title=title)
             WindowList.add_window(_my_win.win)
             _my_win.win.bkgd(' ', curses.color_pair(5))
             _my_win.win.addstr(2, 2, message)
@@ -59,8 +60,8 @@ def popup_message_ok(s, message, sw, log, title=' Message '):
             if len(_msg) > _max_len:
                 _max_len = len(_msg)
         _wid = max(_max_len+5, len(title)+5)
-        _my_win.create(4+len(message), _wid, top=max(1, (_my_win.sheight/3 - (4+len(message))/2)),
-                       left=max(1, (_my_win.swidth-_wid)/2), title=title)
+        _my_win.create(4 + len(message), _wid, top=max(1, (_my_win.s_height / 3 - (4 + len(message)) / 2)),
+                       left=max(1, (_my_win.s_width - _wid) / 2), title=title)
         WindowList.add_window(_my_win.win)
         _my_win.win.bkgd(' ', curses.color_pair(5))
         y = 2
@@ -73,7 +74,7 @@ def popup_message_ok(s, message, sw, log, title=' Message '):
     _my_win.win.refresh()
 
     while True:
-        i = s.getch()
+        i = ScreenWindow.screen.getch()
         if i == ord('\n'):
             break
 
@@ -85,8 +86,8 @@ select.
 e.g., choice = popupGetMultipleChoice('Choose one:', ['Yes', 'No', 'Elephant', 'Mouse', 'Green', 'Red'],
 'Mouse')
 '''
-def popup_get_multiple_choice(s, wintitle, choices, default, sw, log):
-    _my_win = PopupWindow(s, 5, curses.COLOR_BLACK, curses.COLOR_YELLOW, sw, log)
+def popup_get_multiple_choice(wintitle, choices, default):
+    _my_win = PopupWindow(5, curses.COLOR_BLACK, curses.COLOR_YELLOW)
     _len_choices = 0
     for ch in choices:
         _len_choices += len(ch)
@@ -97,8 +98,8 @@ def popup_get_multiple_choice(s, wintitle, choices, default, sw, log):
         # add some buffer on each end of the list of choices
         _win_wid = _len_choices + 5
 
-    _my_win.create(5, _win_wid, top=max(1, (_my_win.sheight/3 - 2)),
-                   left=max(1, (_my_win.swidth-_win_wid)/2), title=wintitle)
+    _my_win.create(5, _win_wid, top=max(1, (_my_win.s_height / 3 - 2)),
+                   left=max(1, (_my_win.s_width - _win_wid) / 2), title=wintitle)
     WindowList.add_window(_my_win.win)
     _my_win.win.bkgd(' ', curses.color_pair(5))
     _tabarr = list()
@@ -126,7 +127,7 @@ def popup_get_multiple_choice(s, wintitle, choices, default, sw, log):
         i += 1
 
     while True:
-        i = s.getch()
+        i = ScreenWindow.screen.getch()
         if i == ord('\t'):
             _idx = (_idx + 1) % len(_tabarr)
         elif i == ord('\n'):
@@ -152,8 +153,8 @@ select.
 e.g., choice = popupGetMultipleChoice('Choose one:', ['Yes', 'No', 'Elephant', 'Mouse', 'Green', 'Red'],
 'Mouse')
 '''
-def popup_get_multiple_choice_vert(s, wintitle, choices, default, sw, log):
-    _my_win = PopupWindow(s, 5, curses.COLOR_BLACK, curses.COLOR_YELLOW, sw, log)
+def popup_get_multiple_choice_vert(wintitle, choices, default):
+    _my_win = PopupWindow(5, curses.COLOR_BLACK, curses.COLOR_YELLOW)
 
     _max_choice_width = 0
     for _choice in choices:
@@ -162,8 +163,8 @@ def popup_get_multiple_choice_vert(s, wintitle, choices, default, sw, log):
     _win_wid = max(len(wintitle), _max_choice_width) + 5
     _win_ht = len(choices) + 4
 
-    _my_win.create(_win_ht, _win_wid, top=max(1, (_my_win.sheight/3 - _win_ht/2)),
-                   left=max(1, (_my_win.swidth-_win_wid)/2), title=wintitle)
+    _my_win.create(_win_ht, _win_wid, top=max(1, (_my_win.s_height / 3 - _win_ht / 2)),
+                   left=max(1, (_my_win.s_width - _win_wid) / 2), title=wintitle)
     WindowList.add_window(_my_win.win)
     _my_win.win.bkgd(' ', curses.color_pair(5))
     _tab_arr = list()
@@ -193,7 +194,7 @@ def popup_get_multiple_choice_vert(s, wintitle, choices, default, sw, log):
         i += 1
 
     while True:
-        i = s.getch()
+        i = ScreenWindow.screen.getch()
         if i == ord('\t') or i == ord('j'):
             _idx = (_idx + 1) % len(_tab_arr)
         elif i == ord('k'):
@@ -220,19 +221,19 @@ def popup_get_multiple_choice_vert(s, wintitle, choices, default, sw, log):
 Lets user choose between 'YES' and 'NO', tabbing to highlight and select each choice.
 e.g., choice = popupGetYesNo('Continue?')
 '''
-def popup_get_yes_no(s, wintitle, sw, log, default='YES'):
-    return popup_get_multiple_choice(s, wintitle, ['YES', 'NO'], default, sw, log)
+def popup_get_yes_no(wintitle, default='YES'):
+    return popup_get_multiple_choice(wintitle, ['YES', 'NO'], default)
 
 def popup_get_text_dialog(d, wintitle):
     _code, _text = d.inputbox('', title=wintitle, width=(0 if len(wintitle) < 20 else len(wintitle)+4))
     return _code, _text
 
-def popup_get_text(s, wintitle, sw, log):
-    _my_win = PopupWindow(s, 6, curses.COLOR_MAGENTA, curses.COLOR_YELLOW, sw, log)
+def popup_get_text(wintitle):
+    _my_win = PopupWindow(6, curses.COLOR_MAGENTA, curses.COLOR_YELLOW)
     _my_wid = len(wintitle) + 5
 
-    _my_win.create(5, _my_wid, top=max(1, _my_win.sheight/3 - 2),
-                   left=max(1, (_my_win.swidth-_my_wid)/2), title=wintitle)
+    _my_win.create(5, _my_wid, top=max(1, _my_win.s_height / 3 - 2),
+                   left=max(1, (_my_win.s_width - _my_wid) / 2), title=wintitle)
     WindowList.add_window(_my_win.win)
     _my_win.win.bkgd(' ', curses.color_pair(6))
     _my_win.win.addstr(2, 3, '            ', curses.A_UNDERLINE)
