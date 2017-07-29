@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 """Edit budget categories module"""
 
 # This module is too big - too many statements
@@ -69,7 +71,7 @@ def do_add_check(my_entry=None):
     else:
         new = False
 
-    WindowUtils.popup_message_ok(str(my_entry))
+    WindowUtils.popup_message_ok('do_add_check(): '+str(my_entry))
 
     win.draw_win(False,  # isMain
                  my_entry[g.tDate],  # transaction date

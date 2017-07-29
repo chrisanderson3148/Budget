@@ -229,9 +229,10 @@ class EditWindow(MyWindow):
         """Handle the edit check window.
 
         :param dict entry: the original check entry dictionary
-        :param bool add: whether or not to add a new entry, or update entry
+        :param bool add: whether or not a new entry, or update entry
         :rtype: bool
         """
+        WindowUtils.popup_message_ok('check_event_loop(): add = '+str(add))
         num_bud_entries = len(entry[g.tBudarr])
         tab_array = [[19, 1, 'tdate'], [15, 2, 'tpayee'], [7, 3, 'checknum'], [23, 3, 'tamt'],
                      [11, 4, 'comments']]
@@ -596,11 +597,11 @@ class EditWindow(MyWindow):
 
         # Make sure transaction ID matches with multiple or single budget entries
         if not old_is_multi and len(old_transaction[g.tBudarr]) > 1:
-            WindowUtils.popup_message_ok('This transaction ID implies single budget, but the '
+            WindowUtils.popup_message_ok('update_database(): This transaction ID implies single budget, but the '
                                          'transaction record has more than 1 entry.')
             return
         elif old_is_multi and len(old_transaction[g.tBudarr]) < 2:
-            WindowUtils.popup_message_ok('This transaction ID implies multi budget, but the transaction '
+            WindowUtils.popup_message_ok('update_database(): This transaction ID implies multi budget, but the transaction '
                                          'record has less than 2 entries.')
             return
 
@@ -609,7 +610,7 @@ class EditWindow(MyWindow):
                                                   + ' where ' + ('tran_ID' if is_main else 'tnum')
                                                   + ' like "' + old_tid_base + '%";')
         except MySQLdb.Error, excp:
-            WindowUtils.popup_message_ok('mysql exception counting old transaction database records: '
+            WindowUtils.popup_message_ok('update_database(): mysql exception counting old transaction database records: '
                                          + str(excp))
             return
 
@@ -617,13 +618,13 @@ class EditWindow(MyWindow):
 
         # Make sure multiple budget entries have the same number in the transaction and database
         if old_is_multi and not num_rows == len(old_transaction[g.tBudarr]):
-            WindowUtils.popup_message_ok('This transaction has multiple budget entries, but the database'
+            WindowUtils.popup_message_ok('update_database(): This transaction has multiple budget entries, but the database'
                                          ' and transaction don\'temp agree how many')
             return
 
         # Make sure transaction IDs that imply single budget only have 1 record in the database
         elif not old_is_multi and num_rows != 1:
-            WindowUtils.popup_message_ok('This transaction has only one budget entry, but the database h'
+            WindowUtils.popup_message_ok('update_database(): This transaction has only one budget entry, but the database h'
                                          'as ' + str(num_rows) + ' rows instead.')
             return
 

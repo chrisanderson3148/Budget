@@ -357,8 +357,7 @@ class TransferMonthlyFilesToDB(object):
         the budget category. The only time the budget category will have to be looked up is when the
         download file is first processed to be added to the database.
         '''
-        firstline = '"Transaction ID","Posting Date","Effective Date","Transaction Type","Amount","Check'
-        ' Number","Reference Number","Description","Transaction Category","Type","Balance"'
+        firstline = '"Transaction ID","Posting Date","Effective Date","Transaction Type","Amount","Check Number","Reference Number","Description","Transaction Category","Type","Balance"'
 
         laterfirstline1 = '"Transaction ID","Posting Date","Effective Date","Transaction Type","Amount",'
         '"Check Number","Reference Number","Payee","Memo","Transaction Category","Type","Balance"'
@@ -419,7 +418,17 @@ class TransferMonthlyFilesToDB(object):
                         ipayee = 7
                         linenum += 1
                     else:
+                        print '###############################################'
+                        print '###############################################'
+                        print '###############################################'
+                        print
                         print fname+' has unexpected header.'
+                        print 'expected/got\n{}\n{}'.format(firstline, line)
+                        print
+                        print '###############################################'
+                        print '###############################################'
+                        print '###############################################'
+                        
                         self.unexpectedheader.append(path.basename(fname))
                         return dict()
                 #
