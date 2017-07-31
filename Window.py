@@ -199,7 +199,7 @@ class MyWindow(ScreenWindow):
         self.draw_border()
 
     def current_row(self, page_row):
-        """Returns the overall 0-based current row of the cursor in the content array
+        """Returns the overall 0-based current row of the CURSOR in the content array
 
         Based on the 0-based pageRow and current 1-based page number
 

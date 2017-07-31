@@ -1,5 +1,6 @@
 """Module contains methods to etc"""
 
+from __future__ import print_function
 import sys
 import re
 import datetime
@@ -14,7 +15,7 @@ from transferPayee import TransferPayee
 
 filterwarnings('ignore', category=Database.Warning)
 
-# Formats of output monthly files by source for one-time transfer to database.
+# Formats of output monthly files by source for one-time transfer to DATABASE.
 #  Credit Union -- header line and 11 double-quoted, comma-separated fields
 #  "Transaction_Date","Transaction_ID","TranDesc","ExtDesc","Description","Fee","Amount","Other_Charges","Balance","Post_Date","Check_Number"
 #  "7/1/2015 7:50:12 AM","ID8265","ACH Debit","MGMT SPECIALISTS  - ONLINE PMT","ACH Debit MGMT SPECIALISTS  - ONLINE PMT","","-72","","9243.05","7/1/2015",""
@@ -28,7 +29,7 @@ filterwarnings('ignore', category=Database.Warning)
 # The common fields from the download files are tran_date, tran_ID, tran_desc, tran_amount
 # Discover does not have a transaction ID. Historically it's been created as a concatenation of all the
 #   field values together.
-# The main database table will also include 3 additional fields: bud_category, bud_amount, bud_date
+# The main DATABASE table will also include 3 additional fields: bud_category, bud_amount, bud_date
 # Normally each record when imported will copy tran_amount to bud_amount, and tran_date to bud_date. The
 #   bud_cat field will be filled in by a lookup to the payee table, or if it is a check, from the check
 #   table. The tran_desc field will be matched with a known budget category from the payee table or from
@@ -43,120 +44,121 @@ filterwarnings('ignore', category=Database.Warning)
 #   data is created to replace it.
 
 class TransferMonthlyFilesToDB(object):
-    """Class to transfer monthly files to database
-    
-    :param Any cursor: the database cursor object
+    """Class to transfer monthly files to DATABASE
+
+    :param Any cursor: the DATABASE CURSOR object
     """
 
     def __init__(self, cursor):
         self.cur = cursor
         # Initialize payee table
         payee = TransferPayee()
-        self.payeeDict = payee.readPayeeFile('payee')
-        self.pp = pprint.PrettyPrinter(indent=4)
-        self.pp.pprint(self.payeeDict)
-        self.unexpectedheader = []
-        self.totalfiles = 0
-        self.filesprocessed = 0
+        self.payee_dict = payee.read_payee_file('payee')
+        self.pretty_print = pprint.PrettyPrinter(indent=4)
+        self.pretty_print.pprint(self.payee_dict)
+        self.unexpected_header = []
+        self.total_files = 0
+        self.files_processed = 0
         self.inserted = 0
 
-    def Results(self):
-        """Just returns a tuple of totalfiles, filesprocessed, inserted, and unexpectedheader
-        
+    def results(self):
+        """Just returns a tuple of total_files, files_processed, inserted, and unexpected_header
+
         :rtype: tuple
         """
-        return self.totalfiles, self.filesprocessed, self.inserted, self.unexpectedheader
+        return self.total_files, self.files_processed, self.inserted, self.unexpected_header
 
-    def clearCommasInQuotes(self, repl_char, line):
+    def clear_commas_in_quotes(self, replace_char, line):
         """Replaces all commas ',' inside double-quotes with the given replacement character.
         Returns the same line with all the bad commas replaced.
-        
-        :param str repl_char: the character to replace the bad comma
+
+        :param str replace_char: the character to replace the bad comma
         :param str line: the line containing the potentially bad comma(s)
         :rtype: str
         """
         start = 0
         while line.find('"', start) != -1:
-            idx1 = line.find('"', start) # index of opening quote
-            if idx1 == -1: break
-            idx2 = line.find('"', idx1+1) # index of closing quote
+            idx1 = line.find('"', start)  # index of opening quote
+            if idx1 == -1:
+                break
+            idx2 = line.find('"', idx1+1)  # index of closing quote
             if idx2 == -1:  # Didn't find a closing quote? Barf
                 print('Improperly formed line: opening " but no closing " in line\n{}'.format(line))
                 sys.exit(1)
 
-            # replace all found commas with repl_char within the opening and closing quotes
+            # replace all found commas with replace_char within the opening and closing quotes
             while True:
-                commaidx = line.find(',', idx1, idx2)
-                if commaidx >= 0: # replace found comma with replacement char
-                    line = line[:commaidx] + repl_char + line[commaidx+1:]
-                else: # found all commas (or there were none)
+                comma_index = line.find(',', idx1, idx2)
+                if comma_index >= 0:  # replace found comma with replacement char
+                    line = line[:comma_index] + replace_char + line[comma_index + 1:]
+                else:  # found all commas (or there were none)
                     break
 
             # move after closing quote to begin another search for an opening quote
             start = idx2 + 1
         # now line is clear of confusing commas
-        line = line.translate(None, '"') # remove all double-quotes
+        line = line.translate(None, '"')  # remove all double-quotes
         return line
 
-    def pretty(self, d, indent=0):
+    def pretty(self, the_dict, indent=0):
         """Recursively prints the elements of the given dictionary
-        
-        :param dict d: the dictionary to print
+
+        :param dict the_dict: the dictionary to print
         :param int indent: the number of spaces to indent each new level (default = 0)
         """
-        for key, value in d.iteritems():
+        for key, value in the_dict.iteritems():
             # if indent == 0: print '\n'
-            print '  ' * indent + str(key)
+            print('  ' * indent + str(key))
             if isinstance(value, dict):
                 self.pretty(value, indent+1)
             else:
-                print '  ' * (indent+1) + str(value)
+                print('  ' * (indent+1) + str(value))
 
-    def lookupCUCheckCat(self, checknum, amount, trandate):
+    def lookup_credit_union_check_category(self, check_num, amount, transaction_date):
         """Return the payee and budget dictionary for the given check number
-        
-        :param str checknum: the check number as a string
+
+        :param str check_num: the check number as a string
         :param str amount: the check amount as a string
-        :param str trandate: the check transaction date as a string
+        :param str transaction_date: the check transaction date as a string
         :rtype: tuple
         """
-        buddict = {}
+        budget_dict = {}
         payee = 'Unknown'
         self.cur.execute('SELECT tnum,tpayee,bud_cat,bud_amt,bud_date FROM checks WHERE tchecknum = "'
-                         +checknum+'" order by tnum;')
+                         + check_num + '" order by tnum;')
         if self.cur.rowcount > 0:
             for row in self.cur:
-                # print checknum, row
+                # print check_num, row
                 if len(row[0].split('-')) > 1:
                     key = int(row[0].split('-')[1])
                 else:
                     key = 0
                 payee = row[1]
-                budcat = row[2] if row[2] else 'UNKNOWN'
-                budamt = str(row[3]) if not row[3] is None and row[3] > 0.0 else amount
-                buddat = row[4].strftime('%m/%d/%Y') if not row[4] is None else trandate
-                buddict[key] = [budcat, budamt, buddat]
+                budget_category = row[2] if row[2] else 'UNKNOWN'
+                budget_amount = str(row[3]) if not row[3] is None and row[3] > 0.0 else amount
+                budget_date = row[4].strftime('%m/%d/%Y') if not row[4] is None else transaction_date
+                budget_dict[key] = [budget_category, budget_amount, budget_date]
         else:
-            print 'No matching check '+checknum+' found in checks database'
-            buddict[0] = ['UNKNOWN', amount, trandate]
-        return payee, buddict
+            print('No matching check ' + check_num + ' found in checks DATABASE')
+            budget_dict[0] = ['UNKNOWN', amount, transaction_date]
+        return payee, budget_dict
 
-    def lookupPayeeCat(self, payee, buddate):
+    def lookup_payee_category(self, payee, budget_date):
         """Return a budget category based on the payee string passed in, and the budget date
-        
-        Budget assignments based on the payee string change over time. That's why the budget date is 
+
+        Budget assignments based on the payee string change over time. That's why the budget date is
         needed to differentiate which budget category is returned.
-        
+
         format examples: cat
                          cat1,date1;cat2,date2;...;catN
         The assumption is that each succeeding date is later than the
         preceding ones and that the last category applies to all later dates
 
         :param str payee: the payee string
-        :param str buddate: the budget date string
+        :param str budget_date: the budget date string
         :rtype: str
         """
-        bud_date = datetime.datetime.strptime(buddate, "%m/%d/%Y").date()
+        bud_date = datetime.datetime.strptime(budget_date, "%m/%d/%Y").date()
 
         #
         # This handles the standard, hard-coded payee-to-budget-category transactions
@@ -189,33 +191,37 @@ class TransferMonthlyFilesToDB(object):
             if '61210601' in payee:
                 if bud_date < datetime.datetime.strptime('08/01/2008', "%m/%d/%Y").date():
                     return 'HOA'
-                else:
-                    return 'FURNITURE'
-            if '61210602' in payee: return 'GIFTS'
-            if '61210603' in payee: return 'TRAVEL'
-            if '61210604' in payee: return 'CAR MAINT'
-            if '61210680' in payee: return 'SAVINGS'
-            if '44051209' in payee: return 'MEDICAL'
+                return 'FURNITURE'
+            if '61210602' in payee:
+                return 'GIFTS'
+            if '61210603' in payee:
+                return 'TRAVEL'
+            if '61210604' in payee:
+                return 'CAR MAINT'
+            if '61210680' in payee:
+                return 'SAVINGS'
+            if '44051209' in payee:
+                return 'MEDICAL'
             return 'TRANSFER'
 
         #
-        # If not a standard, hard-coded budget category, try looking up in the payee database dictionary
-        for key in sorted(self.payeeDict):
-            matchObj = re.match(self.payeeDict[key][0], payee, re.I)
-            if matchObj:
-                cats = self.payeeDict[key][1].split(';')
+        # If not a standard, hard-coded budget category, try looking up in the payee DATABASE dictionary
+        for key in sorted(self.payee_dict):
+            match_object = re.match(self.payee_dict[key][0], payee, re.I)
+            if match_object:
+                cats = self.payee_dict[key][1].split(';')
                 if len(cats) == 1:
                     print('Payee "{}" match "{}" with category "{}"'.format(payee,
-                                                                            self.payeeDict[key][0],
+                                                                            self.payee_dict[key][0],
                                                                             cats[0]))
                     return cats[0]
                 else:
                     i = 0
                     while i < len(cats):
                         if len(cats[i].split(',')) == 2:
-                            (cat, cdatestr) = cats[i].split(',')
-                            cdatestr = cdatestr+'31'
-                            cat_date = datetime.datetime.strptime(cdatestr, '%Y%m%d').date()
+                            (cat, cat_date_string) = cats[i].split(',')
+                            cat_date_string = cat_date_string+'31'
+                            cat_date = datetime.datetime.strptime(cat_date_string, '%Y%m%d').date()
                             if bud_date <= cat_date:
                                 return cat
                             else:
@@ -226,125 +232,127 @@ class TransferMonthlyFilesToDB(object):
 
         #
         # If all else fails, return the default
-        print 'Payee "'+payee+'" no match found'
+        print('Payee "'+payee+'" no match found')
         return 'UNKNOWN'
 
-    def processBudgetFields(self, extfield, transAmt, defaultCat, transDate, transRef):
+    def process_budget_fields(self, extra_field, transaction_amount, default_category, transaction_date,
+                              transaction_reference):
         """Process the budget fields in the payee file (???)
         Returns a dictionary of the payee file
-        
-        Each field in extfield can be like: 'BUDCAT[=BUDAMT[=BUDDATE]]', or 'DATE=<BUDDATE>'
-        
-        :param str extfield: 
-        :param str transAmt: 
-        :param str defaultCat: 
-        :param str transDate: 
-        :param str transRef: 
+
+        Each field in extra_field can be like: 'BUDCAT[=BUDAMT[=BUDDATE]]', or 'DATE=<BUDDATE>'
+
+        :param str extra_field:
+        :param str transaction_amount:
+        :param str default_category:
+        :param str transaction_date:
+        :param str transaction_reference:
         :rtype: dict
         """
-        '''
-        '''
-        budcat = ''
-        budamt = ''
-        buddat = ''
+        budget_category = ''
+        budget_amount = ''
+        budget_date = ''
         idx = 0
-        buddict = {}
-        for field in extfield:
+        budget_dict = {}
+        for field in extra_field:
             subfield = field.split('=')
             if subfield[0] == 'DATE':
-                if buddat:
-                    buddict[idx] = [budcat, budamt, buddat]
-                    budcat = ''
-                    budamt = ''
-                    buddat = ''
+                if budget_date:
+                    budget_dict[idx] = [budget_category, budget_amount, budget_date]
+                    budget_category = ''
+                    budget_amount = ''
+                    budget_date = ''
                     idx += 1
                 else:
-                    buddat = subfield[1]
+                    budget_date = subfield[1]
             else:
-                if budcat:
-                    buddict[idx] = [budcat, budamt, buddat]
-                    budcat = ''
-                    budamt = ''
-                    buddat = ''
+                if budget_category:
+                    budget_dict[idx] = [budget_category, budget_amount, budget_date]
+                    budget_category = ''
+                    budget_amount = ''
+                    budget_date = ''
                     idx += 1
                 if len(subfield) == 1:
-                    budcat = subfield[0]
+                    budget_category = subfield[0]
                 elif len(subfield) == 2:
-                    budcat = subfield[0]
-                    budamt = subfield[1]
+                    budget_category = subfield[0]
+                    budget_amount = subfield[1]
                 else:
-                    budcat = subfield[0]
-                    budamt = subfield[1]
-                    buddat = subfield[2]
+                    budget_category = subfield[0]
+                    budget_amount = subfield[1]
+                    budget_date = subfield[2]
 
         # assign the last or only row
-        buddict[idx] = [budcat, budamt, buddat]
+        budget_dict[idx] = [budget_category, budget_amount, budget_date]
 
         # finish processing missing budget info with (calculated) defaults
-        tran_amt_isneg = float(transAmt) < 0.0
+        tran_amt_isneg = float(transaction_amount) < 0.0
 
         # remainder is a double and is always POSITIVE
-        remainder = abs(float(transAmt))
+        remainder = abs(float(transaction_amount))
 
         for key, val in collections.OrderedDict(
-                sorted(buddict.items())).iteritems():
+                sorted(budget_dict.items())).iteritems():
             if not val[0]:
-                buddict[key][0] = defaultCat # default
+                budget_dict[key][0] = default_category  # default
 
             # The assumption is that all budget amounts are positive, but use
             # the same sign as the transaction amount
-            if not val[1]: # no budget amount?
+            if not val[1]:  # no budget amount?
                 # assign any remainder to it
-                buddict[key][1] = '%.2f' % (-1.0*remainder if tran_amt_isneg else remainder)
+                budget_dict[key][1] = '%.2f' % (-1.0*remainder if tran_amt_isneg else remainder)
                 remainder = 0.0
-            else: # otherwise decrement remainder by the budget amount
+            else:  # otherwise decrement remainder by the budget amount
                 # keep track of the remainder
                 remainder = remainder - float(val[1])
-                if tran_amt_isneg and not buddict[key][1].startswith('-'):
-                    buddict[key][1] = '-'+buddict[key][1]
-                if remainder < 0.0: # something didn't add up
+                if tran_amt_isneg and not budget_dict[key][1].startswith('-'):
+                    budget_dict[key][1] = '-'+budget_dict[key][1]
+                if remainder < 0.0:  # something didn't add up
                     remainder = 0.0
-                    print('Calculating amount for {} and got a remainder less than zero (transRef={}, ex'
-                          'tra fields={})'.format(val, transRef, ','.join(extfield)))
+                    print('Calculating amount for {} and got a remainder less than zero (transaction_'
+                          'reference={}, extra fields={})'.format(val, transaction_reference, ','
+                                                                  .join(extra_field)))
             # end if
             if not val[2]: # no budget date?
-                buddict[key][2] = transDate # assign transaction date
+                budget_dict[key][2] = transaction_date # assign transaction date
             # end if
         # end for
-        return buddict
+        return budget_dict
 
-    def insertEntryIntoDict(self, buddict, transRef, transDate, transPayee, transChecknum, transType,
-                            transAmt, transComment, outdict):
-        """Insert the transaction (possibly multi-budget) in to the outdict dictionary
-        
-        :param dict buddict: 
-        :param str transRef: 
-        :param str transDate: 
-        :param str transPayee: 
-        :param str transChecknum: 
-        :param str transType: 
-        :param str transAmt: 
-        :param str transComment: 
-        :param dict outdict: 
-        :return: 
+    def insert_entry_into_dict(self, budget_dict, transaction_reference, transaction_date,
+                               transaction_payee, transaction_check_num, transaction_type,
+                               transaction_amount, transaction_comment, output_dict):
+        """Insert the transaction (possibly multi-budget) in to the output_dict dictionary
+
+        :param dict budget_dict:
+        :param str transaction_reference:
+        :param str transaction_date:
+        :param str transaction_payee:
+        :param str transaction_check_num:
+        :param str transaction_type:
+        :param str transaction_amount:
+        :param str transaction_comment:
+        :param dict output_dict:
+        :return:
         """
-        if len(buddict) == 1: # there is only one line for this transaction
-            bud = buddict[0]
-            outdict[transRef] = [transDate, transRef, transPayee, transChecknum, transType, transAmt,
-                                 bud[0], bud[1], bud[2], transComment]
+        if len(budget_dict) == 1:  # there is only one line for this transaction
+            bud = budget_dict[0]
+            output_dict[transaction_reference] = [transaction_date, transaction_reference,
+                                                  transaction_payee, transaction_check_num,
+                                                  transaction_type, transaction_amount,
+                                                  bud[0], bud[1], bud[2], transaction_comment]
         else:
-            # print 'Multiline transaction: '+transRef,buddict
-            for key, bud in collections.OrderedDict(sorted(buddict.items())).iteritems():
-                mykey = transRef + '-' + str(key)
-                # print '  mykey='+mykey
-                outdict[mykey] = [transDate, transRef, transPayee, transChecknum, transType, transAmt,
-                                  bud[0], bud[1], bud[2], transComment]
+            for key, bud in collections.OrderedDict(sorted(budget_dict.items())).iteritems():
+                my_key = transaction_reference + '-' + str(key)
+                output_dict[my_key] = [transaction_date, transaction_reference, transaction_payee,
+                                       transaction_check_num, transaction_type, transaction_amount,
+                                       bud[0], bud[1], bud[2], transaction_comment]
 
-    def readMonthlyCUFile(self, fname):
+    def read_monthly_cu_file(self, file_name):
         """Read in the downloaded Credit Union file line-by-line, and insert transactions in a dictionary
         Return the dictionary with the downloaded transactions.
-        
-        :param str fname: name of the Credit Union download file
+
+        :param str file_name: name of the Credit Union download file
         :rtype: dict
         """
         '''
@@ -355,18 +363,21 @@ class TransferMonthlyFilesToDB(object):
         EVERY TIME the files were read in.  This was a HUGE performance hit. The new files (for backup
         purposes) will have a different format: only the fields that are used will be saved, including
         the budget category. The only time the budget category will have to be looked up is when the
-        download file is first processed to be added to the database.
+        download file is first processed to be added to the DATABASE.
         '''
-        firstline = '"Transaction ID","Posting Date","Effective Date","Transaction Type","Amount","Check Number","Reference Number","Description","Transaction Category","Type","Balance"'
+        first_line = '"Transaction ID","Posting Date","Effective Date","Transaction Type","Amount",' \
+                     '"Check Number","Reference Number","Description","Transaction Category","Type",' \
+                     '"Balance"'
 
-        laterfirstline1 = '"Transaction ID","Posting Date","Effective Date","Transaction Type","Amount",'
-        '"Check Number","Reference Number","Payee","Memo","Transaction Category","Type","Balance"'
+        later_first_line_1 = '"Transaction ID","Posting Date","Effective Date","Transaction Type",' \
+                             '"Amount","Check Number","Reference Number","Payee","Memo",' \
+                             '"Transaction Category","Type","Balance"'
 
-        laterfirstline0 = '"Transaction_Date","Transaction_ID","TranDesc","ExtDesc","Description","Fee",'
-        '"Amount","Other_Charges","Balance","Post_Date","Check_Number"'
+        later_first_line_0 = '"Transaction_Date","Transaction_ID","TranDesc","ExtDesc","Description",' \
+                             '"Fee","Amount","Other_Charges","Balance","Post_Date","Check_Number"'
 
-        earlyfirstline = '"Transaction_Date","Transaction_ID","Description","Fee","Amount","Other_Charge'
-        's","Balance","Post_Date","Check_Number"'
+        early_first_line = '"Transaction_Date","Transaction_ID","Description","Fee","Amount",' \
+                           '"Other_Charges","Balance","Post_Date","Check_Number"'
 
         # There are many differences in the file format for CU after 1/25/2016.
         # All fields are book-ended by double-quotes
@@ -396,27 +407,27 @@ class TransferMonthlyFilesToDB(object):
         #      "TranDesc" and "ExtDesc"
         # The later records split the old Description field into TranDesc and ExtDesc, leaving the
         #   Description field the same as before
-        olderformat = False
-        linenum = 0
-        expfields = 11
-        outdict = {}
-        with open(fname) as f:
-            for line in f:
+        line_num = 0
+        expected_fields = 11
+        output_dict = {}
+        with open(file_name) as file_ptr:
+            for line in file_ptr:
                 desc = ''
                 bud_cat = ''
                 line = line.rstrip().lstrip()
-                if not line: continue # ignore blank lines
+                if not line:
+                    continue  # ignore blank lines
                 #
                 # First line stuff
                 #
-                if linenum == 0:
-                    if line == firstline:
-                        itdate = 1
-                        itid = 6
-                        iamt = 4
-                        ichecknum = 5
-                        ipayee = 7
-                        linenum += 1
+                if line_num == 0:
+                    if line == first_line:
+                        index_transaction_date = 1
+                        index_transaction_id = 6
+                        index_transaction_amount = 4
+                        index_transaction_check_num = 5
+                        index_payee = 7
+                        line_num += 1
                     else:
                         print '###############################################'
                         print '###############################################'
@@ -436,7 +447,7 @@ class TransferMonthlyFilesToDB(object):
                 #
                 else:
                     # Clear any commas inside quoted fields
-                    line = self.clearCommasInQuotes(' ', line)
+                    line = self.clear_commas_in_quotes(' ', line)
 
                     # Look for in-line comments and keep them
                     comment = ''
@@ -450,104 +461,98 @@ class TransferMonthlyFilesToDB(object):
                     line = line.translate(None, '"')
 
                     # split the line into fields (comma-separated)
-                    field = line.split(',')
+                    fields = line.split(',')
 
                     # verify there are no FEWER than the expected number of fields (can be greater)
-                    if len(field) < expfields:
-                        print('Missing fields in file {}. Expected at least {} but go'
-                              't {}. Line:\n{}'.format(fname, expfields, len(fields), line))
+                    if len(fields) < expected_fields:
+                        print('Missing fields in file {}. Expected at least {} but got {}. Line:\n{}'
+                              .format(file_name, expected_fields, len(fields), line))
                         sys.exit(1)
 
-                    if len(field[expfields:]) > 0:
-                        comment = str(field[expfields:]) + comment
+                    if fields[expected_fields:]:
+                        comment = str(fields[expected_fields:]) + comment
 
                     # parse the first field -- transaction date (split off time part)
-                    trans_date = field[itdate].split(' ')[0] # default value
+                    trans_date = fields[index_transaction_date].split(' ')[0]  # default value
 
                     # Transaction ID
-                    tid = field[itid]
+                    tid = fields[index_transaction_id]
 
-                    # If the record is a check, use the checks database to fill in the budget fields
+                    # If the record is a check, use the checks DATABASE to fill in the budget fields
                     # For UNRECORDED checks, we will need to fill in budget fields with default values
-                    checknum = ''
-                    tpayee = field[ipayee]
-                    bcaddict = dict()
-                    if field[ichecknum]: # a check
-                        # value of ichecknum depends on old or new format
-                        checknum = field[ichecknum]
+                    check_num = ''
+                    transaction_payee = fields[index_payee]
+                    budget_category_dict = dict()
+                    if fields[index_transaction_check_num]:  # a check
+                        # value of index_transaction_check_num depends on old or new format
+                        check_num = fields[index_transaction_check_num]
 
-                        # There is a check in the CU database with number '1'.
-                        # We're renumbering it for the database
-                        if checknum == '1':
-                            checknum = '999999'
-                        # process the check
-                        # desc, bcaddict = self.lookupCUCheckCat(checknum, field[iamt], trans_date)
-                        # desc = 'Check '+checknum+': '+desc
+                        # There is a check in the CU DATABASE with number '1'.
+                        # We're renumbering it for the DATABASE
+                        if check_num == '1':
+                            check_num = '999999'
 
                         # The check info resides in the checks table. The 'main' entry for the check has
                         # no useful budget information.
                         desc = 'Check'
-                        bcaddict[0] = ['XXX', 0, '']
+                        budget_category_dict[0] = ['XXX', 0, '']
 
-                    # If the record is not a check, fill in the budget info from the payee database or
+                    # If the record is not a check, fill in the budget info from the payee DATABASE or
                     # optional extra budget fields
                     else:
-                        # Lookup the default budget category from the payee database
+                        # Lookup the default budget category from the payee DATABASE
 
                         # defaults to 'UNKNOWN'
-                        bud_cat = self.lookupPayeeCat(tpayee, trans_date)
+                        bud_cat = self.lookup_payee_category(transaction_payee, trans_date)
 
                         # set the default budget date and amount from the transaction date and amount
-                        bud_date = trans_date
-                        bud_amt = field[iamt]
+                        bud_amt = fields[index_transaction_amount]
 
-                        # process the extra budget fields which may mean extra database records
-                        bcaddict = self.processBudgetFields(field[expfields:], bud_amt, bud_cat,
-                                                            trans_date, tid)
+                        # process the extra budget fields which may mean extra DATABASE records
+                        budget_category_dict = self.process_budget_fields(fields[expected_fields:],
+                                                                          bud_amt, bud_cat, trans_date,
+                                                                          tid)
 
                     # end if
 
-                    self.insertEntryIntoDict(
-                        bcaddict,
+                    self.insert_entry_into_dict(
+                        budget_category_dict,
                         tid,
                         trans_date,
-                        desc if checknum else ' '.join(tpayee.split()) \
-                                if tpayee else field[ipayee],
-                        checknum,
+                        desc if check_num else ' '.join(transaction_payee.split()) if transaction_payee
+                        else fields[index_payee],
+                        check_num,
                         'b',
-                        field[iamt],
+                        fields[index_transaction_amount],
                         comment,
-                        outdict)
-                    linenum += 1
-                # end if linenum == 0
+                        output_dict)
+                    line_num += 1
+                # end if line_num == 0
             # end for each line
         # end with open
 
-        print 'readMonthlyCUFile processed', linenum, 'records from '+fname+'\n'
-        return outdict
+        print('readMonthlyCUFile processed', line_num, 'records from ' + file_name + '\n')
+        return output_dict
 
-
-    def readMonthlyAmexFile(self, fname):
+    def read_monthly_amex_file(self, file_name):
         """Read in the downloaded American Express file line-by-line, and insert transactions in a
         dictionary. OBSOLETE
         Return the dictionary with the downloaded transactions.
-        
-        :param str fname: name of the American Express download file
+
+        :param str file_name: name of the American Express download file
         :rtype: dict
         """
-        linenum = 0
-        transactions = 0
-        expfields = 5
-        outdict = {}
-        with open(fname) as f:
-            for line in f:
-                desc = ''
-                bud_cat = ''
+        line_num = 0
+        expected_fields = 5
+        output_dict = {}
+        with open(file_name) as file_ptr:
+            for line in file_ptr:
                 line = line.rstrip().lstrip()
-                if not line: continue # ignore blank lines
+                if not line:
+                    continue  # ignore blank lines
 
                 # Clear any commas inside quoted fields
-                line = self.clearCommasInQuotes(' ', line)
+                line = self.clear_commas_in_quotes(' ', line)
 
                 # Look for in-line comments and keep them
                 comment = ''
@@ -565,13 +570,13 @@ class TransferMonthlyFilesToDB(object):
 
                 # verify there are no FEWER than the expected number of fields
                 # (can be greater)
-                if len(field) < expfields:
+                if len(field) < expected_fields:
                     print('Missing fields in file {}. Expected at least {} but got {}. Line:'
-                          '\n{}'.format(fname, expfields, len(field), line))
+                          '\n{}'.format(file_name, expected_fields, len(field), line))
                     sys.exit(1)
 
                 # parse the first field -- transaction date
-                trans_date = field[0] # mm/dd/yyyy
+                trans_date = field[0]  # mm/dd/yyyy
 
                 # parse the transaction reference
                 trans_ref = field[1].split()[1]
@@ -582,32 +587,28 @@ class TransferMonthlyFilesToDB(object):
                 # transaction payee
                 trans_payee = field[3]
 
-                # Lookup the default budget category from the payee database
+                # Lookup the default budget category from the payee DATABASE
                 # defaults to 'UNKNOWN'
-                bud_cat = self.lookupPayeeCat(trans_payee, trans_date)
+                bud_cat = self.lookup_payee_category(trans_payee, trans_date)
 
-                # set the default budget date and amount from the transaction date and amount
-                bud_date = trans_date
-                bud_amt = trans_amt
-
-                # process the extra budget fields which may mean extra database
+                # process the extra budget fields which may mean extra DATABASE
                 # records
-                bcaddict = self.processBudgetFields(field[expfields:], trans_amt, bud_cat, trans_date,
-                                                    trans_ref)
+                budget_category_dict = self.process_budget_fields(field[expected_fields:], trans_amt,
+                                                                  bud_cat, trans_date, trans_ref)
 
                 # insert the record(s) into the dictionary
-                self.insertEntryIntoDict(bcaddict, trans_ref, trans_date, trans_payee, '', 'x',
-                                         trans_amt, comment, outdict)
-                linenum += 1
+                self.insert_entry_into_dict(budget_category_dict, trans_ref, trans_date, trans_payee,
+                                            '', 'x', trans_amt, comment, output_dict)
+                line_num += 1
             # end for
-        print('readMonthlyAmexFile processed {} records from {}\n'.format(linenum, fname))
-        return outdict
+        print('read_monthly_amex_file processed {} records from {}\n'.format(line_num, file_name))
+        return output_dict
 
-    def readMonthlyCitiFile(self, fname):
+    def read_monthly_citi_file(self, file_name):
         """Read in the downloaded Citibank file line-by-line, and insert transactions in a dictionary.
         Return the dictionary with the downloaded transactions.
-        
-        :param str fname: name of the Citibank download file
+
+        :param str file_name: name of the Citibank download file
         :rtype: dict
         """
         '''
@@ -620,7 +621,7 @@ class TransferMonthlyFilesToDB(object):
         "Status",               "Date",         "Description",                                              "Debit",       "Credit",   "Member Name"
         "Cleared",           "06/02/2016",       "E 470 EXPRESS TOLLS                     ",               "32.55",           "",      "CHRIS ANDERSON"
 
-        On or after 06/03/2016 ('newformat'):
+        On or after 06/03/2016 ('new_format'):
             0                     1                   2                                                       3               4             5
         "Status",               "Date",         "Description",                                              "Debit",       "Credit",   "Member Name"
         "Cleared",           "06/03/2016",       "AMAZON.COM                           XXXX-XXXX-XXXX-3003","8.65",           "",      "KATHY ANDERSON"
@@ -631,31 +632,28 @@ class TransferMonthlyFilesToDB(object):
 
 
         The only difference between the two formats is very small: The earlier format does not have the
-        crypto-card number at the end of the description field.
+        crypto-card number at the end of the description fields.
         Both Debit and Credit values are positive.
 
-        TODO: Talk to Citi about adding transaction reference field to download file
-        DONE: Talked to Citi about adding transaction ID field. They have passed the request on to their
+        TODO: Talk to Citi about adding transaction reference fields to download file
+        DONE: Talked to Citi about adding transaction ID fields. They have passed the request on to their
         tech guys.
         '''
 
-        linenum = 0
-        transactions = 0
-        expfields = 6
-        outdict = {}
-        with open(fname) as f:
-            for line in f:
-                desc = ''
-                bud_cat = ''
-
+        line_num = 0
+        expected_fields = 6
+        output_dict = {}
+        with open(file_name) as file_ptr:
+            for line in file_ptr:
                 # strip all leading and trailing spaces and new-lines
                 line = line.rstrip().lstrip()
 
                 # ignore blank lines
-                if not line: continue
+                if not line:
+                    continue
 
                 # Clear any commas inside quoted fields
-                line = self.clearCommasInQuotes('', line)
+                line = self.clear_commas_in_quotes('', line)
 
                 # Look for in-line comments and keep them
                 comment = ''
@@ -669,87 +667,82 @@ class TransferMonthlyFilesToDB(object):
                 line = line.translate(None, '"')
 
                 # split the line into fields (comma-separated)
-                field = line.split(',')
+                fields = line.split(',')
 
                 # skip if it's the header line
-                if 'status' in field[0].lower(): continue
+                if 'status' in fields[0].lower():
+                    continue
 
                 # Skip if it's a pending transaction. Sometimes transaction details change when they
                 # transition from Pending to Cleared and a slightly different form of the exact same
-                # transaction is created and inserted into the database the next time the Citi
+                # transaction is created and inserted into the DATABASE the next time the Citi
                 # transaction file is downloaded and processed by this script, creating a double entry.
                 # To prevent this, only consider Cleared transactions which by assumption do not change
                 # over time.
-                if 'pending' in field[0].lower(): continue
+                if 'pending' in fields[0].lower():
+                    continue
 
                 # verify there are no FEWER than the expected number of fields (can be greater)
-                if len(field) < expfields:
+                if len(fields) < expected_fields:
                     print('Missing fields in file {}. Expected at least {} '
-                          'but got {}. Line:\n{}'.format(fname, expfields, len(field), line))
+                          'but got {}. Line:\n{}'.format(file_name, expected_fields, len(fields), line))
                     sys.exit(1)
 
-                # parse the second field -- transaction date
-                trans_date = field[1] # mm/dd/yyyy
-                tdate = datetime.datetime.strptime(trans_date, "%m/%d/%Y").date()
-                newformat = False
+                # parse the second fields -- transaction date
+                trans_date = fields[1]  # mm/dd/yyyy
+                trans_date_obj = datetime.datetime.strptime(trans_date, "%m/%d/%Y").date()
+                new_format = False
 
-                # all dates > 6/2/2016 are newformat
-                if tdate > datetime.datetime.strptime('6/2/2016', '%m/%d/%Y').date():
-                    newformat = True
-
-                # parse the transaction reference
-                # trans_ref = field[1].split()[1]
+                # all dates > 6/2/2016 are new_format
+                if trans_date_obj > datetime.datetime.strptime('6/2/2016', '%m/%d/%Y').date():
+                    new_format = True
 
                 # transaction amount (fields 3 and 4 are mutually exclusive:
                 # one or the other has a value, not both)
-                if field[3]:
-                    trans_amt = '-'+field[3] # Debits need to be negative value
+                if fields[3]:
+                    trans_amt = '-'+fields[3]  # Debits need to be negative value
                 else:
-                    trans_amt = field[4]
+                    trans_amt = fields[4]
 
                 # transaction payee
-                trans_payee = field[2]
+                trans_payee = fields[2]
 
-                # strip-off optional credit card number at end of field
-                if newformat:
+                # strip-off optional credit card number at end of fields
+                if new_format:
                     # strip off crypto-card-number
                     trans_payee = trans_payee[0:37]
 
                 # strip off any and all trailing white-space
                 trans_payee = trans_payee.rstrip()
 
-                # Lookup the default budget category from the payee database defaults to 'UNKNOWN'
-                bud_cat = self.lookupPayeeCat(trans_payee, trans_date)
+                # Lookup the default budget category from the payee DATABASE defaults to 'UNKNOWN'
+                bud_cat = self.lookup_payee_category(trans_payee, trans_date)
 
-                # set the default budget date and amount from the transaction date and amount
-                bud_date = trans_date
-                bud_amt = trans_amt
-
-                # TEMP: create a transaction reference from the value of each field. Empty fields get a
+                # TEMP: create a transaction reference from the value of each fields. Empty fields get a
                 # value
-                hashkey = trans_date+trans_amt+trans_payee+field[5]
-                trans_ref = hashlib.md5(hashkey).hexdigest()
-                print hashkey+' => '+trans_ref
+                hash_key = trans_date+trans_amt+trans_payee+fields[5]
+                trans_ref = hashlib.md5(hash_key).hexdigest()
+                print(hash_key+' => '+trans_ref)
 
-                # process the extra budget fields which may mean extra database records
-                bcaddict = self.processBudgetFields(field[expfields:], trans_amt, bud_cat, trans_date,
-                                                    trans_ref)
+                # process the extra budget fields which may mean extra DATABASE records
+                budget_category_dict = self.process_budget_fields(fields[expected_fields:], trans_amt,
+                                                                  bud_cat, trans_date, trans_ref)
 
                 # insert the record(s) into the dictionary
-                self.insertEntryIntoDict(bcaddict, trans_ref, trans_date, trans_payee, '', 'C',
-                                         trans_amt, comment, outdict)
-                linenum += 1
+                self.insert_entry_into_dict(budget_category_dict, trans_ref, trans_date, trans_payee,
+                                            '', 'C', trans_amt, comment, output_dict)
+                line_num += 1
             # end for
-        print('readMonthlyCitiFile processed {} records from {}\n'.format(linenum, fname))
-        return outdict
+        print('read_monthly_citi_file processed {} records from {}\n'.format(line_num, file_name))
+        return output_dict
 
-
-    def readMonthlyDiscoverFile(self, fname, download=False):
+    def read_monthly_discover_file(self, file_name, download=False):
         """Read in the downloaded Discover Card file line-by-line, and insert transactions in a
         dictionary.
         Return the dictionary with the downloaded transactions.
-        
-        :param str fname: name of the Discover Card download file
+
+        :param str file_name: name of the Discover Card download file
+        :param bool download: whether or not to use different transaction date format
         :rtype: dict
         """
         '''
@@ -759,12 +752,12 @@ class TransferMonthlyFilesToDB(object):
         #      0-2       3-5                6                                                          7        8
         # 2012,08,07,2012,08,07,PANANG THAI CUISINE LAFAYETTE CO,                                     -26,   Restaurants
         # 2007,10,16,2007,10,16,SAFEWAY STORE 1552 FORT COLLINS CO CASHOVER $ 20.00 PURCHASES $ 14.47,-34.47,Supermarkets
-        #    tdate      xxxx              tpayee                                                       tamt  payee type
+        #    tdate      xxxx              tpayee                                                       trans_amt_float  payee type
         #
         # example download file (note date format change and quotation marks):
         #      0         1                  2                                 3       4
         # 07/07/2015,07/07/2015,"MT RUSHMORE KOA/PALMER HILL CITY SD00797R",62.24,"Services"
-        #    tdate                        tpayee                            tamt  payee type
+        #    tdate                        tpayee                            trans_amt_float  payee type
         #
         # Discover card is the only one that does not use a unique identifier for every transaction. We
         # have to create one that is not fool-proof: combine the 2 dates, payee, amount, and payee type
@@ -772,40 +765,38 @@ class TransferMonthlyFilesToDB(object):
         # while two or more transactions occur on the same day to the same payee for the same amount and
         # then they have to be distinguished. This is problematic.
 
-        linenum = 0
-        transactions = 0
-        expfields = 5 if download else 9
-        checkdict = {}
-        outdict = {}
-        with open(fname) as f:
-            for line in f:
+        line_num = 0
+        expected_fields = 5 if download else 9
+        check_dict = {}
+        output_dict = {}
+        with open(file_name) as file_ptr:
+            for line in file_ptr:
                 line = line.rstrip().lstrip()
-                if not line: continue # ignore blank lines
-                # print 'Discover: '+line
+                if not line:
+                    continue  # ignore blank lines
                 if line.startswith('<!--'):
-                    print 'readMonthlyDiscoverFile: Skipping line "'+line+'"'
+                    print('read_monthly_discover_file: Skipping line "'+line+'"')
                     continue
 
                 # download files have header line; legacy monthly files do not
-                if linenum == 0 and download:
+                if line_num == 0 and download:
                     # This is the file when there are no transactions in the given period
                     if line.startswith('There are no statements'):
-                        return outdict
+                        return output_dict
 
                     fields = line.split(',')
-                    if len(fields) != expfields:
+                    if len(fields) != expected_fields:
                         print('Discover download file header line has {} field(s) instead of expected '
-                              '{}'.format(len(fields), expfields))
+                              '{}'.format(len(fields), expected_fields))
                         sys.exit(1)
-                    linenum += 1
+                    line_num += 1
                     continue
-                desc = ''
-                bud_cat = ''
                 line = line.rstrip().lstrip()
-                if not line: continue # ignore blank lines
+                if not line:
+                    continue  # ignore blank lines
 
                 # Clear any commas inside quoted fields
-                line = self.clearCommasInQuotes(' ', line)
+                line = self.clear_commas_in_quotes(' ', line)
 
                 # Look for in-line comments and keep them
                 comment = ''
@@ -823,9 +814,9 @@ class TransferMonthlyFilesToDB(object):
 
                 # verify there are no FEWER than the expected number of fields
                 # (can be greater)
-                if len(field) < expfields:
-                    print('Missing fields in file {}. Expected at least {} but got {}. Line:\n'
-                          '{}'.format(fname, expfields, len(field), line))
+                if len(field) < expected_fields:
+                    print('Missing fields in file {}. Expected at least {} but got {}. Line:\n{}'
+                          .format(file_name, expected_fields, len(field), line))
                     sys.exit(1)
 
                 # parse the first field -- transaction date
@@ -839,14 +830,14 @@ class TransferMonthlyFilesToDB(object):
                 # for debits, - for credits -- we reverse it to preserve
                 # consistency across accounts
                 if download:
-                    tamt = float(field[3])
-                    trans_amt = '%.2f' % -tamt
+                    trans_amt_float = float(field[3])
+                    trans_amt_string = '%.2f' % -trans_amt_float
                 else:
-                    tamt = float(field[7])
-                    trans_amt = '%.2f' % tamt
+                    trans_amt_float = float(field[7])
+                    trans_amt_string = '%.2f' % trans_amt_float
 
                     # this converts amounts like '-7.1' to a consistent '-7.10'
-                    field[7] = trans_amt
+                    field[7] = trans_amt_string
 
                 # parse the transaction reference
                 # some work here to get the dates in the right order and format
@@ -860,22 +851,22 @@ class TransferMonthlyFilesToDB(object):
                                                   date2[0],
                                                   date2[1]]),
                                          field[2].replace(' ', ''),
-                                         trans_amt,
+                                         trans_amt_string,
                                          field[4].replace(' ', '')])
                 else:
                     # The reference will be the entire line stripped of commas and spaces, minus any
                     # extra fields
-                    trans_ref = ''.join(field[:expfields]).replace(' ', '')
+                    trans_ref = ''.join(field[:expected_fields]).replace(' ', '')
 
-                # checkdict is here to make sure the record reference is unique
-                while trans_ref in checkdict:
+                # check_dict is here to make sure the record reference is unique
+                while trans_ref in check_dict:
                     print('Discover transaction reference "{}" is not unique. Appending "x" to '
                           'it'.format(trans_ref))
                     # If it's already being used, add a character to it
                     trans_ref = trans_ref + 'x'
 
-                # now the reference is unique and can be inserted into the database
-                checkdict[trans_ref] = 0
+                # now the reference is unique and can be inserted into the DATABASE
+                check_dict[trans_ref] = 0
 
                 # transaction payee
                 if download:
@@ -883,35 +874,29 @@ class TransferMonthlyFilesToDB(object):
                 else:
                     trans_payee = field[6]
 
-                # Lookup the default budget category from the payee database
+                # Lookup the default budget category from the payee DATABASE
                 # defaults to 'UNKNOWN'
-                bud_cat = self.lookupPayeeCat(trans_payee, trans_date)
+                bud_cat = self.lookup_payee_category(trans_payee, trans_date)
 
-                # set the default budget date and amount from the transaction date and amount
-                bud_date = trans_date
-                bud_amt = trans_amt
-
-                # process the extra budget fields which may mean extra database
-                # records
-                bcaddict = self.processBudgetFields(field[expfields:], trans_amt, bud_cat, trans_date,
-                                                    trans_ref)
+                # process the extra budget fields which may mean extra DATABASE records
+                budget_category_dict = self.process_budget_fields(field[expected_fields:],
+                                                                  trans_amt_string, bud_cat, trans_date,
+                                                                  trans_ref)
 
                 # insert the record(s) into the dictionary
-                self.insertEntryIntoDict(bcaddict, trans_ref, trans_date, trans_payee, '', 'd',
-                                         trans_amt, comment, outdict)
-                linenum += 1
+                self.insert_entry_into_dict(budget_category_dict, trans_ref, trans_date, trans_payee,
+                                            '', 'd', trans_amt_string, comment, output_dict)
+                line_num += 1
             # end for
-        print('readMonthlyDiscoverFile processed {} records from {}\n'.format(linenum, fname))
-        return outdict
+        print('read_monthly_discover_file processed {} records from {}\n'.format(line_num, file_name))
+        return output_dict
 
-
-
-    def readMonthlyChaseFile(self, fname):
+    def read_monthly_chase_file(self, file_name):
         """Read in the downloaded Chase Bank file line-by-line, and insert transactions in a dictionary.
         OBSOLETE
         Return the dictionary with the downloaded transactions.
-        
-        :param str fname: name of the Chase Bank download file
+
+        :param str file_name: name of the Chase Bank download file
         :rtype: dict
         """
         '''
@@ -922,18 +907,17 @@ class TransferMonthlyFilesToDB(object):
         trtype       tdatetime                           payee                                      tamt
         '''
 
-        linenum = 0
-        expfields = 4
-        outdict = dict()
-        with open(fname) as f:
-            for line in f:
-                desc = ''
-                bud_cat = ''
+        line_num = 0
+        expected_fields = 4
+        output_dict = dict()
+        with open(file_name) as file_ptr:
+            for line in file_ptr:
                 line = line.rstrip().lstrip()
-                if not line: continue # ignore blank lines
+                if not line:
+                    continue  # ignore blank lines
 
                 # Clear any commas inside quoted fields
-                line = self.clearCommasInQuotes(' ', line)
+                line = self.clear_commas_in_quotes(' ', line)
 
                 # Look for in-line comments and keep them
                 comment = ''
@@ -951,9 +935,9 @@ class TransferMonthlyFilesToDB(object):
 
                 # verify there are no FEWER than the expected number of fields
                 # (can be greater)
-                if len(field) < expfields:
-                    print('Missing fields in file {}. Expected at least {} but got {}. Line:\n'
-                          '{}'.format(fname, expfields, len(field), line))
+                if len(field) < expected_fields:
+                    print('Missing fields in file {}. Expected at least {} but got {}. Line:\n{}'
+                          .format(file_name, expected_fields, len(field), line))
                     sys.exit(1)
 
                 # parse the date field -- transaction date
@@ -970,45 +954,39 @@ class TransferMonthlyFilesToDB(object):
                 # strip out extra spaces
                 trans_payee = ' '.join(field[2].split())
 
-                # Lookup the default budget category from the payee database
+                # Lookup the default budget category from the payee DATABASE
                 # defaults to 'UNKNOWN'
-                bud_cat = self.lookupPayeeCat(trans_payee, trans_date)
+                bud_cat = self.lookup_payee_category(trans_payee, trans_date)
 
-                # set the default budget date and amount from the transaction date and amount
-                bud_date = trans_date
-                bud_amt = trans_amt
-
-                # process the extra budget fields which may mean extra database
+                # process the extra budget fields which may mean extra DATABASE
                 # records
-                bcaddict = self.processBudgetFields(field[expfields:], trans_amt, bud_cat, trans_date,
-                                                    trans_ref)
+                budget_category_dict = self.process_budget_fields(field[expected_fields:], trans_amt,
+                                                                  bud_cat, trans_date, trans_ref)
 
                 # insert the record(s) into the dictionary
-                self.insertEntryIntoDict(bcaddict, trans_ref, trans_date, trans_payee, '', 'c',
-                                         trans_amt, comment, outdict)
-                linenum += 1
+                self.insert_entry_into_dict(budget_category_dict, trans_ref, trans_date, trans_payee,
+                                            '', 'c', trans_amt, comment, output_dict)
+                line_num += 1
             # end for
-        print('readMonthlyChaseFile processed {} records from {}\n'.format(linenum, fname))
-        return outdict
+        print('read_monthly_chase_file processed {} records from {}\n'.format(line_num, file_name))
+        return output_dict
 
-
-
-    def readDownloadBarclayFile(self, fname):
+    def read_download_barclay_file(self, file_name):
         """Read in the downloaded Barclay Card file line-by-line, and insert transactions in a
         dictionary. OBSOLETE
         Return the dictionary with the downloaded transactions.
-        
-        :param str fname: name of the Barclay Card download file
+
+        :param str file_name: name of the Barclay Card download file
         :rtype: dict
         """
         # This is the download file format:
         #
         # ...<STMTTRN><TRNTYPE>CREDIT<DTPOSTED>20150203050000.000<DTUSER>20150203050000.000<TRNAMT>566.64<FITID>75140215034020315130448108<NAME>PAYMENT RECV'D CHECKFREE</STMTTRN>...
         #
-        linenum = 0
-        outdict = dict()
-        with open(fname) as f:
-            for line in f:
+        line_num = 0
+        output_dict = dict()
+        with open(file_name) as file_ptr:
+            for line in file_ptr:
                 if '<STMTTRN>' in line:
                     transactions = line.split('<STMTTRN>')
                     # for each transaction (element 0 does not contain what we are looking for)
@@ -1018,83 +996,84 @@ class TransferMonthlyFilesToDB(object):
                                 not '<FITID>' in trans or \
                                 not '<NAME>' in trans:
                             print('Missing fields in file {}. Expected 4 fields, but one or more '
-                                  'are missing: {}'.format(fname, trans))
+                                  'are missing: {}'.format(file_name, trans))
                             sys.exit(1)
-                        matchobj = re.search(r'<FITID>([^<]+)<', trans)
-                        if matchobj:
-                            trans_ref = matchobj.group(1)
+                        match_obj = re.search(r'<FITID>([^<]+)<', trans)
+                        if match_obj:
+                            trans_ref = match_obj.group(1)
                         else:
                             print('Error matching <FITID> in transaction "{}" in file '
-                                  '{}'.format(trans, fname))
+                                  '{}'.format(trans, file_name))
                             sys.exit(1)
-                        matchobj = re.search(r'<DTPOSTED>([^<]+)<', trans)
-                        if matchobj:
-                            trans_date = (matchobj.group(1)[4:6]+'/'+
-                                          matchobj.group(1)[6:8]+'/'+
-                                          matchobj.group(1)[:4])
+                        match_obj = re.search(r'<DTPOSTED>([^<]+)<', trans)
+                        if match_obj:
+                            trans_date = (match_obj.group(1)[4:6]
+                                          + '/' +
+                                          match_obj.group(1)[6:8]
+                                          + '/' +
+                                          match_obj.group(1)[:4])
                         else:
-                            print('Error matching <DTPOSTED> in transaction "{}" in file '
-                                  '{}'.format(trans, fname))
+                            print('Error matching <DTPOSTED> in transaction "{}" in file {}'
+                                  .format(trans, file_name))
                             sys.exit(1)
-                        matchobj = re.search(r'<TRNAMT>([^<]+)<', trans)
-                        if matchobj:
-                            trans_amt = matchobj.group(1)
+                        match_obj = re.search(r'<TRNAMT>([^<]+)<', trans)
+                        if match_obj:
+                            trans_amt = match_obj.group(1)
                         else:
-                            print('Error matching <TRNAMT> in transaction "{}" in file '
-                                  '{}'.format(trans, fname))
+                            print('Error matching <TRNAMT> in transaction "{}" in file {}'
+                                  .format(trans, file_name))
                             sys.exit(1)
-                        matchobj = re.search(r'<NAME>([^<]+)<', trans)
-                        if matchobj:
-                            trans_payee = matchobj.group(1)
+                        match_obj = re.search(r'<NAME>([^<]+)<', trans)
+                        if match_obj:
+                            trans_payee = match_obj.group(1)
                         else:
-                            print('Error matching <NAME> in transaction "{}" in file '
-                                  '{}'.format(trans, fname))
+                            print('Error matching <NAME> in transaction "{}" in file {}'
+                                  .format(trans, file_name))
                             sys.exit(1)
 
-                        # lookup the default budget category from the payee database
+                        # lookup the default budget category from the payee DATABASE
                         # defaults to 'UNKNOWN'
-                        bud_cat = self.lookupPayeeCat(trans_payee, trans_date)
+                        bud_cat = self.lookup_payee_category(trans_payee, trans_date)
 
                         # set the default budget date and amount from the transaction date and amount
                         bud_date = trans_date
                         bud_amt = trans_amt
 
                         # insert the record(s) into the dictionary
-                        bcaddict = dict()
-                        bcaddict[0] = [bud_cat, bud_amt, bud_date]
-                        self.insertEntryIntoDict(bcaddict, trans_ref, trans_date, trans_payee, '', 'y',
-                                                 trans_amt, '', outdict)
-                        linenum += 1
+                        budget_category_dict = dict()
+                        budget_category_dict[0] = [bud_cat, bud_amt, bud_date]
+                        self.insert_entry_into_dict(budget_category_dict, trans_ref, trans_date,
+                                                    trans_payee, '', 'y', trans_amt, '', output_dict)
+                        line_num += 1
                     # end for each transaction
                 # end if <STMTTRN> found in line
             # end for each line in file
-        print('readDownloadBarclayFile processed {} records from {}\n'.format(linenum, fname))
-        return outdict
+        print('read_download_barclay_file processed {} records from {}\n'.format(line_num, file_name))
+        return output_dict
 
-    def readMonthlyBarclayFile(self, fname):
+    def read_monthly_barclay_file(self, file_name):
         """Read in the downloaded Barclay Card file line-by-line, and insert transactions in a
         dictionary. OBSOLETE
         Return the dictionary with the downloaded transactions.
-        
-        :param str fname: name of the Barclay Card download file
+
+        :param str file_name: name of the Barclay Card download file
         :rtype: dict
         """
         # This is the monthly file format:
         #   0  1  2             3                      4         5
         # 2011,04,04,252478010910000016899273001,BOMBAY MASALA,31.00
         # tyr tmo tday         tref                  payee      tamt
-        linenum = 0
-        expfields = 6
-        outdict = {}
-        with open(fname) as f:
-            for line in f:
-                desc = ''
-                bud_cat = ''
+        line_num = 0
+        expected_fields = 6
+        output_dict = {}
+        with open(file_name) as file_ptr:
+            for line in file_ptr:
                 line = line.rstrip().lstrip()
-                if not line: continue # ignore blank lines
+                if not line:
+                    continue  # ignore blank lines
 
                 # Clear any commas inside quoted fields
-                line = self.clearCommasInQuotes(' ', line)
+                line = self.clear_commas_in_quotes(' ', line)
 
                 # Look for in-line comments and keep them
                 comment = ''
@@ -1111,9 +1090,9 @@ class TransferMonthlyFilesToDB(object):
                 field = line.split(',')
 
                 # verify there are no FEWER than the expected number of fields (can be greater)
-                if len(field) < expfields:
+                if len(field) < expected_fields:
                     print('Missing fields in file {}. Expected at least {} but got {}. Line:\n'
-                          '{}'.format(fname, expfields, len(field), line))
+                          '{}'.format(file_name, expected_fields, len(field), line))
                     sys.exit(1)
 
                 # parse the date field -- transaction date
@@ -1130,47 +1109,47 @@ class TransferMonthlyFilesToDB(object):
                 # strip out extra spaces
                 trans_payee = ' '.join(field[4].split())
 
-                # lookup the default budget category from the payee database
+                # lookup the default budget category from the payee DATABASE
                 # defaults to 'UNKNOWN'
-                bud_cat = self.lookupPayeeCat(trans_payee, trans_date)
+                bud_cat = self.lookup_payee_category(trans_payee, trans_date)
 
-                # set the default budget date and amount from the transaction date and amount
-                bud_date = trans_date
-                bud_amt = trans_amt
-
-                # process the extra budget fields which may mean extra database records
-                bcaddict = self.processBudgetFields(field[expfields:], trans_amt, bud_cat, trans_date,
-                                                    trans_ref)
+                # process the extra budget fields which may mean extra DATABASE records
+                budget_category_dict = self.process_budget_fields(field[expected_fields:], trans_amt,
+                                                                  bud_cat, trans_date, trans_ref)
 
                 # insert the record(s) into the dictionary
-                self.insertEntryIntoDict(bcaddict, trans_ref, trans_date, trans_payee, '', 'y',
-                                         trans_amt, comment, outdict)
-                linenum += 1
+                self.insert_entry_into_dict(budget_category_dict, trans_ref, trans_date, trans_payee,
+                                            '', 'y', trans_amt, comment, output_dict)
+                line_num += 1
             # end for
-        print('readMonthlyBarclayFile processed {} records from {}\n'.format(linenum, fname))
-        return outdict
+        print('read_monthly_barclay_file processed {} records from {}\n'.format(line_num, file_name))
+        return output_dict
 
-    def processFile(self, fname):
+    def process_file(self, file_name):
         """NOT USED"""
         local_inserted = 0
 
-        if not fname.endswith('.txt'): return
-        if fname.endswith('cat.txt'): return
-        if fname.endswith('DB.txt'): return
-        if '2004' in fname or '2005' in fname: return
-        print 'Processing file '+fname
-        if 'Discover' in fname:
-            outdict = self.readMonthlyDiscoverFile('decoded-dbs/'+fname)
-        elif 'Amex' in fname:
-            outdict = self.readMonthlyAmexFile('decoded-dbs/'+fname)
-        elif 'Chase' in fname:
-            outdict = self.readMonthlyChaseFile('decoded-dbs/'+fname)
-        elif 'Barclay' in fname:
-            outdict = self.readMonthlyBarclayFile('decoded-dbs/'+fname)
+        if not file_name.endswith('.txt'):
+            return
+        if file_name.endswith('cat.txt'):
+            return
+        if file_name.endswith('DB.txt'):
+            return
+        if '2004' in file_name or '2005' in file_name:
+            return
+        print('Processing file ' + file_name)
+        if 'Discover' in file_name:
+            output_dict = self.read_monthly_discover_file('decoded-dbs/' + file_name)
+        elif 'Amex' in file_name:
+            output_dict = self.read_monthly_amex_file('decoded-dbs/' + file_name)
+        elif 'Chase' in file_name:
+            output_dict = self.read_monthly_chase_file('decoded-dbs/' + file_name)
+        elif 'Barclay' in file_name:
+            output_dict = self.read_monthly_barclay_file('decoded-dbs/' + file_name)
         else:
-            outdict = self.readMonthlyCUFile('decoded-dbs/'+fname)
+            output_dict = self.read_monthly_cu_file('decoded-dbs/' + file_name)
 
-        for key, val in outdict.iteritems():
+        for key, val in output_dict.iteritems():
             record = ('INSERT into main ('
                       'tran_date, '
                       'tran_ID, '
@@ -1184,50 +1163,53 @@ class TransferMonthlyFilesToDB(object):
                       'comment) '
                       'VALUES ('
                       'STR_TO_DATE("'+val[0]+'","%m/%d/%Y"), "'
-                      +key+'", "'
-                      +val[2]+'", "'
-                      +val[3]+'", "'
-                      +val[4]+'", "'
-                      +val[5]+'", "'
-                      +val[6]+'", "'
-                      +val[7]+'", '
+                      + key+'", "'
+                      + val[2] + '", "'
+                      + val[3] + '", "'
+                      + val[4] + '", "'
+                      + val[5] + '", "'
+                      + val[6] + '", "'
+                      + val[7] + '", '
                       'STR_TO_DATE("'+val[8]+'","%m/%d/%Y"), "'
-                      +val[9]+'");')
+                      + val[9] + '");')
             self.cur.execute(record)
             local_inserted += 1
 
-        print 'Inserted', local_inserted, 'records into database'
+        print('Inserted', local_inserted, 'records into DATABASE')
         self.inserted += local_inserted
-        self.totalfiles += 1
-        self.filesprocessed += 1
+        self.total_files += 1
+        self.files_processed += 1
 
         return
 
-    def mergeOTCChecks(self):
+    def merge_over_the_counter_checks(self):
         """NOT USED"""
-        for fname in glob.glob('decoded-dbs/*.txt'):
-            if '2004' in fname or '2005' in fname: continue
-            if 'Discover' in fname: continue
-            if 'Amex' in fname: continue
-            if 'Chase' in fname: continue
-            if 'Barclay' in fname: continue
-            if fname.endswith('cat.txt'): continue
-            if fname.endswith('DB.txt'): continue
+        for file_name in glob.glob('decoded-dbs/*.txt'):
+            if '2004' in file_name or '2005' in file_name:
+                continue
+            if 'Discover' in file_name:
+                continue
+            if 'Amex' in file_name:
+                continue
+            if 'Chase' in file_name:
+                continue
+            if 'Barclay' in file_name:
+                continue
+            if file_name.endswith('cat.txt'):
+                continue
+            if file_name.endswith('DB.txt'):
+                continue
 
             # We are left with credit union files
-            outdict = self.readMonthlyCUFile(fname)
-            for key, val in outdict.iteritems():
-                # outdict[transRef] = [transDate, transRef, transPayee,
-                #                      transChecknum, transType, transAmt,
-                #                      bud[0], bud[1], bud[2], transComment]
-                if val[3].strip(): # Check number is not empty
+            output_dict = self.read_monthly_cu_file(file_name)
+            for key, val in output_dict.iteritems():
+                if val[3].strip():  # Check number is not empty
                     self.cur.execute("select tran_checknum from main where tran_ID = '"+key+"';")
                     self.cur.fetchone()
                     for row in self.cur:
-                        # Check number field does not exist in database for
-                        # this transaction
+                        # Check number field does not exist in DATABASE for this transaction
                         if row[0] == 0:
                             query = ("update main set tran_checknum = '"+val[3]+"',tran_desc = '"
-                                     +val[2]+"' where tran_ID = '"+key+"';")
-                            print query
+                                     + val[2] + "' where tran_ID = '" + key + "';")
+                            print(query)
                             self.cur.execute(query)
