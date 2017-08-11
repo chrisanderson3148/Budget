@@ -184,23 +184,27 @@ class TransferMonthlyFilesToDB(object):
         if 'EDI PAYMTS' in payee and \
                 'HEWLETT-PACKARD' in payee:
             return 'PAYROLL'
+        if 'ACH Deposit' in payee and \
+                'NETAPP PAYROLL' in payee:
+            return 'PAYROLL'
 
         if 'Transfer' in payee:
-            if '61210600' in payee:
+            if 'Life and auto insurance' in payee:
                 return 'INSURANCE'
-            if '61210601' in payee:
-                if bud_date < datetime.datetime.strptime('08/01/2008', "%m/%d/%Y").date():
-                    return 'HOA'
+            # if '61210601' in payee:  # obsolete
+            #     if bud_date < datetime.datetime.strptime('08/01/2008', "%m/%d/%Y").date():
+            #         return 'HOA'
+            if 'Furniture purchase' in payee:
                 return 'FURNITURE'
-            if '61210602' in payee:
+            if 'Gifts escrow' in payee:
                 return 'GIFTS'
-            if '61210603' in payee:
+            if 'Travel escrow' in payee:
                 return 'TRAVEL'
-            if '61210604' in payee:
+            if 'Car repair monthly' in payee:
                 return 'CAR MAINT'
-            if '61210680' in payee:
-                return 'SAVINGS'
-            if '44051209' in payee:
+            # if '61210680' in payee:  # obsolete
+            #     return 'SAVINGS'
+            if 'Medical escrow' in payee:
                 return 'MEDICAL'
             return 'TRANSFER'
 
