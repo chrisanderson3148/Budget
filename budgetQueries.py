@@ -4,12 +4,12 @@ import MySQLdb
 
 
 class BudgetDB(object):
-    """Class to handle DATABASE initialization and closing.
+    """Class to handle database initialization and closing.
 
-    :param str host: the name of the host of the DATABASE ('localhost' is likely)
-    :param str user: the username to authenticate with the DATABASE
-    :param str password: the password to authenticate with the DATABASE
-    :param str db_name: the name of the mysql DATABASE.
+    :param str host: the name of the host of the database ('localhost' is likely)
+    :param str user: the username to authenticate with the database
+    :param str password: the password to authenticate with the database
+    :param str db_name: the name of the mysql database.
     """
     def __init__(self, host, user, password, db_name):
         # Open a connection to the DATABASE
@@ -38,14 +38,14 @@ class BudgetDB(object):
             self.bud_cat_list.append(row[0].upper())
 
     def __del__(self):
-        """Gracefully shutdown the connection to the DATABASE."""
+        """Gracefully shutdown the connection to the database."""
         self.cursor.close()
         self.cursor2.close()
         self.db_connection.close()
-        print("Closed DATABASE connection")
+        print("Closed database connection")
 
     def execute_query(self, query):
-        """Execute the query against the first DATABASE CURSOR
+        """Execute the query against the first database CURSOR
 
         :param str query: the query to execute
         :rtype: MySQLdb.cursors.Cursor
@@ -54,7 +54,7 @@ class BudgetDB(object):
         return self.cursor
 
     def execute_query_2(self, query):
-        """Execute the query against the alternate, extra DATABASE CURSOR
+        """Execute the query against the alternate, extra database CURSOR
 
         :param str query: the query to execute
         :rtype: MySQLdb.cursors.Cursor

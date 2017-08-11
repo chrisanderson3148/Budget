@@ -482,7 +482,7 @@ def get_data_array_content_array(list_query, total_query):
     :param str list_query: mysql query string to return the list of transactions
     :param str total_query: mysql query string to return the total of transaction amounts in the list
     of transactions from the first query
-    :rtype: tuple
+    :rtype: tuple|None
     """
 
     # Do the list query

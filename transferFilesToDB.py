@@ -163,6 +163,7 @@ class TransferMonthlyFilesToDB(object):
         """
         bud_date = datetime.datetime.strptime(budget_date, "%m/%d/%Y").date()
 
+        # Match PAYROLL, IGNORE, and TRANSFER budget categories
         for key in self.payroll_ignore_transfer_dict:
             if key in payee:
                 val = self.payroll_ignore_transfer_dict[key]

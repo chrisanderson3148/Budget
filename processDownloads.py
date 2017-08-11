@@ -255,9 +255,9 @@ def insert_dict_into_main_db(download_dict, keys_set):
 CU_FILE = 'downloads/ExportedTransactions.csv'
 # CU_FILE = 'downloads/HistoryDownload.csv'
 CK_FILE = 'downloads/checks'
-AX_FILE = 'downloads/ofx.csv'
+# AX_FILE = 'downloads/ofx.csv'
 DI_FILE = 'downloads/Discover-RecentActivity.csv'
-BY_FILE = 'downloads/BarclayCard.qfx'
+# BY_FILE = 'downloads/BarclayCard.qfx'
 CI_FILE = 'downloads/Citi-RecentActivity.csv'
 
 # Verify symbolic link to 'downloads' is not broken
@@ -272,7 +272,7 @@ if os.path.isdir('downloads'):
 
 # Verify all downloads files exist
 all_exist = True
-for download_file in [CU_FILE, CK_FILE, AX_FILE, DI_FILE, BY_FILE, CI_FILE]:
+for download_file in [CU_FILE, CK_FILE, DI_FILE, CI_FILE]:
     if not os.path.exists(download_file):
         print('Download file "' + download_file + '" does not exist')
         all_exist = False
