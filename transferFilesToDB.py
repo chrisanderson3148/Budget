@@ -5,6 +5,7 @@ import sys
 import re
 import datetime
 import glob
+import json
 from os import path
 from warnings import filterwarnings
 import collections
@@ -54,6 +55,8 @@ class TransferMonthlyFilesToDB(object):
         # Initialize payee table
         payee = TransferPayee()
         self.payee_dict = payee.read_payee_file('payee')
+        with open('payroll_ignore_transfer.json') as data_file:
+            self.payroll_ignore_transfer_dict = json.load(data_file)
         self.pretty_print = pprint.PrettyPrinter(indent=4)
         self.pretty_print.pprint(self.payee_dict)
         self.unexpected_header = []
@@ -160,52 +163,13 @@ class TransferMonthlyFilesToDB(object):
         """
         bud_date = datetime.datetime.strptime(budget_date, "%m/%d/%Y").date()
 
-        #
-        # This handles the standard, hard-coded payee-to-budget-category transactions
-        if 'DISCOVER CARD' in payee or \
-                'DISCOVER DC PYMNTS' in payee or \
-                'DIRECT PAY FULL BALANCE' in payee or \
-                'DIRECTPAY FULL BALANCE' in payee:
-            return 'IGNORE'
-        if 'AMERICAN EXPRESS' in payee or \
-                'BARCLAYS BANK' in payee:
-            return 'IGNORE'
-        if 'PAYMENT RECEIVED' in payee or \
-                'PAYMENT - THANK YOU' in payee or \
-                "PAYMENT RECV'D" in payee or \
-                'ONLINE PAYMENT THANK YOU' in payee or \
-                'PAYMENT THANK YOU' in payee:
-            return 'IGNORE'
-        if 'Electronic Payment' in payee:
-            return 'IGNORE'
-        if 'BILL PAYMT' in payee and \
-                'COSTCO' in payee:
-            return 'IGNORE'
-        if 'EDI PAYMTS' in payee and \
-                'HEWLETT-PACKARD' in payee:
-            return 'PAYROLL'
-        if 'ACH Deposit' in payee and \
-                'NETAPP PAYROLL' in payee:
-            return 'PAYROLL'
+        for key in self.payroll_ignore_transfer_dict:
+            if key in payee:
+                val = self.payroll_ignore_transfer_dict[key]
+                print('Payee "{}" match "{}" with category "{}"'.format(payee, key, val))
+                return val
 
-        if 'Transfer' in payee:
-            if 'Life and auto insurance' in payee:
-                return 'INSURANCE'
-            # if '61210601' in payee:  # obsolete
-            #     if bud_date < datetime.datetime.strptime('08/01/2008', "%m/%d/%Y").date():
-            #         return 'HOA'
-            if 'Furniture purchase' in payee:
-                return 'FURNITURE'
-            if 'Gifts escrow' in payee:
-                return 'GIFTS'
-            if 'Travel escrow' in payee:
-                return 'TRAVEL'
-            if 'Car repair monthly' in payee:
-                return 'CAR MAINT'
-            # if '61210680' in payee:  # obsolete
-            #     return 'SAVINGS'
-            if 'Medical escrow' in payee:
-                return 'MEDICAL'
+        if 'transfer' in payee.lower():
             return 'TRANSFER'
 
         #
