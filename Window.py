@@ -1,3 +1,4 @@
+from __future__ import print_function
 import sys
 import curses
 import random
@@ -49,9 +50,9 @@ class ScreenWindow(object):
         curses.echo()
         curses.endwin()
         if message:
-            print message
+            print(message)
         cls.log.close()
-        print "Closed log file"
+        print("Closed log file")
         sys.exit(0)
 
     def draw_menu(self, menus):

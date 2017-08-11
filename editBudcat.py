@@ -3,6 +3,7 @@
 """Edit budget categories module"""
 
 # This module is too big - too many statements
+from __future__ import print_function
 import sys
 import math
 import datetime
@@ -1238,7 +1239,7 @@ def main():
     if len(sys.argv) > 1:
         year = sys.argv[1]
     else:
-        print 'Usage '+sys.argv[0]+' <year>'
+        print('Usage '+sys.argv[0]+' <year>')
         sys.exit(1)
 
     # init_screen() must be called to initialize the screen and log

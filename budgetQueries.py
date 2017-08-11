@@ -1,4 +1,5 @@
 """Module to handle mySQL activities"""
+from __future__ import print_function
 import MySQLdb
 
 
@@ -41,7 +42,7 @@ class BudgetDB(object):
         self.cursor.close()
         self.cursor2.close()
         self.db_connection.close()
-        print "Closed DATABASE connection"
+        print("Closed DATABASE connection")
 
     def execute_query(self, query):
         """Execute the query against the first DATABASE CURSOR

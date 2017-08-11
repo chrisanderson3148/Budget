@@ -1,5 +1,6 @@
 """Module to handle the payee file"""
 
+from __future__ import print_function
 
 class TransferPayee(object):
     """Simple class definition"""
@@ -11,12 +12,13 @@ class TransferPayee(object):
         :param int indent: number of spaces to indent each new level (default = 0)
         """
         for key, value in the_dict.iteritems():
-            # if indent == 0: print '\n'
-            print '  ' * indent + str(key)
+            # if indent == 0:
+            #     print('\n')
+            print('  ' * indent + str(key))
             if isinstance(value, dict):
                 self.pretty(value, indent+1)
             else:
-                print '  ' * (indent+1) + str(value)
+                print('  ' * (indent+1) + str(value))
 
     def write_payee_file(self, plist, file_name):
         """Write out the payee file to the named directory
@@ -30,7 +32,7 @@ class TransferPayee(object):
             f_ptr.truncate()
             for row in plist:
                 f_ptr.write('%-50s = %s\n' % (row[0], row[1]))
-        print 'Wrote out file ' + file_name
+        print('Wrote out file ' + file_name)
 
     def read_payee_file(self, file_name):
         """Read the contents of the payee file and return results in a dictionary
@@ -68,5 +70,5 @@ class TransferPayee(object):
                 out_dict[line_num] = [regex, budget_category]
                 line_num += 1
             f_ptr.close()
-        print 'readPayeeFile processed', line_num, 'records'
+        print('readPayeeFile processed', line_num, 'records')
         return out_dict

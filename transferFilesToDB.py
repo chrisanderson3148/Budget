@@ -429,16 +429,16 @@ class TransferMonthlyFilesToDB(object):
                         index_payee = 7
                         line_num += 1
                     else:
-                        print '###############################################'
-                        print '###############################################'
-                        print '###############################################'
+                        print('###############################################')
+                        print('###############################################')
+                        print('###############################################')
                         print
-                        print fname+' has unexpected header.'
-                        print 'expected/got\n{}\n{}'.format(firstline, line)
+                        print(fname+' has unexpected header.')
+                        print('expected/got\n{}\n{}'.format(firstline, line))
                         print
-                        print '###############################################'
-                        print '###############################################'
-                        print '###############################################'
+                        print('###############################################')
+                        print('###############################################')
+                        print('###############################################')
                         
                         self.unexpectedheader.append(path.basename(fname))
                         return dict()
