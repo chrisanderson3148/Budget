@@ -1,10 +1,6 @@
 #!/usr/bin/python
 
-import sys
-import os
-import MySQLdb
-
-'''
+"""
 We create the monthly budget summary file by combining the results of the 'main' table and the 'checks'
 table and listing each budget total for the month as well as the transactions making up that total.
 The CU check transactions in the 'main' table are ignored and only the tran_checknumber field is used to
@@ -26,18 +22,21 @@ The list of uncleared checks, and the list of unrecorded checks are printed at t
 processDownloads.py script. That script also takes care of 'clearing' each check whose transaction is
 found in the 'main' table by updating the clear_date field in the corresponding entry in the 'checks'
 table with the tran_date from the 'main' table entry.
-'''
+"""
+import sys
+import os
+import MySQLdb
 
 # Open a connection to the database
 db = MySQLdb.connect(host='localhost', user='root', passwd='sawtooth', db='officialBudget')
 cur = db.cursor()
 
-# month is 1-based
+
 def writeMonthCsv(year, month):
     """Write the CSV file with 'year' and 'month' part of the file name
     
     :param str year: the year as a string
-    :param str month: the month name
+    :param str month: the month name (1-based)
     """
     month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -95,12 +94,12 @@ def writeMonthCsv(year, month):
         for budcat in sorted(buds_summary):
             f.write('%s,%.2f\r\n' % (budcat, buds_summary[budcat]))
 
-# month is 1-based
+
 def writeMonthText(year, month):
     """Write the txt file with 'year' and 'month' part of the file name
     
     :param str year: the year as a string
-    :param str month: the month name
+    :param str month: the month name (1-based)
     """
     month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 

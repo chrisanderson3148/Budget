@@ -295,7 +295,9 @@ def do_budcat_query(my_bud_cat, the_year):
     """
     if not my_bud_cat:
         my_bud_cat = 'UNKNOWN'
+
     my_bud_cat = my_bud_cat.upper()
+
     if my_bud_cat == 'ALL':
         if the_year == 'all':
             return ("select * from main where tran_checknum = '0' and tran_desc not like 'CHECK %' order"
@@ -464,16 +466,17 @@ def get_data_array_content_array(list_query, total_query):
     """Returns elem_array, content_array, total
 
     'elem_array' is a list of transactions retrieved directly from the database list_query
-    Each transaction is tran_date, tran_ID, tran_desc, tran_checknum, tran_type, tran_amount, [array of 3-element budget lists], comment
-                            0          1        2            3            4            5                      6                     7
+    Each transaction is
+    tran_date, tran_ID, tran_desc, tran_checknum, tran_type, tran_amount, [array of 3-element budget lists], comment
+        0          1        2            3            4            5                      6                     7
 
     'content_array' is a list of formatted strings of each row retrieved from the database list_query
        (corresponds 1-to-1 with elem_array)
     'total' is the total of the individual transaction amounts for the list_query
 
     'list_query' returns 10 fields:
-        tran_date, tran_ID, tran_desc, tran_checknum, tran_type, tran_amount, bud_category, bud_amount, bud_date, comment
-            0         1         2             3           4           5            6             7         8         9
+    tran_date, tran_ID, tran_desc, tran_checknum, tran_type, tran_amount, bud_category, bud_amount, bud_date, comment
+        0         1         2             3           4           5            6             7         8         9
 
     Multi-budget transactions
     If tran_ID ends with '-\\d+', then the transaction is part of a multi-budget uber-transaction
@@ -803,7 +806,9 @@ def get_check_data_and_content_array(query):
 
 
 def get_check_data_array_as_main(list_query, total_query):
-    """Should only be called in combination with doCheck_asmain_BudcatQuery() as the fields order is
+    """Return check data array with main field ordering.
+    
+    Should only be called in combination with doCheck_asmain_BudcatQuery() as the fields order is
     different
 
     :param str list_query: mysql query string to return list of checks transactions
@@ -947,7 +952,7 @@ def handle_edit_check_by_month(year_month):
 
 
 def do_query_cleared_unrecorded_checks():
-    """Return the results of the cleared/unrecorded checks query as elem_array, content_array, my_total
+    """Return the results of the cleared/unrecorded checks query as elem_array, content_array, my_total.
 
     :rtype: tuple
     """
