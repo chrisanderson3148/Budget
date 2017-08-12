@@ -3,6 +3,7 @@
 """Edit budget categories module"""
 
 # This module is too big - too many statements
+from __future__ import print_function
 import sys
 import math
 import datetime
@@ -231,7 +232,7 @@ def do_transaction_list_window(data_array, content_array, my_title, add_edit, la
     :param list data_array: the window contents as list of data values
     :param list content_array: the window contents as list of strings
     :param str my_title: the window title
-    :param bool add_edit: if True, add the transaction to the database; if not, edit either as a main
+    :param bool add_edit: if True, add the transaction to the DATABASE; if not, edit either as a main
     transaction or checks transaction
     :param bool last_page: passed to drawContents
     :param types.FunctionType q_func: function to requery the data_array and contents_array
@@ -265,7 +266,7 @@ def do_transaction_list_window(data_array, content_array, my_title, add_edit, la
             # edit the selected list item -- This may change the contents of this window
             resp = do_edit_win(data_array[entry_index])
 
-        # There were changes made so re-query the database and update the list_win contents and data
+        # There were changes made so re-query the DATABASE and update the list_win contents and data
         # arrays
         if resp:
             data_array, content_array, dummy = q_func(*args)
@@ -470,7 +471,7 @@ def get_data_array_content_array(list_query, total_query):
     tran_date, tran_ID, tran_desc, tran_checknum, tran_type, tran_amount, [array of 3-element budget lists], comment
         0          1        2            3            4            5                      6                     7
 
-    'content_array' is a list of formatted strings of each row retrieved from the database list_query
+    'content_array' is a list of formatted strings of each row retrieved from the DATABASE list_query
        (corresponds 1-to-1 with elem_array)
     'total' is the total of the individual transaction amounts for the list_query
 
@@ -484,7 +485,7 @@ def get_data_array_content_array(list_query, total_query):
     :param str list_query: mysql query string to return the list of transactions
     :param str total_query: mysql query string to return the total of transaction amounts in the list
     of transactions from the first query
-    :rtype: tuple
+    :rtype: tuple|None
     """
 
     # Do the list query
@@ -728,9 +729,9 @@ def get_data_array_content_array_both(main_list_query, main_total_query, checks_
 def get_check_data_and_content_array(query):
     """Returns elem_array, content_array, None
 
-    'elem_array' is a list of 10 element arrays retrieved directly from the database query
-    'elem_array' is a list of transactions retrieved directly from the database query
-    'content_array' is a list of formatted strings of each row retrieved from the database 'list_query'
+    'elem_array' is a list of 10 element arrays retrieved directly from the DATABASE query
+    'elem_array' is a list of transactions retrieved directly from the DATABASE query
+    'content_array' is a list of formatted strings of each row retrieved from the DATABASE 'list_query'
        (corresponds 1-to-1 with 'elem_array')
 
     'query' returns 10 fields (OLD FORMAT):
@@ -875,7 +876,7 @@ def handle_edit_budget_by_budcat_both(my_bud_cat, the_year='all'):
     # elem_array is empty
     if not elem_array:
         WindowUtils.popup_message_ok('Budget category "' + my_bud_cat +
-                                     '" is not in the database for year "' + the_year + '"')
+                                     '" is not in the DATABASE for year "' + the_year + '"')
         return
 
     do_transaction_list_window(elem_array, content_array, 'Budcat=' + my_bud_cat + ',Year=' + the_year
@@ -902,7 +903,7 @@ def handle_edit_budget_by_month_both(year_month):
         list_query, total_query, check_list_query, check_total_query)
 
     if elem_array is None:
-        WindowUtils.popup_message_ok('Month "' + year_month + '" is not in the database')
+        WindowUtils.popup_message_ok('Month "' + year_month + '" is not in the DATABASE')
         return
 
     do_transaction_list_window(elem_array, content_array, 'Month=' + year_month
@@ -921,7 +922,7 @@ def handle_edit_check_by_budget_category(budget_category, the_year='all'):
     elem_array, content_array, total = get_check_data_and_content_array(query)
     if elem_array is None:
         WindowUtils.popup_message_ok('Budget category "' + budget_category
-                                     + '" is not in the "checks" database for year ' + the_year)
+                                     + '" is not in the "checks" DATABASE for year ' + the_year)
         return
     do_transaction_list_window(elem_array, content_array,
                                'Budcat=' + budget_category + ', Year=' + the_year
@@ -944,7 +945,7 @@ def handle_edit_check_by_month(year_month):
     query = do_check_month_query(year_month)
     elem_array, content_array, total = get_check_data_and_content_array(query)
     if elem_array is None:
-        WindowUtils.popup_message_ok('Month "' + year_month + '" is not in the "checks" database')
+        WindowUtils.popup_message_ok('Month "' + year_month + '" is not in the "checks" DATABASE')
         return
     do_transaction_list_window(elem_array, content_array, 'Month=' + year_month
                                + (' Total='+str(total) if total is not None else ''),
@@ -968,7 +969,7 @@ def do_query_cleared_unrecorded_checks():
                                'tran_checknum != "0" and tran_type = "b" order by tran_checknum;')
     my_total = 0.0
 
-    # for every cleared CU check, see if it also exists as a transaction in the checks database, with at
+    # for every cleared CU check, see if it also exists as a transaction in the checks DATABASE, with at
     # least an amount
     for row in cur:
         cur2 = bud_db.execute_query_2('select tchecknum from checks where tchecknum = "'
@@ -1072,7 +1073,7 @@ def handle_all_recorded_checks():
     query = do_check_all_query()
     elem_array, content_array, total = get_check_data_and_content_array(query)
     if elem_array is None:
-        WindowUtils.popup_message_ok('Nothing in the "checks" database')
+        WindowUtils.popup_message_ok('Nothing in the "checks" DATABASE')
         return
     do_transaction_list_window(elem_array, content_array, 'Total=' + (str(total) if total else ''),
                                False, True, get_check_data_and_content_array, query)
@@ -1135,7 +1136,7 @@ def get_list_item(top_of_list, left_margin, num_rows, win, my_win=None):
     while True:
         i = ScreenWindow.screen.getch()
 
-        # 'f' brings up filter dialog, then queries the database and redraws window based on the filter
+        # 'f' brings up filter dialog, then queries the DATABASE and redraws window based on the filter
         # selected
 
         # short-cut: menu item number selection
@@ -1144,7 +1145,7 @@ def get_list_item(top_of_list, left_margin, num_rows, win, my_win=None):
                 if i == ord(str(row_num)):
                     return row_num, ''
 
-        # 'j' moves the cursor down
+        # 'j' moves the CURSOR down
         if i == ord('j'):
             top += 1
             if my_win:
@@ -1156,7 +1157,7 @@ def get_list_item(top_of_list, left_margin, num_rows, win, my_win=None):
                 if top > bottom_of_list:
                     top = bottom_of_list
 
-        # 'k' moves the cursor up
+        # 'k' moves the CURSOR up
         if i == ord('k'):
             top -= 1
             if top < top_of_list:
@@ -1237,13 +1238,13 @@ def main():
     # Handle ctrl-c
     signal.signal(signal.SIGINT, signal_handler)
 
-    # Open a connection to the database (accesses official budget database)
+    # Open a connection to the DATABASE (accesses official budget DATABASE)
     bud_db = BudgetDB('localhost', 'root', 'sawtooth', 'officialBudget')
 
     if len(sys.argv) > 1:
         year = sys.argv[1]
     else:
-        print 'Usage '+sys.argv[0]+' <year>'
+        print('Usage '+sys.argv[0]+' <year>')
         sys.exit(1)
 
     # init_screen() must be called to initialize the screen and log

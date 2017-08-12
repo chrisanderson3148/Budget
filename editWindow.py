@@ -11,7 +11,7 @@ from mysettings import g
 class EditWindow(MyWindow):
     """Class to handle all editable windows
 
-    :param BudgetDB bud_db: instance of database object
+    :param BudgetDB bud_db: instance of DATABASE object
     :param int color_pair: a number to identify color schemes
     :param int fg_color: the foreground color of the window
     :param int bg_color: the background color of the window
@@ -177,9 +177,9 @@ class EditWindow(MyWindow):
                 del tab_array[-1]
                 del tab_array[-1]
 
-                # If the cursor was on the last line that got deleted
+                # If the CURSOR was on the last line that got deleted
                 if idx > len(tab_array)-1:
-                    idx -= 3  # Move the cursor to the previous line
+                    idx -= 3  # Move the CURSOR to the previous line
                 self.refresh(is_main, new_entry)
                 changes = True
             #
@@ -263,16 +263,16 @@ class EditWindow(MyWindow):
                 # (it uses " to delimit field values)
                 text = text.replace('"', "'")
 
-                # Verify that the value of checknum is not already in the database and is an integer
+                # Verify that the value of checknum is not already in the DATABASE and is an integer
                 if tab_array[idx][2] == 'checknum':
                     db_cursor = self.bud_db.execute_query('SELECT * FROM checks WHERE tnum = "'
                                                           + text + '";')
                     num_rows = db_cursor.rowcount
 
-                    # If it is in the database, notify and cancel
+                    # If it is in the DATABASE, notify and cancel
                     if num_rows > 0:
                         WindowUtils.popup_message_ok('Check number ' + text
-                                                     + ' is already in the database')
+                                                     + ' is already in the DATABASE')
 
                         # erase previous entry
                         self.win.addstr(tab_array[idx][1], tab_array[idx][0], '      ')
@@ -449,13 +449,13 @@ class EditWindow(MyWindow):
         return new_transaction  # return the new, changed transaction record
 
     def add_database(self, is_main, new_transaction):
-        """This function adds new records to the database
+        """This function adds new records to the DATABASE
 
         :param bool is_main: whether new_transaction if from main or checks
-        :param dict new_transaction: the new transaction to add to the database
+        :param dict new_transaction: the new transaction to add to the DATABASE
         """
         #
-        # First, find all the database records that match the tran_ID/tnum base
+        # First, find all the DATABASE records that match the tran_ID/tnum base
         # of the new transaction to add, and make sure there are none.
         #
         tid = new_transaction[g.tID]
@@ -464,17 +464,17 @@ class EditWindow(MyWindow):
                                                   + ' where ' + ('tran_ID' if is_main else 'tnum')
                                                   + ' like "' + tid + '%";')
         except MySQLdb.Error, excp:
-            WindowUtils.popup_message_ok('mysql exception counting transaction database records with '
+            WindowUtils.popup_message_ok('mysql exception counting transaction DATABASE records with '
                                          'transaction id ' + tid + ': ' + str(excp))
             return
         num_rows = db_cursor.rowcount
         if num_rows > 0:
-            WindowUtils.popup_message_ok('There are already ' + str(num_rows) + ' rows in the database '
+            WindowUtils.popup_message_ok('There are already ' + str(num_rows) + ' rows in the DATABASE '
                                          'for transaction id ' + tid + ' that we want to add.')
             return
 
         #
-        # Second, insert the records from the new_transaction into the database
+        # Second, insert the records from the new_transaction into the DATABASE
         #
         new_multi = len(new_transaction[g.tBudarr]) > 1
         if new_multi:
@@ -574,17 +574,17 @@ class EditWindow(MyWindow):
                     return
 
     def update_database(self, is_main, old_transaction, new_transaction):
-        """Update existing record in the database.
+        """Update existing record in the DATABASE.
 
-        :param bool is_main: whether the database table to update is main or checks
-        :param dict old_transaction: database entry to delete
-        :param dict new_transaction: database entry to add
+        :param bool is_main: whether the DATABASE table to update is main or checks
+        :param dict old_transaction: DATABASE entry to delete
+        :param dict new_transaction: DATABASE entry to add
         """
-        # First, find all the database records that match the tran_ID/tnum base
+        # First, find all the DATABASE records that match the tran_ID/tnum base
         # (optional multi-budget ending stripped off)
-        # Transaction ID for multi budget database records always ends in
+        # Transaction ID for multi budget DATABASE records always ends in
         # '...-<one or more digits>'
-        # If the number of database records equals the number of budget entries
+        # If the number of DATABASE records equals the number of budget entries
         # in the old transaction record, then go to the next step.
         old_tid = old_transaction[g.tID]
         temp = old_tid.split('-')
@@ -616,20 +616,20 @@ class EditWindow(MyWindow):
 
         num_rows = db_cursor.rowcount
 
-        # Make sure multiple budget entries have the same number in the transaction and database
+        # Make sure multiple budget entries have the same number in the transaction and DATABASE
         if old_is_multi and not num_rows == len(old_transaction[g.tBudarr]):
             WindowUtils.popup_message_ok('update_database(): This transaction has multiple budget entries, but the database'
                                          ' and transaction don\'temp agree how many')
             return
 
-        # Make sure transaction IDs that imply single budget only have 1 record in the database
+        # Make sure transaction IDs that imply single budget only have 1 record in the DATABASE
         elif not old_is_multi and num_rows != 1:
             WindowUtils.popup_message_ok('update_database(): This transaction has only one budget entry, but the database h'
                                          'as ' + str(num_rows) + ' rows instead.')
             return
 
         #
-        # Second, now that number of database entries agrees with old transaction, delete the database
+        # Second, now that number of DATABASE entries agrees with old transaction, delete the DATABASE
         # record(s) for the old transaction
         #
         try:
@@ -638,12 +638,12 @@ class EditWindow(MyWindow):
                                       + ' like "' + old_tid_base + '%";')
         except MySQLdb.Error, excp:
             WindowUtils.popup_message_ok(['update_database():',
-                                          'mysql exception deleting old transaction database record(s):',
+                                          'mysql exception deleting old transaction DATABASE record(s):',
                                           str(excp)])
             return
 
         #
-        # Third, insert the records from the new_transaction into the database Be careful: the new
+        # Third, insert the records from the new_transaction into the DATABASE Be careful: the new
         # transaction may not be the same multi as the old transaction. The number of budget entries in
         # the new transaction is independent of the old transaction.
 

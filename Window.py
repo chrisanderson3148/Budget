@@ -1,3 +1,4 @@
+from __future__ import print_function
 import sys
 import curses
 import random
@@ -49,9 +50,9 @@ class ScreenWindow(object):
         curses.echo()
         curses.endwin()
         if message:
-            print message
+            print(message)
         cls.log.close()
-        print "Closed log file"
+        print("Closed log file")
         sys.exit(0)
 
     def draw_menu(self, menus):
@@ -199,7 +200,7 @@ class MyWindow(ScreenWindow):
         self.draw_border()
 
     def current_row(self, page_row):
-        """Returns the overall 0-based current row of the cursor in the content array
+        """Returns the overall 0-based current row of the CURSOR in the content array
 
         Based on the 0-based pageRow and current 1-based page number
 
