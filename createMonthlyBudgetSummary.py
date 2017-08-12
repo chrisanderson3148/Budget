@@ -47,10 +47,10 @@ def write_month_csv(my_year, my_month):
 
     # get the budget categories and sums for the time period from 'main'
     buds_summary = dict()
-    CURSOR.execute("SELECT bud_category,sum(bud_amount) from main where bud_date between '"
-                   + my_year + "-" + my_month + "-01' and '" + my_year + "-" + my_month
-                   + "-31' and tran_checknum = '0' and tran_desc not like 'CHECK %' "
-                   "group by bud_category order by bud_category;")
+    my_query = ("SELECT bud_category,sum(bud_amount) from main where bud_date between '" + my_year
+            + "-" + my_month + "-01' and '" + my_year + "-" + my_month
+            + "-31' and tran_checknum = '0' and tran_desc not like 'CHECK %' group by bud_category order by bud_category;")
+    CURSOR.execute(my_query)
 
     rows = CURSOR.fetchall()
     # save results in dict
@@ -61,24 +61,11 @@ def write_month_csv(my_year, my_month):
         buds_summary[key] = row[1]
 
     # get the budget categories and sums for the time period from 'checks'
-    CURSOR.execute("SELECT bud_cat,sum(bud_amt) from checks where bud_date between '" + my_year + "-"
-                   + my_month + "-01' and '" + my_year + "-" + my_month + "-31' group by bud_cat;")
+    my_query = ("SELECT bud_cat,sum(bud_amt) from checks where bud_date between '" + my_year + "-"
+            + my_month + "-01' and '" + my_year + "-" + my_month + "-31' group by bud_cat;")
+    CURSOR.execute(my_query)
     rows = CURSOR.fetchall()
-    # update results in dict
-    for row in rows:
-        key = row[0].rstrip().lstrip()
-        if key == 'SCHOOL':
-            key = 'COLLEGE'
-        if key in buds_summary:
-            buds_summary[key] += row[1]
-        else:
-            buds_summary[key] = row[1]
 
-    # get the budget categories and sums for the time period from 'chasechecks'
-    CURSOR.execute("SELECT bud_cat,sum(bud_amt) from chasechecks where bud_date between '"
-                   + my_year + "-" + my_month + "-01' and '" + my_year + "-" + my_month
-                   + "-31' group by bud_cat;")
-    rows = CURSOR.fetchall()
     # update results in dict
     for row in rows:
         key = row[0].rstrip().lstrip()
@@ -92,7 +79,7 @@ def write_month_csv(my_year, my_month):
     name = month_names[int(my_month) - 1] + ' ' + my_year
 
     # see if there are any results to save to the file
-    if buds_summary:
+    if not buds_summary:
         print('writeMonthlyCsv: No entries for my_month '+name)
         return
     else:

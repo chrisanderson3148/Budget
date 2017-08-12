@@ -166,10 +166,11 @@ class TransferMonthlyFilesToDB(object):
         # Match PAYROLL, IGNORE, and TRANSFER budget categories
         for key in self.payroll_ignore_transfer_dict:
             if key in payee:
-                val = self.payroll_ignore_transfer_dict[key]
-                print('Payee "{}" match "{}" with category "{}"'.format(payee, key, val))
-                return val
+                category = self.payroll_ignore_transfer_dict[key]
+                print('Payee "{}" match "{}" with category "{}"'.format(payee, key, category))
+                return category
 
+        print('No payroll/ignore/transfer match found in "{}"'.format(payee))
         if 'transfer' in payee.lower():
             return 'TRANSFER'
 
@@ -260,8 +261,7 @@ class TransferMonthlyFilesToDB(object):
         # remainder is a double and is always POSITIVE
         remainder = abs(float(transaction_amount))
 
-        for key, val in collections.OrderedDict(
-                sorted(budget_dict.items())).iteritems():
+        for key, val in collections.OrderedDict(sorted(budget_dict.items())).iteritems():
             if not val[0]:
                 budget_dict[key][0] = default_category  # default
 
@@ -481,6 +481,7 @@ class TransferMonthlyFilesToDB(object):
                         budget_category_dict = self.process_budget_fields(fields[expected_fields:],
                                                                           bud_amt, bud_cat, trans_date,
                                                                           tid)
+                        
 
                     # end if
 

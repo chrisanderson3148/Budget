@@ -331,10 +331,10 @@ if os.path.isfile(CU_FILE):  # process cleared transactions second
 
 clear_cu_checks()  # mark cleared checks
 
-if os.path.isfile(AX_FILE):
-    print('\nprocessing American Express download file...')
-    AE_dict = TF.read_monthly_amex_file(AX_FILE)
-    insert_dict_into_main_db(AE_dict, db_keys)
+# if os.path.isfile(AX_FILE):
+#     print('\nprocessing American Express download file...')
+#     AE_dict = TF.read_monthly_amex_file(AX_FILE)
+#     insert_dict_into_main_db(AE_dict, db_keys)
 
 if os.path.isfile(CI_FILE):
     print('\nprocessing CitiCard download file...')
@@ -348,12 +348,13 @@ if os.path.isfile(DI_FILE):
     DC_dict = TF.read_monthly_discover_file(DI_FILE, True)
     insert_dict_into_main_db(DC_dict, db_keys)
 
-if os.path.isfile(BY_FILE):
-    print('\nprocessing Barclay download file...')
-    BY_dict = TF.read_download_barclay_file(BY_FILE)
-    insert_dict_into_main_db(BY_dict, db_keys)
+# if os.path.isfile(BY_FILE):
+#     print('\nprocessing Barclay download file...')
+#     BY_dict = TF.read_download_barclay_file(BY_FILE)
+#     insert_dict_into_main_db(BY_dict, db_keys)
 
-print('\n' + ('Inserted ' if DO_INSERT else 'Did not insert ') + str(records_inserted) + ' records into DB')
+print('\n' + ('Inserted ' if DO_INSERT else 'Did not insert ') + str(records_inserted)
+      + ' records into DB')
 
 print_uncleared_checks()
 print_unrecorded_checks()
