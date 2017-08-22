@@ -22,7 +22,7 @@ from mysettings import g
 def signal_handler(caught_signal, frame):
     """Called whenever a CTRL-C is sent to the process -- quit gracefully.
 
-    :param Any signal: the signal that was caught and brought us here
+    :param int caught_signal: the signal that was caught and brought us here
     :param Any frame: the stack frame
     """
     ScreenWindow.my_quit('Exit forced -- nothing saved')
@@ -81,7 +81,7 @@ def do_add_check(my_entry=None):
                  my_entry[g.tAmount],  # transaction amount
                  my_entry[g.tBudarr],  # transaction budget list of lists
                  my_entry[g.tComment],  # transaction comment, if any
-                 my_entry[g.tClearDate]) # check clear date
+                 my_entry[g.tClearDate])  # check clear date
 
     changes = win.check_event_loop(my_entry, new)  # manage the edit window until quit is requested
 
@@ -142,7 +142,8 @@ def do_edit_win(my_entry):
                      my_entry[g.tAmount],  # transaction amount
                      my_entry[g.tBudarr],  # transaction budget list of lists
                      my_entry[g.tComment],  # transaction comment, if any
-                     (my_entry[g.tClearDate] if from_checks else None)) # check cleared date (check only)
+                     (my_entry[g.tClearDate] if from_checks else None))  # check cleared date
+        #  (check only)
 
     changes = win.main_event_loop(is_main, my_entry, readonly=read_only)
 
@@ -236,7 +237,7 @@ def do_transaction_list_window(data_array, content_array, my_title, add_edit, la
     transaction or checks transaction
     :param bool last_page: passed to drawContents
     :param types.FunctionType q_func: function to requery the data_array and contents_array
-    :param Any *args: arguments for q_func
+    :param Any args: arguments for q_func
     """
     num_rows = len(content_array)
     list_win = EditWindow(bud_db, 2, curses.COLOR_BLACK, curses.COLOR_GREEN)
@@ -286,7 +287,7 @@ def do_transaction_list_window(data_array, content_array, my_title, add_edit, la
         list_win.draw_contents()
 
 
-def do_budcat_query(my_bud_cat, the_year):
+def get_budcat_query(my_bud_cat, the_year):
     """Return two queries of main for budget categories. The first will return a set of transactions
     matching the criteria; the second returns the sum of the transaction amounts for that set.
 
@@ -323,7 +324,7 @@ def do_budcat_query(my_bud_cat, the_year):
                 "tran_checknum = '0' and tran_desc not like 'CHECK %' order by bud_date;")
 
 
-def do_check_budcat_query(my_bud_cat, the_year):
+def get_check_budcat_query(my_bud_cat, the_year):
     """Return two queries of checks for budget categories. The first will return a set of transactions
     matching the criteria; the second returns the sum of the transaction amounts for that set.
 
@@ -350,8 +351,8 @@ def do_check_budcat_query(my_bud_cat, the_year):
                 + the_year + "-01-01' and '" + the_year + "-12-31' order by bud_date;")
 
 
-def do_check_budcat_query_as_main(my_bud_cat, the_year):
-    """Same as do_check_budcat_query() above, but order the fields as do_budcat_query() for main.
+def get_check_budcat_query_as_main(my_bud_cat, the_year):
+    """Same as get_check_budcat_query() above, but order the fields as get_budcat_query() for main.
 
     :param str my_bud_cat: the category to query for
     :param str the_year: the year to search the category for
@@ -383,7 +384,7 @@ def do_check_budcat_query_as_main(my_bud_cat, the_year):
                 + "-12-31' order by bud_date;")
 
 
-def do_month_query(year_month):
+def get_month_query(year_month):
     """Return two queries of main for transactions by year and month, and for sum of transaction amounts.
 
     :param str year_month: the year and month as 'yyyy-mm'
@@ -396,7 +397,7 @@ def do_month_query(year_month):
             "order by bud_date;")
 
 
-def do_check_month_query(year_month):
+def get_check_month_query(year_month):
     """Return one query of checks for transactions by year and month.
 
     :param str year_month: the year and month as 'yyyy-mm'
@@ -407,8 +408,8 @@ def do_check_month_query(year_month):
             + year_month + "-31' order by bud_date;")
 
 
-def do_check_month_query_as_main(year_month):
-    """Similar as do_month_query() above, but for checks.
+def get_check_month_query_as_main(year_month):
+    """Similar as get_month_query() above, but for checks.
 
     :param str year_month: the year and month as 'yyyy-mm'
     :rtype: tuple
@@ -420,7 +421,7 @@ def do_check_month_query_as_main(year_month):
             + year_month + "-31';")
 
 
-def do_uncleared_checks_query():
+def get_uncleared_checks_query():
     """Return mysql query to return all uncleared checks.
 
     :rtype: str
@@ -430,7 +431,7 @@ def do_uncleared_checks_query():
             "order by tdate,tchecknum;")
 
 
-def do_check_all_query():
+def get_check_all_query():
     """Return mysql query to return all recorded checks.
 
     :rtype: str
@@ -860,10 +861,10 @@ def handle_edit_budget_by_budcat_both(my_bud_cat, the_year='all'):
     :param str my_bud_cat: name of budget to query for
     :param str the_year: the year to filter the query with (default is all years)
     """
-    list_query, total_query = do_budcat_query(my_bud_cat, the_year)
+    list_query, total_query = get_budcat_query(my_bud_cat, the_year)
 
     # query to return checks with fields in same order as main query
-    check_list_query, check_total_query = do_check_budcat_query_as_main(my_bud_cat, the_year)
+    check_list_query, check_total_query = get_check_budcat_query_as_main(my_bud_cat, the_year)
 
     elem_array, content_array, total = get_data_array_content_array_both(
         list_query, total_query, check_list_query, check_total_query)
@@ -892,8 +893,8 @@ def handle_edit_budget_by_month_both(year_month):
         WindowUtils.popup_message_ok('User entered "' + year_month + '": ' + value.message)
         return
 
-    list_query, total_query = do_month_query(year_month)
-    check_list_query, check_total_query = do_check_month_query_as_main(year_month)
+    list_query, total_query = get_month_query(year_month)
+    check_list_query, check_total_query = get_check_month_query_as_main(year_month)
     elem_array, content_array, total = get_data_array_content_array_both(
         list_query, total_query, check_list_query, check_total_query)
 
@@ -913,7 +914,7 @@ def handle_edit_check_by_budget_category(budget_category, the_year='all'):
     :param str budget_category: the budget category to query for
     :param str the_year: the year to filter the query by (default is all years)
     """
-    query = do_check_budcat_query(budget_category, the_year)
+    query = get_check_budcat_query(budget_category, the_year)
     elem_array, content_array, total = get_check_data_and_content_array(query)
     if elem_array is None:
         WindowUtils.popup_message_ok('Budget category "' + budget_category
@@ -937,7 +938,7 @@ def handle_edit_check_by_month(year_month):
         WindowUtils.popup_message_ok('User entered "' + year_month + '": ' + value.message)
         return
 
-    query = do_check_month_query(year_month)
+    query = get_check_month_query(year_month)
     elem_array, content_array, total = get_check_data_and_content_array(query)
     if elem_array is None:
         WindowUtils.popup_message_ok('Month "' + year_month + '" is not in the "checks" DATABASE')
@@ -1054,7 +1055,7 @@ def handle_missing_unrecorded_checks():
 
 def handle_uncleared_checks():
     """Handle uncleared check transactions."""
-    query = do_uncleared_checks_query()
+    query = get_uncleared_checks_query()
     elem_array, content_array, dummy = get_check_data_and_content_array(query)
     if elem_array is None:
         WindowUtils.popup_message_ok('No uncleared checks')
@@ -1065,7 +1066,7 @@ def handle_uncleared_checks():
 
 def handle_all_recorded_checks():
     """Handle all recorded check transactions."""
-    query = do_check_all_query()
+    query = get_check_all_query()
     elem_array, content_array, total = get_check_data_and_content_array(query)
     if elem_array is None:
         WindowUtils.popup_message_ok('Nothing in the "checks" DATABASE')
