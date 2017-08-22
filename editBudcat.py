@@ -503,7 +503,7 @@ def get_data_array_content_array(list_query, total_query):
         bud_array = list()
         try:
             transaction_id = row[g.tID].split('-')  # Check transaction ID for multi-budget tag
-        except Exception:
+        except ValueError:
             (dummy, value, dummy) = sys.exc_info()
             WindowUtils.popup_message_ok(['transaction ID type (' + str(type(row[g.tID])) + '): '
                                           + value.message, list_query])
@@ -893,7 +893,7 @@ def handle_edit_budget_by_month_both(year_month):
     """
     try:
         datetime.datetime.strptime(year_month + '-01', '%Y-%m-%d')
-    except Exception:
+    except ValueError:
         (dummy, value, dummy) = sys.exc_info()
         WindowUtils.popup_message_ok('User entered "' + year_month + '": ' + value.message)
         return
@@ -938,7 +938,7 @@ def handle_edit_check_by_month(year_month):
     """
     try:
         datetime.datetime.strptime(year_month + '-01', '%Y-%m-%d')
-    except Exception:
+    except ValueError:
         (dummy, value, dummy) = sys.exc_info()
         WindowUtils.popup_message_ok('User entered "' + year_month + '": ' + value.message)
         return
@@ -1205,7 +1205,7 @@ def get_list_item(top_of_list, left_margin, num_rows, win, my_win=None):
             else:
                 win.move(top, left)
                 win.refresh()
-        except Exception:
+        except curses.error:
             ScreenWindow.my_quit('getListItem win.move({},{}) exception'.format(top, left))
 
 

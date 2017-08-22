@@ -33,7 +33,7 @@ def clear_cu_checks():
                    'tran_type = "b";')
     try:
         CURSOR1.execute(local_query)
-    except Exception:
+    except MySQLdb.Error:
         (my_exception_type, my_value, my_tb) = sys.exc_info()
         print('clearCUChecks(): Exception executing query: '+local_query)
         global_exception_printer(my_exception_type, my_value, my_tb)
@@ -47,7 +47,7 @@ def clear_cu_checks():
                        + check_num+'";')
         try:
             CURSOR2.execute(local_query)
-        except Exception:
+        except MySQLdb.Error:
             (my_exception_type, my_value, my_tb) = sys.exc_info()
             print('clearCUChecks(): Exception executing query: '+local_query)
             global_exception_printer(my_exception_type, my_value, my_tb)
@@ -70,7 +70,7 @@ def print_unknown_non_check_transactions():
                 '"Check%" order by tran_date;')
     try:
         CURSOR1.execute(my_query)
-    except Exception:
+    except MySQLdb.Error:
         (my_exception_type, my_value, my_tb) = sys.exc_info()
         print('print_unknown_non_check_transactions(): Exception executing query: '+my_query)
         global_exception_printer(my_exception_type, my_value, my_tb)
@@ -96,7 +96,7 @@ def print_unrecorded_checks():
                 ' tran_type = "b";')
     try:
         CURSOR1.execute(my_query)
-    except Exception:
+    except MySQLdb.Error:
         (my_exception_type, my_value, my_tb) = sys.exc_info()
         print('print_unrecorded_checks(): Exception executing query: '+my_query)
         global_exception_printer(my_exception_type, my_value, my_tb)
@@ -109,7 +109,7 @@ def print_unrecorded_checks():
                     + '" and tamt is not null;')
         try:
             CURSOR2.execute(my_query)
-        except Exception:
+        except MySQLdb.Error:
             (my_exception_type, my_value, my_tb) = sys.exc_info()
             print('print_unrecorded_checks(): Exception executing query: '+my_query)
             global_exception_printer(my_exception_type, my_value, my_tb)
@@ -134,7 +134,7 @@ def print_uncleared_checks():
         # uncleared checks have no cleared date, transacted in 2006 or later, and have an amount (not
         # cancelled)
         CURSOR1.execute(my_query)
-    except Exception:
+    except MySQLdb.Error:
         (my_exception_type, my_value, my_tb) = sys.exc_info()
         print('print_uncleared_checks(): Exception executing query: '+my_query)
         global_exception_printer(my_exception_type, my_value, my_tb)
@@ -150,7 +150,7 @@ def print_uncleared_checks():
                 'date > "2005-12-31" and tamt != 0.0  order by tnum;')
     try:
         CURSOR1.execute(my_query)
-    except Exception:
+    except MySQLdb.Error:
         (my_exception_type, my_value, my_tb) = sys.exc_info()
         print('print_uncleared_checks(): Exception executing query: '+my_query)
         global_exception_printer(my_exception_type, my_value, my_tb)
@@ -192,7 +192,7 @@ def insert_dict_into_checks_db(download_dict, keys_set):
         if DO_INSERT:
             try:
                 CURSOR1.execute(my_query)
-            except Exception:
+            except MySQLdb.Error:
                 (my_exception_type, my_value, my_tb) = sys.exc_info()
                 print('insert_dict_into_checks_db(): Exception executing query: '+my_query)
                 global_exception_printer(my_exception_type, my_value, my_tb)
@@ -235,7 +235,7 @@ def insert_dict_into_main_db(download_dict, keys_set):
         if DO_INSERT:
             try:
                 CURSOR1.execute(my_query)
-            except Exception:
+            except MySQLdb.Error:
                 (my_exception_type, my_value, my_tb) = sys.exc_info()
                 print('insert_dict_into_main_db(): Exception executing query: '+my_query)
                 global_exception_printer(my_exception_type, my_value, my_tb)
@@ -292,7 +292,7 @@ CURSOR2 = DB.cursor()
 query = 'SELECT tran_ID from main;'
 try:
     CURSOR1.execute(query)
-except Exception:
+except MySQLdb.Error:
     (exception_type, value, tb) = sys.exc_info()
     print('Main(): Exception executing query: '+query)
     global_exception_printer(exception_type, value, tb)
@@ -305,7 +305,7 @@ for row in CURSOR1:
 query = 'SELECT tnum from checks;'
 try:
     CURSOR1.execute(query)
-except Exception:
+except MySQLdb.Error:
     (exception_type, value, tb) = sys.exc_info()
     print('Main(): Exception executing query: '+query)
     global_exception_printer(exception_type, value, tb)

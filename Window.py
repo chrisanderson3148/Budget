@@ -14,7 +14,7 @@ class ScreenWindow(object):
 
     @classmethod
     def init_screen(cls):
-        """Starts up curses and logging"""
+        """Starts up curses and logging."""
         cls.screen = curses.initscr()
         cls.log = open('log', 'w')
 
@@ -39,8 +39,9 @@ class ScreenWindow(object):
 
     @classmethod
     def my_quit(cls, message):
-        """Properly clean up and close curses before sys.exit() otherwise it leaves the terminal in a bad
-        state. Optionally leave a quit message on the terminal.
+        """Properly clean up and close curses before sys.exit().
+
+        Otherwise it leaves the terminal in a bad state. Optionally leave a quit message on the terminal.
 
         :param str message: the message to optionally print to the console after curses is gracefully
         closed.
@@ -56,7 +57,7 @@ class ScreenWindow(object):
         sys.exit(0)
 
     def draw_menu(self, menus):
-        """Draw the menus on the screen
+        """Draw the menus on the screen.
 
         :param list menus: a list of strings, one for each menu item
         """
@@ -68,7 +69,7 @@ class ScreenWindow(object):
             index += 1
 
     def refresh(self, title):
-        """Redraw the screen
+        """Redraw the screen.
 
         :param str title: the title for the screen window
         """
@@ -77,7 +78,7 @@ class ScreenWindow(object):
 
 
 class MyWindow(ScreenWindow):
-    """Modified Curses windows class used for displaying multiple windows at the same time
+    """Modified Curses windows class used for displaying multiple windows at the same time.
 
     :param str window_type: internal window type (like 'edit', 'dialog', etc)
     """
@@ -109,7 +110,9 @@ class MyWindow(ScreenWindow):
 
     def create(self, height, wid, top=None, left=None, background_char=' ', vch=None, hch=None,
                title=''):
-        """Call string parameters vch and hch cannot be defaulted to curses.ACS_VLINE and
+        """Create my window.
+
+        Call string parameters vch and hch cannot be defaulted to curses.ACS_VLINE and
         curses.ACS_HLINE, respectively, in the call string because initscr() has not yet been called
         when the call string is compiled, before any code has run. They can be referenced in the method
         body because that is executed during run time, after initscr() has been called.
@@ -155,7 +158,7 @@ class MyWindow(ScreenWindow):
         self.log.write('Created window (title='+title+')\n')
 
     def draw_border(self):
-        """Draw my border"""
+        """Draw my border."""
         self.win.box(self.vch, self.hch)
         self.win.addstr(0, (self.width-len(self.title))/2, self.title, curses.A_STANDOUT)
         if self.window_type != 'popup' and self.window_type != 'message':
@@ -169,7 +172,7 @@ class MyWindow(ScreenWindow):
         self.log.write('drawBorder[main] window (title='+self.title+')\n')
 
     def draw_contents(self, last_page=False):
-        """Draw my contents
+        """Draw my contents.
 
         :param bool last_page: whether or not this is the last displayed page
         """
@@ -188,7 +191,7 @@ class MyWindow(ScreenWindow):
                 if myy < self.height-1:
                     self.win.addstr(myy, myx, self.contents[i][:self.width-2])
                     myy += 1  # go to the next line
-            except Exception:
+            except curses.error:
                 error_message = 'Exception in drawContents trying to add row i={} "{}" at ({},{}) '
                 'page={}, first_row={}, last_row={}'.format(i, self.contents[i], myx, myy,
                                                             self.current_page, first_row, last_row)
@@ -200,7 +203,7 @@ class MyWindow(ScreenWindow):
         self.draw_border()
 
     def current_row(self, page_row):
-        """Returns the overall 0-based current row of the CURSOR in the content array
+        """Returns the overall 0-based current row of the CURSOR in the content array.
 
         Based on the 0-based pageRow and current 1-based page number
 
@@ -219,8 +222,9 @@ class MyWindow(ScreenWindow):
         WindowList.pop_window()
 
     def read_content_lines(self):
-        """Read in window contents as list of strings from top to bottom only read in the content lines,
-        not the border
+        """Read in window contents as list of strings from top to bottom.
+
+        Only read in the content lines, not the border.
 
         This is needed to redraw all the windows.
         """
@@ -229,7 +233,7 @@ class MyWindow(ScreenWindow):
         self.log.write('readContentLines window (title='+self.title+')\n')
 
     def draw_content_lines(self):
-        """Draw my content lines and border"""
+        """Draw my content lines and border."""
         pos_y = 1
         for line in self.content_lines:
             self.win.addstr(pos_y, 1, line)
@@ -254,7 +258,7 @@ class PopupWindow(MyWindow):
         super(PopupWindow, self).__init__('popup')
 
     def draw_border(self):
-        """Draw my border"""
+        """Draw my border."""
         self.win.box(self.vch, self.hch)
         self.win.addstr(0, (self.width-len(self.title))/2, self.title, curses.A_STANDOUT)
         self.win.move(self.curr_y, self.curr_x)
@@ -263,7 +267,9 @@ class PopupWindow(MyWindow):
 
 
 class MessageWindow(MyWindow):
-    """A sub-class of MyWindow. Used for more complicated display of information.
+    """A sub-class of MyWindow.
+
+    Used for more complicated display of information.
 
     :param int color_pair: a number to use to refer to a particular background and foreground color-pair
     :param int fg_color: foreground color
@@ -277,7 +283,7 @@ class MessageWindow(MyWindow):
         super(MessageWindow, self).__init__('message')
 
     def draw_border(self):
-        """Draw my border"""
+        """Draw my border."""
         self.win.box(self.vch, self.hch)
         self.win.addstr(0, (self.width-len(self.title))/2, self.title, curses.A_STANDOUT)
         self.win.addstr(self.height-1, (self.width-2)/2, ' OK ', curses.A_STANDOUT)
