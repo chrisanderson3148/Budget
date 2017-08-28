@@ -597,12 +597,12 @@ class EditWindow(MyWindow):
 
         # Make sure transaction ID matches with multiple or single budget entries
         if not old_is_multi and len(old_transaction[g.tBudarr]) > 1:
-            WindowUtils.popup_message_ok('update_database(): This transaction ID implies single budget, but the '
-                                         'transaction record has more than 1 entry.')
+            WindowUtils.popup_message_ok('update_database(): This transaction ID implies single budget, '
+                                         'but the transaction record has more than 1 entry.')
             return
         elif old_is_multi and len(old_transaction[g.tBudarr]) < 2:
-            WindowUtils.popup_message_ok('update_database(): This transaction ID implies multi budget, but the transaction '
-                                         'record has less than 2 entries.')
+            WindowUtils.popup_message_ok('update_database(): This transaction ID implies multi budget, '
+                                         'but the transaction record has less than 2 entries.')
             return
 
         try:
@@ -610,22 +610,23 @@ class EditWindow(MyWindow):
                                                   + ' where ' + ('tran_ID' if is_main else 'tnum')
                                                   + ' like "' + old_tid_base + '%";')
         except MySQLdb.Error, excp:
-            WindowUtils.popup_message_ok('update_database(): mysql exception counting old transaction database records: '
-                                         + str(excp))
+            WindowUtils.popup_message_ok('update_database(): mysql exception counting old transaction '
+                                         'database records: ' + str(excp))
             return
 
         num_rows = db_cursor.rowcount
 
         # Make sure multiple budget entries have the same number in the transaction and DATABASE
         if old_is_multi and not num_rows == len(old_transaction[g.tBudarr]):
-            WindowUtils.popup_message_ok('update_database(): This transaction has multiple budget entries, but the database'
-                                         ' and transaction don\'temp agree how many')
+            WindowUtils.popup_message_ok('update_database(): This transaction has multiple budget '
+                                         'entries, but the database and transaction don\'temp agree how '
+                                         'many')
             return
 
         # Make sure transaction IDs that imply single budget only have 1 record in the DATABASE
         elif not old_is_multi and num_rows != 1:
-            WindowUtils.popup_message_ok('update_database(): This transaction has only one budget entry, but the database h'
-                                         'as ' + str(num_rows) + ' rows instead.')
+            WindowUtils.popup_message_ok('update_database(): This transaction has only one budget entry,'
+                                         ' but the database has ' + str(num_rows) + ' rows instead.')
             return
 
         #
