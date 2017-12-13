@@ -225,6 +225,32 @@ def insert_dict_into_main_db(download_dict, keys_set):
                 + '-0' in keys_set:
             continue
 
+        # For downloaded transactions whose key does not exist in the database, do one last
+        # check for possible duplicates: same transaction date, amount, and description.
+        # The credit union transactions downloads sometimes come back with different transaction IDs
+        # for the same transactions downloaded at different times. Without this check, they
+        # will get inserted into the database as duplicate transactions and cause problems that are
+        # hard to clean up later.
+        # They won't be inserted into the database, so for those records that ARE valid, an
+        # alternate means of inserting them is needed.
+        check_query = ('SELECT tran_ID,tran_date,tran_desc,tran_amount from main where '
+                       'tran_date=STR_TO_DATE("'+val[0]+'","%m/%d/%Y") and '
+                       'tran_desc="'+val[2]+'" and tran_amount="'+val[5]+'";')
+        try:
+            CURSOR1.execute(check_query)
+        except MySQLdb.Error:
+            (my_exception_type, my_value, my_tb) = sys.exc_info()
+            print('insert_dict_into_main_db(): Exception executing query: '+my_query)
+            global_exception_printer(my_exception_type, my_value, my_tb)
+            sys.exit(1)
+
+        if CURSOR1.rowcount > 0:
+            print('Possible duplicate record with different transaction ID (existing record VS candidate record):')
+            for row in CURSOR1:
+                print('"{}" "{}" "{}" "{}" VS "{}" "{}" "{}" "{}"'.format(row[0],row[1],row[2],row[3],new_key,val[0],val[2],val[5]))
+            continue  # do NOT insert this record!!
+
+        # It seems to check out -- insert into the database
         my_query = ('INSERT into main (tran_date,tran_ID,tran_desc,tran_checknum,tran_type,tran_amount,'
                     'bud_category,bud_amount,bud_date,comment) VALUES '
                     '(STR_TO_DATE("'+val[0]+'","%m/%d/%Y"), "' + new_key+'", "'+val[2]+'", "'
