@@ -248,7 +248,10 @@ def insert_dict_into_main_db(download_dict, keys_set):
             print('Possible duplicate record with different transaction ID (existing record VS candidate record):')
             for row in CURSOR1:
                 print('"{}" "{}" "{}" "{}" VS "{}" "{}" "{}" "{}"'.format(row[0],row[1],row[2],row[3],new_key,val[0],val[2],val[5]))
-            continue  # do NOT insert this record!!
+            response = input("Insert the record anyway [yes|no]? ")
+            if not response.lower().startswith('y'):
+                continue  # do NOT insert this record!!
+            # otherwise, keep going and insert it
 
         # It seems to check out -- insert into the database
         my_query = ('INSERT into main (tran_date,tran_ID,tran_desc,tran_checknum,tran_type,tran_amount,'
