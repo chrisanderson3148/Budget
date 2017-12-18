@@ -209,7 +209,7 @@ def insert_dict_into_main_db(download_dict, keys_set):
     :param dict download_dict:
     :param set keys_set:
     """
-    global CURSOR1, records_inserted, DO_INSERT
+    global CURSOR1, CURSOR2, records_inserted, DO_INSERT
 
     for key, val in download_dict.iteritems():
         if '|' in key:
@@ -231,8 +231,7 @@ def insert_dict_into_main_db(download_dict, keys_set):
         # for the same transactions downloaded at different times. Without this check, they
         # will get inserted into the database as duplicate transactions and cause problems that are
         # hard to clean up later.
-        # They won't be inserted into the database, so for those records that ARE valid, an
-        # alternate means of inserting them is needed.
+        # Check with the user if the record should be inserted anyway. If not, don't insert it.
         check_query = ('SELECT tran_ID,tran_date,tran_desc,tran_amount from main where '
                        'tran_date=STR_TO_DATE("'+val[0]+'","%m/%d/%Y") and '
                        'tran_desc="'+val[2]+'" and tran_amount="'+val[5]+'";')
@@ -244,14 +243,40 @@ def insert_dict_into_main_db(download_dict, keys_set):
             global_exception_printer(my_exception_type, my_value, my_tb)
             sys.exit(1)
 
-        if CURSOR1.rowcount > 0:
+        #
+        # One match - insert or ignore new record, or replace existing record with it.
+        #
+        if CURSOR1.rowcount == 1:
             print('Possible duplicate record with different transaction ID (existing record VS candidate record):')
+            existing_record_key = ''
             for row in CURSOR1:
-                print('"{}" "{}" "{}" "{}" VS "{}" "{}" "{}" "{}"'.format(row[0],row[1],row[2],row[3],new_key,val[0],val[2],val[5]))
-            response = input("Insert the record anyway [yes|no]? ")
-            if not response.lower().startswith('y'):
+                existing_record_key = row[0]
+                print('old "{}" "{}" "{}" "{}" VS new "{}" "{}" "{}" "{}"'.format(row[0],row[1],row[2],row[3],new_key,val[0],val[2],val[5]))
+            response = input("What to do with this record: [insert|ignore|replace (existing)]? ")
+            if response.lower().startswith('ignore'):
                 continue  # do NOT insert this record!!
+            if response.lower().startswith('replace'):  # delete existing record first
+                delete_query = 'DELETE FROM main where tran_id = "{}";'.format(existing_record_key)
+                try:
+                    CURSOR2.execute(delete_query)  # delete existing record from database (first part of replacing with new record)
+                except MySQLdb.Error:
+                    (my_exception_type, my_value, my_tb) = sys.exc_info()
+                    print('insert_dict_into_main_db(): Exception executing query: '+delete_query)
+                    global_exception_printer(my_exception_type, my_value, my_tb)
+                    sys.exit(1)
             # otherwise, keep going and insert it
+
+        #
+        # More than one match - insert or ignore new record, no replace
+        #
+        elif CURSOR1.rowcount > 1:
+            print('Possible duplicate records with different transaction IDs (existing record VS candidate records):')
+            for row in CURSOR1:
+                print('Existing record: "{}" "{}" "{}" "{}"\nNew record:      "{}" "{}" "{}" "{}"'.format(row[0],row[1],row[2],row[3],new_key,val[0],val[2],val[5]))
+            response = input("Insert or ignore new record [insert|ignore]? ")
+            if response.lower.startswith('ignore'):
+                continue  # do NOT insert the record
+            # otherwise keep going and insert it
 
         # It seems to check out -- insert into the database
         my_query = ('INSERT into main (tran_date,tran_ID,tran_desc,tran_checknum,tran_type,tran_amount,'
