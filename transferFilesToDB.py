@@ -614,12 +614,23 @@ class TransferMonthlyFilesToDB(object):
         expected_fields = 6
         output_dict = {}
         with open(file_name) as file_ptr:
-            for line in file_ptr:
+            line = file_ptr.readline()
+            while line:
+                # Check for normal end-of-line characters. If not, read the next line and join together.
+                if ord(line[-2]) != 13 and ord(line[-1]) == 10:
+                    # print('Jacked line: "{}" {}-{}'.format(line, ord(line[-2]), ord(line[-1])))
+                    line2 = file_ptr.readline()  # read in the next line
+                    line = line[:-1] + line2  # strip off last char of first line and join 2nd line to it.
+                    print('\nJoined: {}'.format(line.strip()))
+                else:
+                    print('\nNormal: {}'.format(line.strip()))
+
                 # strip all leading and trailing spaces and new-lines
                 line = line.rstrip().lstrip()
 
                 # ignore blank lines
                 if not line:
+                    line = file_ptr.readline()
                     continue
 
                 # Clear any commas inside quoted fields
@@ -641,6 +652,7 @@ class TransferMonthlyFilesToDB(object):
 
                 # skip if it's the header line
                 if 'status' in fields[0].lower():
+                    line = file_ptr.readline()
                     continue
 
                 # Skip if it's a pending transaction. Sometimes transaction details change when they
@@ -650,6 +662,7 @@ class TransferMonthlyFilesToDB(object):
                 # To prevent this, only consider Cleared transactions which by assumption do not change
                 # over time.
                 if 'pending' in fields[0].lower():
+                    line = file_ptr.readline()
                     continue
 
                 # verify there are no FEWER than the expected number of fields (can be greater)
@@ -702,7 +715,8 @@ class TransferMonthlyFilesToDB(object):
                 self.insert_entry_into_dict(budget_category_dict, trans_ref, trans_date, trans_payee,
                                             '', 'C', trans_amt, comment, output_dict)
                 line_num += 1
-            # end for
+                line = file_ptr.readline()
+            # end while
         print('read_monthly_citi_file processed {} records from {}\n'.format(line_num, file_name))
         return output_dict
 
