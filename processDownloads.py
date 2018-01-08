@@ -232,9 +232,10 @@ def insert_dict_into_main_db(download_dict, keys_set):
         # will get inserted into the database as duplicate transactions and cause problems that are
         # hard to clean up later.
         # Check with the user if the record should be inserted anyway. If not, don't insert it.
-        check_query = ('SELECT tran_ID,tran_date,tran_desc,tran_amount from main where '
+        check_query = ('SELECT tran_ID,tran_date,tran_desc,tran_checknum,tran_amount from main where '
                        'tran_date=STR_TO_DATE("'+val[0]+'","%m/%d/%Y") and '
-                       'tran_desc="'+val[2]+'" and tran_amount="'+val[5]+'";')
+                       'tran_desc="'+val[2]+'" and tran_amount="'+val[5]+'" and '
+                       'tran_checknum="'+val[3]+'";')
         try:
             CURSOR1.execute(check_query)
         except MySQLdb.Error:
@@ -251,7 +252,7 @@ def insert_dict_into_main_db(download_dict, keys_set):
             existing_record_key = ''
             for row in CURSOR1:
                 existing_record_key = row[0]
-                print('old "{}" "{}" "{}" "{}" VS new "{}" "{}" "{}" "{}"'.format(row[0],row[1],row[2],row[3],new_key,val[0],val[2],val[5]))
+                print('old "{}" "{}" "{}" "{}" "{}" VS new "{}" "{}" "{}" "{}" "{}"'.format(row[0],row[1],row[2],row[3],row[4],new_key,val[0],val[2],(val[3] if val[3] else "0"),val[5]))
             response = input("What to do with this record: [insert|ignore|replace (existing)]? ")
             if response.lower().startswith('ignore'):
                 continue  # do NOT insert this record!!
@@ -272,7 +273,7 @@ def insert_dict_into_main_db(download_dict, keys_set):
         elif CURSOR1.rowcount > 1:
             print('Possible duplicate records with different transaction IDs (existing record VS candidate records):')
             for row in CURSOR1:
-                print('Existing record: "{}" "{}" "{}" "{}"\nNew record:      "{}" "{}" "{}" "{}"'.format(row[0],row[1],row[2],row[3],new_key,val[0],val[2],val[5]))
+                print('Existing record: "{}" "{}" "{}" "{}" "{}"\nNew record:      "{}" "{}" "{}" "{}" "{}"'.format(row[0],row[1],row[2],row[3],row[4],new_key,val[0],val[2],(val[3] if val[3] else "0"),val[5]))
             response = input("Insert or ignore new record [insert|ignore]? ")
             if response.lower.startswith('ignore'):
                 continue  # do NOT insert the record
