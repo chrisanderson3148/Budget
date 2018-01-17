@@ -21,4 +21,10 @@
   "Travel escrow": "TRAVEL",
   "Car repair monthly": "CAR MAINT",
   "Medical escrow": "MEDICAL"
+  "Deposit Transfer From 61210603": "TRAVEL"
+  "Deposit Transfer From 44051209": "MEDICAL"
+  "Deposit Transfer From 61210600": "INSURANCE"
+  "Deposit Transfer From 61210602": "GIFTS"
+  "Deposit Transfer From 61210604": "CAR MAINT"
+  "Deposit Transfer From 61210680": "TRANSFER"
 }
