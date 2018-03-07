@@ -329,8 +329,11 @@ class EditWindow(MyWindow):
 
                     # Somehow have to differentiate between an updated check record and a new record to
                     # be inserted.
-                    if not new_entry[1] or not new_entry[5]:
-                        WindowUtils.popup_message_ok('One or more required fields are empty.')
+                    if not new_entry[g.tID]:
+                        WindowUtils.popup_message_ok('Transaction ID field is empty.')
+                        continue
+                    if new_entry[g.tAmount] == 0.0 and new_entry[g.tPayee].lower() != 'cancel':
+                        WindowUtils.popup_message_ok('Transaction amount field is empty (and payee not "cancel").')
                         continue
 
                     if add:
