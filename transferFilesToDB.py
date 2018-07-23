@@ -682,10 +682,13 @@ class TransferMonthlyFilesToDB(object):
 
                 # transaction amount (fields 3 and 4 are mutually exclusive:
                 # one or the other has a value, not both)
+                # BUT THEY BOTH MAY BE EMPTY!
                 if fields[3]:
                     trans_amt = '-'+fields[3]  # Debits need to be negative value
-                else:
+                elif fields[4]:
                     trans_amt = fields[4]
+                else:
+                    trans_amt = '0.00'
 
                 # transaction payee
                 trans_payee = fields[2]

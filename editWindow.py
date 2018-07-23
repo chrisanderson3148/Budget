@@ -2,6 +2,7 @@
 import curses
 import datetime
 import MySQLdb
+import copy
 from Window import MyWindow
 from Window import ScreenWindow
 import WindowUtils
@@ -113,6 +114,50 @@ class EditWindow(MyWindow):
                           entry[g.tComment],
                           entry[g.tClearDate])
 
+    def get_list_of_budget_categories(self, table_name):
+        return_list = []
+        db_cursor = self.bud_db.execute_query('select bud_category from ' + table_name +
+                                              ' group by bud_category;')
+        for row in db_cursor.fetchall():
+            return_list.append(row[0])
+        return return_list
+
+    def get_intended_value(self, entered_value, field_name):
+        """Return string based on whether to match to an existing value from the database for that field
+         or not.
+
+        :param str entered_value: The value as entered by the user.
+        :param str field_name: The name of the field where the value was entered.
+        :rtype str:
+        """
+        values = []
+        # Only supporting field "category" now; other fields just return entered_value.
+        if field_name == 'category':
+            values = self.get_list_of_budget_categories('main')
+        else:
+            return entered_value
+
+        display_values = []
+        # if something was entered, match values that begin with it
+        if len(entered_value):
+            display_values.append(entered_value.upper())  # first entry is what the user entered
+            for value in values:
+                if value.lower().startswith(entered_value.lower()):
+                    display_values.append(value)
+        # if nothing was entered, match all values
+        else:
+            display_values = values
+
+        # if display_values has anything in it, display it.
+        if len(display_values):
+            choice = WindowUtils.popup_get_multiple_choice_vert('Choose an existing value',
+                                                                display_values, display_values[0])
+        # if display_values is empty (nothing matched), return entered_value (very rare)
+        else:
+            choice = entered_value
+
+        return choice
+
     def main_event_loop(self, is_main, entry, readonly=False):
         """Handle keyboard events for this window.
 
@@ -195,6 +240,12 @@ class EditWindow(MyWindow):
                 # replace all " with ' because of the mysql update query will fail on " (it uses " to
                 # delimit field values)
                 text = text.replace('"', "'")
+
+                # TODO: Check value of text against list of existing values of that field.
+                # If the new entry does not match an existing value from the database,
+                # suggest an existing value that is close, or take it as is.
+                text = self.get_intended_value(text, tab_array[idx][2])
+
                 new_entry = self.update_transaction(new_entry, text, tab_array[idx])
                 self.refresh(is_main, new_entry)
                 changes = True
@@ -369,7 +420,6 @@ class EditWindow(MyWindow):
         :param list field_array: a 3-element array as [x-pos, y-pos, name]
         :rtype: dict
         """
-        import copy
 
         # copy everything by VALUE not by REFERENCE so changes made here don't ripple back to the
         # original
@@ -624,14 +674,15 @@ class EditWindow(MyWindow):
         # Make sure multiple budget entries have the same number in the transaction and database
         if old_is_multi and not num_rows == len(old_transaction[g.tBudarr]):
             WindowUtils.popup_message_ok('update_database(): This transaction has multiple budget '
-                                         'entries, but the database and transaction don\'temp agree how '
-                                         'many')
+                                         'entries, but the ' + ('main' if is_main else 'checks') +
+                                         ' database and transaction don\'t agree how many')
             return
 
         # Make sure transaction IDs that imply single budget only have 1 record in the database
         elif not old_is_multi and num_rows != 1:
             WindowUtils.popup_message_ok('update_database(): This transaction has only one budget entry,'
-                                         ' but the database has ' + str(num_rows) + ' rows instead.')
+                                         ' but the ' + ('main' if is_main else 'checks') +
+                                         ' database has ' + str(num_rows) + ' rows instead.')
             return
 
         #

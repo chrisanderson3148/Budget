@@ -11,6 +11,8 @@ class ScreenWindow(object):
     # class variables
     screen = None
     log = None
+    HEIGHT = 0
+    WIDTH = 0
 
     @classmethod
     def init_screen(cls):
@@ -28,7 +30,9 @@ class ScreenWindow(object):
 
         # Add title to the border
         title = ' Budget Edit Program v2.0 '
-        dummy, width = cls.screen.getmaxyx()
+        height, width = cls.screen.getmaxyx()
+        cls.HEIGHT = height
+        cls.WIDTH = width
         cls.screen.addstr(0, (width - len(title)) / 2, title, curses.A_STANDOUT)
         cls.screen.refresh()
 

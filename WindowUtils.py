@@ -186,6 +186,10 @@ def popup_get_multiple_choice_vert(win_title, choices, default):
         if len(_choice) > _max_choice_width:
             _max_choice_width = len(_choice)
 
+    if len(choices) + 4 > _my_win.s_height:
+        popup_message_ok('TOO MANY CHOICES TO DISPLAY -- TRUNCATING')
+        del choices[_my_win.s_height - 4:]
+
     _win_wid = max(len(win_title), _max_choice_width) + 5
     _win_ht = len(choices) + 4
 

@@ -284,7 +284,8 @@ def insert_dict_into_main_db(download_dict, keys_set):
                     'bud_category,bud_amount,bud_date,comment) VALUES '
                     '(STR_TO_DATE("'+val[0]+'","%m/%d/%Y"), "' + new_key+'", "'+val[2]+'", "'
                     + (val[3] if val[3] else "0")+'", "'+val[4]+'", "'+val[5]+'", "'+val[6]+'", "'
-                    + str(val[7])+'", STR_TO_DATE("'+val[8]+'","%m/%d/%Y"), "'+val[9]+'");')
+                    + str(val[7])+'", STR_TO_DATE("'+(val[8] if len(val[8]) else val[0])
+                    + '","%m/%d/%Y"), "'+val[9]+'");')
 
         # If inserting is enabled, insert into the appropriate DATABASE
         if DO_INSERT:
