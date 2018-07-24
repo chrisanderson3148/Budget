@@ -123,8 +123,7 @@ class EditWindow(MyWindow):
         return return_list
 
     def get_intended_value(self, entered_value, field_name):
-        """Return string based on whether to match to an existing value from the database for that field
-         or not.
+        """Return string selected by user based on entered value.
 
         :param str entered_value: The value as entered by the user.
         :param str field_name: The name of the field where the value was entered.
