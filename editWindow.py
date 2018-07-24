@@ -139,10 +139,20 @@ class EditWindow(MyWindow):
         display_values = []
         # if something was entered, match values that begin with it
         if len(entered_value):
-            display_values.append(entered_value.upper())  # first entry is what the user entered
             for value in values:
                 if value.lower().startswith(entered_value.lower()):
                     display_values.append(value)
+            # if there were matches, insert entered_value at top
+            if len(display_values):
+                display_values.insert(0, entered_value.upper())
+            # if there were no matches, ask if he wants to keep it or not
+            else:
+                ans = WindowUtils.popup_get_yes_no("No matching values. Use '{}'?".format(entered_value))
+                if ans.lower() == 'no':
+                    return "unknown"
+                else:
+                    return entered_value
+
         # if nothing was entered, match all values
         else:
             display_values = values
