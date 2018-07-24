@@ -166,6 +166,16 @@ def popup_get_multiple_choice(win_title, choices, default):
     return _tab_arr[_idx][2]
 
 
+def redraw_list(my_win, values, top_offset, y_top, max_displayed):
+    my_win.win.erase()
+    my_win.draw_border()
+    for i in range(top_offset, top_offset+max_displayed):
+        curr_y = y_top + i - top_offset
+        value = values[i]
+        my_win.win.addstr(curr_y, 1, value)
+        my_win.win.refresh()  # redraw the window
+
+
 def popup_get_multiple_choice_vert(win_title, choices, default):
     """Displays a short list of strings vertically that the user can choose from
 
@@ -186,67 +196,90 @@ def popup_get_multiple_choice_vert(win_title, choices, default):
         if len(_choice) > _max_choice_width:
             _max_choice_width = len(_choice)
 
+    # Determine maximum number of choices displayed at a time
     if len(choices) + 4 > _my_win.s_height:
-        popup_message_ok('TOO MANY CHOICES TO DISPLAY -- TRUNCATING')
-        del choices[_my_win.s_height - 4:]
+        max_displayed_choices = _my_win.s_height - 4
+    else:
+        max_displayed_choices = len(choices)
 
     _win_wid = max(len(win_title), _max_choice_width) + 5
-    _win_ht = len(choices) + 4
+    _win_ht = max_displayed_choices + 3
 
     _my_win.create(_win_ht, _win_wid, top=max(1, (_my_win.s_height / 3 - _win_ht / 2)),
                    left=max(1, (_my_win.s_width - _win_wid) / 2), title=win_title)
     WindowList.add_window(_my_win.win)
     _my_win.win.bkgd(' ', curses.color_pair(5))
     _tab_arr = list()
-    _prev_index = 0
-    _idx = 0
-    i = 0
+    prev_highlighted_choice = 0
+    highlighted_choice = 0  # index of highlighted choices element
 
     # Draw the selections and highlight the default choice
-    _start = 2
-    for _ch in choices:
-        if not default:
-            if i == 0:
-                _my_win.win.addstr(_start, 1, _ch, curses.A_REVERSE)
-                _idx = i
-                _prev_index = _idx
+    y_top = 2  # y-coordinate of list top in window
+    list_offset = 0  # list element at top of display
+    for i in range(list_offset, max_displayed_choices):
+        choice = choices[i]
+        if not default:  # no default set, highlight first element
+            if i == list_offset:
+                _my_win.win.addstr(i+y_top, 1, choice, curses.A_REVERSE)
+                highlighted_choice = i
+                prev_highlighted_choice = highlighted_choice
+                current_y = i + y_top
             else:
-                _my_win.win.addstr(_start, 1, _ch)
-        elif _ch == default:
-            _my_win.win.addstr(_start, 1, _ch, curses.A_REVERSE)
-            _idx = i
-            _prev_index = _idx
-        else:
-            _my_win.win.addstr(_start, 1, _ch)
-        _tab_arr.append([1, _start, _ch])
-        _my_win.win.refresh()
-        _start += 1
-        i += 1
+                _my_win.win.addstr(i+y_top, 1, choice)
+        elif choice == default:  # there is a default set, highlight that one
+            _my_win.win.addstr(i+y_top, 1, choice, curses.A_REVERSE)
+            highlighted_choice = i
+            prev_highlighted_choice = highlighted_choice
+            current_y = i + y_top
+        else:  # don't highlight this element
+            _my_win.win.addstr(i+y_top, 1, choice)
 
+        # Record the choice and position in tab_arr
+        _tab_arr.append([1, i+y_top, choice])
+        _my_win.win.refresh()  # redraw the window
+
+    # handle selection process
     while True:
-        i = ScreenWindow.screen.getch()
-        if i == ord('\t') or i == ord('j'):
-            _idx = (_idx + 1) % len(_tab_arr)
-        elif i == ord('k'):
-            _idx -= 1
-            if _idx < 0:
-                _idx = len(_tab_arr)-1
-        elif i == ord('\n'):
+        command = ScreenWindow.screen.getch()
+        if command == ord('\t') or command == ord('j'):  # move selector down
+            if highlighted_choice + 1 < len(choices):
+                prev_highlighted_choice = highlighted_choice
+                highlighted_choice += 1  # only increment if before last element
+                previous_y = current_y
+                current_y += 1
+        elif command == ord('k'):  # move selector up
+            if highlighted_choice > 0:
+                prev_highlighted_choice = highlighted_choice
+                highlighted_choice -= 1  # only decrement if after first element
+                previous_y = current_y
+                current_y -= 1
+        elif command == ord('\n'):  # make selection
             break
 
-        # highlight new choice
-        _my_win.win.addstr(_tab_arr[_idx][1], _tab_arr[_idx][0], _tab_arr[_idx][2], curses.A_REVERSE)
+        # calculate list_offset (top of list offset)
+        if current_y < y_top:
+            current_y = y_top
+            list_offset -= 1
+            redraw_list(_my_win, choices, list_offset, y_top, max_displayed_choices)
+        elif current_y > y_top + max_displayed_choices - 1:
+            current_y = y_top + max_displayed_choices - 1
+            list_offset += 1
+            redraw_list(_my_win, choices, list_offset, y_top, max_displayed_choices)
 
-        # unhighlight old choice
-        _my_win.win.addstr(_tab_arr[_prev_index][1], _tab_arr[_prev_index][0], _tab_arr[_prev_index][2])
+        # unhighlight old choice only if highlighted line is different
+        if previous_y != current_y:
+            _my_win.win.addstr(previous_y, 1, choices[prev_highlighted_choice])
+
+        # highlight new choice
+        _my_win.win.addstr(current_y, 1, choices[highlighted_choice], curses.A_REVERSE)
 
         # Move cursor to new choice
-        _my_win.win.move(_tab_arr[_idx][1], _tab_arr[_idx][0])
+        _my_win.win.move(current_y, 1)
         _my_win.win.refresh()
-        _prev_index = _idx
+        prev_highlighted_choice = highlighted_choice
 
     _my_win.delete()
-    return _tab_arr[_idx][2]
+    return choices[highlighted_choice]
 
 
 def popup_get_yes_no(win_title, default='YES'):
