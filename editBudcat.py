@@ -227,11 +227,12 @@ def get_search_parameters():
     return table, field, compare, value
 
 
-def do_transaction_list_window(data_array, content_array, my_title, add_edit, last_page, q_func, *args):
+def do_transaction_list_window(data_array, content_array, total, my_title, add_edit, last_page, q_func, *args):
     """Handle the transaction list window: scrolling, paging, selecting, updating.
 
     :param list data_array: the window contents as list of data values
     :param list content_array: the window contents as list of strings
+    :param float total: The total of the items in the list
     :param str my_title: the window title
     :param bool add_edit: if True, add the transaction to the DATABASE; if not, edit either as a main
     transaction or checks transaction
@@ -243,7 +244,7 @@ def do_transaction_list_window(data_array, content_array, my_title, add_edit, la
     list_win = EditWindow(bud_db, 2, curses.COLOR_BLACK, curses.COLOR_GREEN)
 
     win_rows = min(num_rows, list_win.s_height - 5)
-    list_win.create(win_rows + 2, 120, title=my_title)
+    list_win.create(win_rows + 2, 120, title=my_title.format(total).replace('$-', '-$'))
     WindowList.add_window(list_win.win)
     list_win.win.bkgd(' ', curses.color_pair(2))
     list_win.contents = content_array
@@ -268,14 +269,15 @@ def do_transaction_list_window(data_array, content_array, my_title, add_edit, la
             resp = do_edit_win(data_array[entry_index])
 
         # There were changes made so re-query the DATABASE and update the list_win contents and data
-        # arrays
+        # arrays (and window title)
         if resp:
-            data_array, content_array, dummy = q_func(*args)
+            data_array, content_array, total = q_func(*args)
 
             if not content_array:
                 list_win.delete()
                 return
 
+            list_win.set_title(my_title.format(total).replace('$-', '-$'))
             list_win.contents = content_array
             list_win.pages = int(math.ceil(len(content_array) / float(list_win.height - 2)))
         else:
@@ -880,8 +882,8 @@ def handle_edit_budget_by_budcat_both(my_bud_cat, the_year='all'):
                                      '" is not in the DATABASE for year "' + the_year + '"')
         return
 
-    do_transaction_list_window(elem_array, content_array, 'Budcat=' + my_bud_cat + ',Year=' + the_year
-                               + (' Total=' + str(total) if total is not None else ''),
+    do_transaction_list_window(elem_array, content_array, total, 'Budcat=' + my_bud_cat + ',Year=' + the_year
+                               + ' Total=${:0,.2f}',
                                False, False, get_data_array_content_array_both, list_query,
                                total_query, check_list_query, check_total_query)
 
@@ -907,8 +909,8 @@ def handle_edit_budget_by_month_both(year_month):
         WindowUtils.popup_message_ok('Month "' + year_month + '" is not in the DATABASE')
         return
 
-    do_transaction_list_window(elem_array, content_array, 'Month=' + year_month
-                               + (' Total='+str(total) if total is not None else ''),
+    do_transaction_list_window(elem_array, content_array, total, 'Month=' + year_month
+                               + ' Total=${:0,.2f}',
                                False, False, get_data_array_content_array_both, list_query,
                                total_query, check_list_query, check_total_query)
 
@@ -925,9 +927,9 @@ def handle_edit_check_by_budget_category(budget_category, the_year='all'):
         WindowUtils.popup_message_ok('Budget category "' + budget_category
                                      + '" is not in the "checks" DATABASE for year ' + the_year)
         return
-    do_transaction_list_window(elem_array, content_array,
+    do_transaction_list_window(elem_array, content_array, total,
                                'Budcat=' + budget_category + ', Year=' + the_year
-                               + (' Total='+str(total) if total is not None else ''),
+                               + ' Total=${:0,.2f}',
                                False, False, get_check_data_and_content_array, query)
 
 
@@ -948,8 +950,8 @@ def handle_edit_check_by_month(year_month):
     if elem_array is None:
         WindowUtils.popup_message_ok('Month "' + year_month + '" is not in the "checks" DATABASE')
         return
-    do_transaction_list_window(elem_array, content_array, 'Month=' + year_month
-                               + (' Total='+str(total) if total is not None else ''),
+    do_transaction_list_window(elem_array, content_array, total, 'Month=' + year_month
+                               + ' Total=${:0,.2f}',
                                False, False, get_check_data_and_content_array, query)
 
 
@@ -1032,8 +1034,8 @@ def handle_cleared_unrecorded_checks():
     """Handle cleared/unrecorded check transactions."""
     elem_array, content_array, total = do_query_cleared_unrecorded_checks()
     if elem_array:
-        do_transaction_list_window(elem_array, content_array, 'Cleared, unrecorded checks'
-                                   + (' Total=' + str(total) if total else ''),
+        do_transaction_list_window(elem_array, content_array, total, 'Cleared, unrecorded checks'
+                                   + ' Total=${:0,.2f}',
                                    True, False, do_query_cleared_unrecorded_checks)
     else:
         WindowUtils.popup_message_ok('There are no cleared, unrecorded checks at this time.')
@@ -1061,11 +1063,12 @@ def handle_missing_unrecorded_checks():
 def handle_uncleared_checks():
     """Handle uncleared check transactions."""
     query = get_uncleared_checks_query()
-    elem_array, content_array, dummy = get_check_data_and_content_array(query)
+    elem_array, content_array, total = get_check_data_and_content_array(query)
     if elem_array is None:
         WindowUtils.popup_message_ok('No uncleared checks')
         return
-    do_transaction_list_window(elem_array, content_array, 'All uncleared checks since January 1, 2006',
+    do_transaction_list_window(elem_array, content_array, total,
+                               'All uncleared checks since January 1, 2006 (total=${:0,.2f})',
                                False, True, get_check_data_and_content_array, query)
 
 
@@ -1076,7 +1079,7 @@ def handle_all_recorded_checks():
     if elem_array is None:
         WindowUtils.popup_message_ok('Nothing in the "checks" DATABASE')
         return
-    do_transaction_list_window(elem_array, content_array, 'Total=' + (str(total) if total else ''),
+    do_transaction_list_window(elem_array, content_array, total, 'Total=${:0,.2f}',
                                False, True, get_check_data_and_content_array, query)
 
 
@@ -1100,7 +1103,7 @@ def handle_transaction_search():
         return
 
     # Display the results and manage the window
-    do_transaction_list_window(elem_array, content_array, 'Total=' + (str(total) if total else ''),
+    do_transaction_list_window(elem_array, content_array, total, 'Total=${:0,.2f}',
                                False, True, get_data_array_content_array, list_query, total_query)
 
 

@@ -239,6 +239,7 @@ def popup_get_multiple_choice_vert(win_title, choices, default):
         _my_win.win.refresh()  # redraw the window
 
     # handle selection process
+    previous_y = current_y
     while True:
         command = ScreenWindow.screen.getch()
         if command == ord('\t') or command == ord('j'):  # move selector down

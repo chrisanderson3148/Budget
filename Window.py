@@ -112,6 +112,9 @@ class MyWindow(ScreenWindow):
     def __del__(self):
         pass
 
+    def set_title(self, title):
+        self.title = title
+
     def create(self, height, wid, top=None, left=None, background_char=' ', vch=None, hch=None,
                title=''):
         """Create my window.
