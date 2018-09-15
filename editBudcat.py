@@ -18,6 +18,8 @@ from editWindow import EditWindow
 from Window import ScreenWindow
 from mysettings import g
 
+TOTAL_FORMAT = '${:0,.2f}'
+
 
 def signal_handler(caught_signal, frame):
     """Called whenever a CTRL-C is sent to the process -- quit gracefully.
@@ -233,7 +235,7 @@ def do_transaction_list_window(data_array, content_array, total, my_title, add_e
     :param list data_array: the window contents as list of data values
     :param list content_array: the window contents as list of strings
     :param float total: The total of the items in the list
-    :param str my_title: the window title
+    :param str my_title: the window title. Must have TOTAL_FORMAT (or at least '{}') somewhere in it for the total value
     :param bool add_edit: if True, add the transaction to the DATABASE; if not, edit either as a main
     transaction or checks transaction
     :param bool last_page: passed to drawContents
@@ -883,7 +885,7 @@ def handle_edit_budget_by_budcat_both(my_bud_cat, the_year='all'):
         return
 
     do_transaction_list_window(elem_array, content_array, total, 'Budcat=' + my_bud_cat + ',Year=' + the_year
-                               + ' Total=${:0,.2f}',
+                               + ' Total='+TOTAL_FORMAT,
                                False, False, get_data_array_content_array_both, list_query,
                                total_query, check_list_query, check_total_query)
 
@@ -910,7 +912,7 @@ def handle_edit_budget_by_month_both(year_month):
         return
 
     do_transaction_list_window(elem_array, content_array, total, 'Month=' + year_month
-                               + ' Total=${:0,.2f}',
+                               + ' Total='+TOTAL_FORMAT,
                                False, False, get_data_array_content_array_both, list_query,
                                total_query, check_list_query, check_total_query)
 
@@ -929,7 +931,7 @@ def handle_edit_check_by_budget_category(budget_category, the_year='all'):
         return
     do_transaction_list_window(elem_array, content_array, total,
                                'Budcat=' + budget_category + ', Year=' + the_year
-                               + ' Total=${:0,.2f}',
+                               + ' Total='+TOTAL_FORMAT,
                                False, False, get_check_data_and_content_array, query)
 
 
@@ -951,7 +953,7 @@ def handle_edit_check_by_month(year_month):
         WindowUtils.popup_message_ok('Month "' + year_month + '" is not in the "checks" DATABASE')
         return
     do_transaction_list_window(elem_array, content_array, total, 'Month=' + year_month
-                               + ' Total=${:0,.2f}',
+                               + ' Total='+TOTAL_FORMAT,
                                False, False, get_check_data_and_content_array, query)
 
 
@@ -1035,7 +1037,7 @@ def handle_cleared_unrecorded_checks():
     elem_array, content_array, total = do_query_cleared_unrecorded_checks()
     if elem_array:
         do_transaction_list_window(elem_array, content_array, total, 'Cleared, unrecorded checks'
-                                   + ' Total=${:0,.2f}',
+                                   + ' Total='+TOTAL_FORMAT,
                                    True, False, do_query_cleared_unrecorded_checks)
     else:
         WindowUtils.popup_message_ok('There are no cleared, unrecorded checks at this time.')
@@ -1068,7 +1070,7 @@ def handle_uncleared_checks():
         WindowUtils.popup_message_ok('No uncleared checks')
         return
     do_transaction_list_window(elem_array, content_array, total,
-                               'All uncleared checks since January 1, 2006 (total=${:0,.2f})',
+                               'All uncleared checks since January 1, 2006 (total='+TOTAL_FORMAT+')',
                                False, True, get_check_data_and_content_array, query)
 
 
@@ -1079,7 +1081,7 @@ def handle_all_recorded_checks():
     if elem_array is None:
         WindowUtils.popup_message_ok('Nothing in the "checks" DATABASE')
         return
-    do_transaction_list_window(elem_array, content_array, total, 'Total=${:0,.2f}',
+    do_transaction_list_window(elem_array, content_array, total, 'Total='+TOTAL_FORMAT,
                                False, True, get_check_data_and_content_array, query)
 
 
@@ -1103,7 +1105,7 @@ def handle_transaction_search():
         return
 
     # Display the results and manage the window
-    do_transaction_list_window(elem_array, content_array, total, 'Total=${:0,.2f}',
+    do_transaction_list_window(elem_array, content_array, total, 'Total='+TOTAL_FORMAT,
                                False, True, get_data_array_content_array, list_query, total_query)
 
 
