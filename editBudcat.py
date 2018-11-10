@@ -752,6 +752,7 @@ def get_check_data_and_content_array(query):
 
     elem_array = []
     content_array = []
+    total = 0.0
     for row in cur:
         bud_array = list()
         transaction_id = row[g.tID].split('-')
@@ -780,6 +781,7 @@ def get_check_data_and_content_array(query):
                 row[g.tCommentQ],    # transaction comment, if any from query
                 row[g.tClearDateQ]]  # check clear date from query
         elem_array.append(elem)
+        total = total + (float(row[g.tAmount]) if row[g.tAmount] else 0.0)
 
         # multi-budget tdate tckn tpayee tamt cleardate bud_cat comments
         if len(bud_array) > 1:
@@ -808,7 +810,7 @@ def get_check_data_and_content_array(query):
                 row[g.tCommentQ])
         content_array.append(content_row)
 
-    return elem_array, content_array, None
+    return elem_array, content_array, total
 
 
 def get_check_data_array_as_main(list_query, total_query):
