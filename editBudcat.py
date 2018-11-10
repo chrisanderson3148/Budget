@@ -229,13 +229,15 @@ def get_search_parameters():
     return table, field, compare, value
 
 
-def do_transaction_list_window(data_array, content_array, total, my_title, add_edit, last_page, q_func, *args):
+def do_transaction_list_window(
+        data_array, content_array, total, my_title, add_edit, last_page, q_func, *args):
     """Handle the transaction list window: scrolling, paging, selecting, updating.
 
     :param list data_array: the window contents as list of data values
     :param list content_array: the window contents as list of strings
     :param float total: The total of the items in the list
-    :param str my_title: the window title. Must have TOTAL_FORMAT (or at least '{}') somewhere in it for the total value
+    :param str my_title: the window title. Must have TOTAL_FORMAT (or at least '{}') somewhere in it for
+     the total value
     :param bool add_edit: if True, add the transaction to the DATABASE; if not, edit either as a main
     transaction or checks transaction
     :param bool last_page: passed to drawContents
@@ -473,8 +475,8 @@ def get_data_array_content_array(list_query, total_query):
 
     'elem_array' is a list of transactions retrieved directly from the database list_query
     Each transaction is
-    tran_date, tran_ID, tran_desc, tran_checknum, tran_type, tran_amount, [array of 3-element budget lists], comment
-        0          1        2            3            4            5                      6                     7
+    tran_date, tran_ID, tran_desc, tran_checknum, tran_type, tran_amount, [array budget lists], comment
+        0          1        2            3            4            5               6               7
 
     'content_array' is a list of formatted strings of each row retrieved from the DATABASE list_query
        (corresponds 1-to-1 with elem_array)
@@ -490,7 +492,7 @@ def get_data_array_content_array(list_query, total_query):
     :param str list_query: mysql query string to return the list of transactions
     :param str total_query: mysql query string to return the total of transaction amounts in the list
     of transactions from the first query
-    :rtype: tuple|None
+    :rtype: tuple
     """
 
     # Do the list query
@@ -511,7 +513,7 @@ def get_data_array_content_array(list_query, total_query):
             (dummy, value, dummy) = sys.exc_info()
             WindowUtils.popup_message_ok(['transaction ID type (' + str(type(row[g.tID])) + '): '
                                           + value.message, list_query])
-            return
+            return None, None, None
 
         # Handle multi-budget items
         if len(transaction_id) > 1 and transaction_id[-1].isdigit():
@@ -732,7 +734,7 @@ def get_data_array_content_array_both(main_list_query, main_total_query, checks_
 
 
 def get_check_data_and_content_array(query):
-    """Returns elem_array, content_array, None
+    """Returns elem_array, content_array, total
 
     'elem_array' is a list of 10 element arrays retrieved directly from the DATABASE query
     'elem_array' is a list of transactions retrieved directly from the DATABASE query
@@ -886,8 +888,8 @@ def handle_edit_budget_by_budcat_both(my_bud_cat, the_year='all'):
                                      '" is not in the DATABASE for year "' + the_year + '"')
         return
 
-    do_transaction_list_window(elem_array, content_array, total, 'Budcat=' + my_bud_cat + ',Year=' + the_year
-                               + ' Total='+TOTAL_FORMAT,
+    do_transaction_list_window(elem_array, content_array, total,
+                               'Budcat=' + my_bud_cat + ',Year=' + the_year + ' Total='+TOTAL_FORMAT,
                                False, False, get_data_array_content_array_both, list_query,
                                total_query, check_list_query, check_total_query)
 
