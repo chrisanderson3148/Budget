@@ -815,59 +815,6 @@ def get_check_data_and_content_array(query):
     return elem_array, content_array, total
 
 
-def get_check_data_array_as_main(list_query, total_query):
-    """Return check data array with main field ordering.
-    
-    Should only be called in combination with doCheck_asmain_BudcatQuery() as the fields order is
-    different
-
-    :param str list_query: mysql query string to return list of checks transactions
-    :param str total_query: mysql query string to return total of checks transactions
-    :rtype: tuple
-    """
-    cur = bud_db.execute_query(list_query)
-    num_rows = cur.rowcount
-    if num_rows == 0:
-        return None, None, None
-
-    elem_array = []
-    for row in cur:
-        bud_array = list()
-        transaction_id = row[g.tID].split('-')
-
-        # is multi-budget. Fill the array of budget items with multiple elements
-        if len(transaction_id) > 1 and transaction_id[-1].isdigit():
-            idx = row[g.tID].rfind('-')
-            tnum_pre = row[g.tID][:idx]
-            cur2 = bud_db.execute_query_2('select bud_cat,bud_amt,bud_date from checks where tnum like "'
-                                          + tnum_pre + '-%" order by bud_date;')
-            for brow in cur2:
-                bud_array.append([brow[0], brow[1], brow[2]])
-
-        # is single-budget. Put only one row in the array of budget items
-        else:
-            bud_array.append([row[6], row[7], row[8]])
-
-        elem = [row[g.tDate],        # transaction date
-                row[g.tID],          # transaction ID
-                row[g.tPayee],       # transaction payee
-                row[g.tCkn],         # transaction check number
-                'b',                 # transaction type
-                row[g.tAmount],      # transaction amount
-                bud_array,           # transaction budget list of lists
-                row[g.tCommentQ],    # transaction comment, if any from query
-                row[g.tClearDateQ]]  # check clear date from query
-        elem_array.append(elem)
-
-    # Get the total of all entries using the total_query
-    total = 0.0
-    cur = bud_db.execute_query(total_query)
-    for row in cur:
-        total = row[0]
-
-    return elem_array, total
-
-
 def handle_edit_budget_by_budcat_both(my_bud_cat, the_year='all'):
     """Handles the editing of budget transactions by budget category for both main and checks.
 
