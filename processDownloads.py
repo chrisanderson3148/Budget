@@ -240,7 +240,7 @@ def insert_dict_into_main_db(download_dict, keys_set):
             CURSOR1.execute(check_query)
         except MySQLdb.Error:
             (my_exception_type, my_value, my_tb) = sys.exc_info()
-            print('insert_dict_into_main_db(): Exception executing query: '+my_query)
+            print('insert_dict_into_main_db(): Exception executing query: {}'.format(check_query))
             global_exception_printer(my_exception_type, my_value, my_tb)
             sys.exit(1)
 
@@ -248,18 +248,23 @@ def insert_dict_into_main_db(download_dict, keys_set):
         # One match - insert or ignore new record, or replace existing record with it.
         #
         if CURSOR1.rowcount == 1:
-            print('Possible duplicate record with different transaction ID (existing record VS candidate record):')
+            print('Possible duplicate record with different transaction ID (existing record VS '
+                  'candidate record):')
             existing_record_key = ''
             for row in CURSOR1:
                 existing_record_key = row[0]
-                print('old "{}" "{}" "{}" "{}" "{}" VS new "{}" "{}" "{}" "{}" "{}"'.format(row[0],row[1],row[2],row[3],row[4],new_key,val[0],val[2],(val[3] if val[3] else "0"),val[5]))
-            response = input("What to do with this record: [insert|ignore|replace (existing)]? ")
+                print('old "{}" "{}" "{}" "{}" "{}" VS new "{}" "{}" "{}" "{}" "{}"'
+                      .format(row[0], row[1], row[2], row[3], row[4], new_key, val[0], val[2],
+                              (val[3] if val[3] else "0"), val[5]))
+            response = raw_input("What to do with this record: [insert|ignore|replace (existing)]? ")
+            print('response="{}"'.format(response))
             if response.lower().startswith('ignore'):
                 continue  # do NOT insert this record!!
             if response.lower().startswith('replace'):  # delete existing record first
                 delete_query = 'DELETE FROM main where tran_id = "{}";'.format(existing_record_key)
                 try:
-                    CURSOR2.execute(delete_query)  # delete existing record from database (first part of replacing with new record)
+                    # delete existing record from database (first part of replacing with new record)
+                    CURSOR2.execute(delete_query)
                 except MySQLdb.Error:
                     (my_exception_type, my_value, my_tb) = sys.exc_info()
                     print('insert_dict_into_main_db(): Exception executing query: '+delete_query)
@@ -271,11 +276,15 @@ def insert_dict_into_main_db(download_dict, keys_set):
         # More than one match - insert or ignore new record, no replace
         #
         elif CURSOR1.rowcount > 1:
-            print('Possible duplicate records with different transaction IDs (existing record VS candidate records):')
+            print('Possible duplicate records with different transaction IDs (existing record VS '
+                  'candidate records):')
             for row in CURSOR1:
-                print('Existing record: "{}" "{}" "{}" "{}" "{}"\nNew record:      "{}" "{}" "{}" "{}" "{}"'.format(row[0],row[1],row[2],row[3],row[4],new_key,val[0],val[2],(val[3] if val[3] else "0"),val[5]))
-            response = input("Insert or ignore new record [insert|ignore]? ")
-            if response.lower.startswith('ignore'):
+                print('Existing record: "{}" "{}" "{}" "{}" "{}"\nNew record:      "{}" "{}" "{}" "{}" '
+                      '"{}"'.format(
+                                    row[0], row[1], row[2], row[3], row[4], new_key, val[0], val[2],
+                                    (val[3] if val[3] else "0"), val[5]))
+            response = raw_input("Insert or ignore new record [insert|ignore]? ")
+            if response.lower().startswith('ignore'):
                 continue  # do NOT insert the record
             # otherwise keep going and insert it
 
