@@ -8,13 +8,13 @@ import glob
 import json
 from os import path
 from warnings import filterwarnings
-import collections
 import pprint
 import hashlib
-import MySQLdb as Database
+import MySQLdb
+import transferUtils
 from transferPayee import TransferPayee
 
-filterwarnings('ignore', category=Database.Warning)
+filterwarnings('ignore', category=MySQLdb.Warning)
 
 # Formats of output monthly files by source for one-time transfer to DATABASE.
 #  Credit Union -- header line and 11 double-quoted, comma-separated fields
@@ -44,6 +44,7 @@ filterwarnings('ignore', category=Database.Warning)
 #   date/category/amount is made to any of them, the old set is deleted, and a new set with the changed
 #   data is created to replace it.
 
+
 class TransferMonthlyFilesToDB(object):
     """Class to transfer monthly files to DATABASE
 
@@ -71,40 +72,10 @@ class TransferMonthlyFilesToDB(object):
         """
         return self.total_files, self.files_processed, self.inserted, self.unexpected_header
 
-    def clear_commas_in_quotes(self, replace_char, line):
-        """Replaces all commas ',' inside double-quotes with the given replacement character.
-        Returns the same line with all the bad commas replaced.
-
-        :param str replace_char: the character to replace the bad comma
-        :param str line: the line containing the potentially bad comma(s)
-        :rtype: str
-        """
-        start = 0
-        while line.find('"', start) != -1:
-            idx1 = line.find('"', start)  # index of opening quote
-            if idx1 == -1:
-                break
-            idx2 = line.find('"', idx1+1)  # index of closing quote
-            if idx2 == -1:  # Didn't find a closing quote? Barf
-                print('Improperly formed line: opening " but no closing " in line\n{}'.format(line))
-                sys.exit(1)
-
-            # replace all found commas with replace_char within the opening and closing quotes
-            while True:
-                comma_index = line.find(',', idx1, idx2)
-                if comma_index >= 0:  # replace found comma with replacement char
-                    line = line[:comma_index] + replace_char + line[comma_index + 1:]
-                else:  # found all commas (or there were none)
-                    break
-
-            # move after closing quote to begin another search for an opening quote
-            start = idx2 + 1
-        # now line is clear of confusing commas
-        line = line.translate(None, '"')  # remove all double-quotes
-        return line
-
     def pretty(self, the_dict, indent=0):
         """Recursively prints the elements of the given dictionary
+
+        NEVER CALLED
 
         :param dict the_dict: the dictionary to print
         :param int indent: the number of spaces to indent each new level (default = 0)
@@ -205,118 +176,6 @@ class TransferMonthlyFilesToDB(object):
         print('Payee "'+payee+'" no match found')
         return 'UNKNOWN'
 
-    def process_budget_fields(self, extra_field, transaction_amount, default_category, transaction_date,
-                              transaction_reference):
-        """Process the budget fields in the payee file (???)
-        Returns a dictionary of the payee file
-
-        Each field in extra_field can be like: 'BUDCAT[=BUDAMT[=BUDDATE]]', or 'DATE=<BUDDATE>'
-
-        :param str extra_field:
-        :param str transaction_amount:
-        :param str default_category:
-        :param str transaction_date:
-        :param str transaction_reference:
-        :rtype: dict
-        """
-        budget_category = ''
-        budget_amount = ''
-        budget_date = ''
-        idx = 0
-        budget_dict = {}
-        for field in extra_field:
-            subfield = field.split('=')
-            if subfield[0] == 'DATE':
-                if budget_date:
-                    budget_dict[idx] = [budget_category, budget_amount, budget_date]
-                    budget_category = ''
-                    budget_amount = ''
-                    budget_date = ''
-                    idx += 1
-                else:
-                    budget_date = subfield[1]
-            else:
-                if budget_category:
-                    budget_dict[idx] = [budget_category, budget_amount, budget_date]
-                    budget_category = ''
-                    budget_amount = ''
-                    budget_date = ''
-                    idx += 1
-                if len(subfield) == 1:
-                    budget_category = subfield[0]
-                elif len(subfield) == 2:
-                    budget_category = subfield[0]
-                    budget_amount = subfield[1]
-                else:
-                    budget_category = subfield[0]
-                    budget_amount = subfield[1]
-                    budget_date = subfield[2]
-
-        # assign the last or only row
-        budget_dict[idx] = [budget_category, budget_amount, budget_date]
-
-        # finish processing missing budget info with (calculated) defaults
-        tran_amt_isneg = float(transaction_amount) < 0.0
-
-        # remainder is a double and is always POSITIVE
-        remainder = abs(float(transaction_amount))
-
-        for key, val in collections.OrderedDict(sorted(budget_dict.items())).iteritems():
-            if not val[0]:
-                budget_dict[key][0] = default_category  # default
-
-            # The assumption is that all budget amounts are positive, but use
-            # the same sign as the transaction amount
-            if not val[1]:  # no budget amount?
-                # assign any remainder to it
-                budget_dict[key][1] = '%.2f' % (-1.0*remainder if tran_amt_isneg else remainder)
-                remainder = 0.0
-            else:  # otherwise decrement remainder by the budget amount
-                # keep track of the remainder
-                remainder = remainder - float(val[1])
-                if tran_amt_isneg and not budget_dict[key][1].startswith('-'):
-                    budget_dict[key][1] = '-'+budget_dict[key][1]
-                if remainder < 0.0:  # something didn't add up
-                    remainder = 0.0
-                    print('Calculating amount for {} and got a remainder less than zero (transaction_'
-                          'reference={}, extra fields={})'.format(val, transaction_reference, ','
-                                                                  .join(extra_field)))
-            # end if
-            if not val[2]: # no budget date?
-                budget_dict[key][2] = transaction_date # assign transaction date
-            # end if
-        # end for
-        return budget_dict
-
-    def insert_entry_into_dict(self, budget_dict, transaction_reference, transaction_date,
-                               transaction_payee, transaction_check_num, transaction_type,
-                               transaction_amount, transaction_comment, output_dict):
-        """Insert the transaction (possibly multi-budget) in to the output_dict dictionary
-
-        :param dict budget_dict:
-        :param str transaction_reference:
-        :param str transaction_date:
-        :param str transaction_payee:
-        :param str transaction_check_num:
-        :param str transaction_type:
-        :param str transaction_amount:
-        :param str transaction_comment:
-        :param dict output_dict:
-        :return:
-        """
-        if len(budget_dict) == 1:  # there is only one line for this transaction
-            bud = budget_dict[0]
-            output_dict[transaction_reference] = [transaction_date, transaction_reference,
-                                                  transaction_payee, transaction_check_num,
-                                                  transaction_type, transaction_amount,
-                                                  bud[0], bud[1], bud[2], transaction_comment]
-        else:
-            for key, bud in collections.OrderedDict(sorted(budget_dict.items())).iteritems():
-                my_key = transaction_reference + '-' + str(key)
-                output_dict[my_key] = [transaction_date, transaction_reference, transaction_payee,
-                                       transaction_check_num, transaction_type, transaction_amount,
-                                       bud[0], bud[1], bud[2], transaction_comment]
-
     def read_monthly_cu_file(self, file_name):
         """Read in the downloaded Credit Union file line-by-line, and insert transactions in a dictionary
         Return the dictionary with the downloaded transactions.
@@ -416,7 +275,7 @@ class TransferMonthlyFilesToDB(object):
                 #
                 else:
                     # Clear any commas inside quoted fields
-                    line = self.clear_commas_in_quotes(' ', line)
+                    line = transferUtils.clear_commas_in_quotes(' ', line)
 
                     # Look for in-line comments and keep them
                     comment = ''
@@ -478,14 +337,13 @@ class TransferMonthlyFilesToDB(object):
                         bud_amt = fields[index_transaction_amount]
 
                         # process the extra budget fields which may mean extra DATABASE records
-                        budget_category_dict = self.process_budget_fields(fields[expected_fields:],
-                                                                          bud_amt, bud_cat, trans_date,
-                                                                          tid)
+                        budget_category_dict = transferUtils.process_budget_fields(
+                            fields[expected_fields:], bud_amt, bud_cat, trans_date, tid)
                         
 
                     # end if
 
-                    self.insert_entry_into_dict(
+                    transferUtils.insert_entry_into_dict(
                         budget_category_dict,
                         tid,
                         trans_date,
@@ -522,7 +380,7 @@ class TransferMonthlyFilesToDB(object):
                     continue  # ignore blank lines
 
                 # Clear any commas inside quoted fields
-                line = self.clear_commas_in_quotes(' ', line)
+                line = transferUtils.clear_commas_in_quotes(' ', line)
 
                 # Look for in-line comments and keep them
                 comment = ''
@@ -563,12 +421,14 @@ class TransferMonthlyFilesToDB(object):
 
                 # process the extra budget fields which may mean extra DATABASE
                 # records
-                budget_category_dict = self.process_budget_fields(field[expected_fields:], trans_amt,
-                                                                  bud_cat, trans_date, trans_ref)
+                budget_category_dict = transferUtils.process_budget_fields(field[expected_fields:],
+                                                                           trans_amt, bud_cat,
+                                                                           trans_date, trans_ref)
 
                 # insert the record(s) into the dictionary
-                self.insert_entry_into_dict(budget_category_dict, trans_ref, trans_date, trans_payee,
-                                            '', 'x', trans_amt, comment, output_dict)
+                transferUtils.insert_entry_into_dict(budget_category_dict, trans_ref, trans_date,
+                                                     trans_payee, '', 'x', trans_amt, comment,
+                                                     output_dict)
                 line_num += 1
             # end for
         print('read_monthly_amex_file processed {} records from {}\n'.format(line_num, file_name))
@@ -646,7 +506,7 @@ class TransferMonthlyFilesToDB(object):
                     continue
 
                 # Clear any commas inside quoted fields
-                line = self.clear_commas_in_quotes('', line)
+                line = transferUtils.clear_commas_in_quotes('', line)
 
                 # Look for in-line comments and keep them
                 comment = ''
@@ -739,12 +599,14 @@ class TransferMonthlyFilesToDB(object):
                 print(hash_key+' => '+trans_ref)
 
                 # process the extra budget fields which may mean extra DATABASE records
-                budget_category_dict = self.process_budget_fields(fields[expected_fields:], trans_amt,
-                                                                  bud_cat, trans_date, trans_ref)
+                budget_category_dict = transferUtils.process_budget_fields(fields[expected_fields:],
+                                                                           trans_amt, bud_cat,
+                                                                           trans_date, trans_ref)
 
                 # insert the record(s) into the dictionary
-                self.insert_entry_into_dict(budget_category_dict, trans_ref, trans_date, trans_payee,
-                                            '', 'C', trans_amt, comment, output_dict)
+                transferUtils.insert_entry_into_dict(budget_category_dict, trans_ref, trans_date,
+                                                     trans_payee, '', 'C', trans_amt, comment,
+                                                     output_dict)
                 line_num += 1
                 line = file_ptr.readline()
             # end while
@@ -811,7 +673,7 @@ class TransferMonthlyFilesToDB(object):
                     continue  # ignore blank lines
 
                 # Clear any commas inside quoted fields
-                line = self.clear_commas_in_quotes(' ', line)
+                line = transferUtils.clear_commas_in_quotes(' ', line)
 
                 # Look for in-line comments and keep them
                 comment = ''
@@ -894,13 +756,14 @@ class TransferMonthlyFilesToDB(object):
                 bud_cat = self.lookup_payee_category(trans_payee, trans_date)
 
                 # process the extra budget fields which may mean extra DATABASE records
-                budget_category_dict = self.process_budget_fields(field[expected_fields:],
-                                                                  trans_amt_string, bud_cat, trans_date,
-                                                                  trans_ref)
+                budget_category_dict = transferUtils.process_budget_fields(field[expected_fields:],
+                                                                           trans_amt_string, bud_cat,
+                                                                           trans_date, trans_ref)
 
                 # insert the record(s) into the dictionary
-                self.insert_entry_into_dict(budget_category_dict, trans_ref, trans_date, trans_payee,
-                                            '', 'd', trans_amt_string, comment, output_dict)
+                transferUtils.insert_entry_into_dict(budget_category_dict, trans_ref, trans_date,
+                                                     trans_payee, '', 'd', trans_amt_string, comment,
+                                                     output_dict)
                 line_num += 1
             # end for
         print('read_monthly_discover_file processed {} records from {}\n'.format(line_num, file_name))
@@ -932,7 +795,7 @@ class TransferMonthlyFilesToDB(object):
                     continue  # ignore blank lines
 
                 # Clear any commas inside quoted fields
-                line = self.clear_commas_in_quotes(' ', line)
+                line = transferUtils.clear_commas_in_quotes(' ', line)
 
                 # Look for in-line comments and keep them
                 comment = ''
@@ -975,12 +838,14 @@ class TransferMonthlyFilesToDB(object):
 
                 # process the extra budget fields which may mean extra DATABASE
                 # records
-                budget_category_dict = self.process_budget_fields(field[expected_fields:], trans_amt,
-                                                                  bud_cat, trans_date, trans_ref)
+                budget_category_dict = transferUtils.process_budget_fields(field[expected_fields:],
+                                                                           trans_amt, bud_cat,
+                                                                           trans_date, trans_ref)
 
                 # insert the record(s) into the dictionary
-                self.insert_entry_into_dict(budget_category_dict, trans_ref, trans_date, trans_payee,
-                                            '', 'c', trans_amt, comment, output_dict)
+                transferUtils.insert_entry_into_dict(budget_category_dict, trans_ref, trans_date,
+                                                     trans_payee, '', 'c', trans_amt, comment,
+                                                     output_dict)
                 line_num += 1
             # end for
         print('read_monthly_chase_file processed {} records from {}\n'.format(line_num, file_name))
@@ -1057,8 +922,9 @@ class TransferMonthlyFilesToDB(object):
                         # insert the record(s) into the dictionary
                         budget_category_dict = dict()
                         budget_category_dict[0] = [bud_cat, bud_amt, bud_date]
-                        self.insert_entry_into_dict(budget_category_dict, trans_ref, trans_date,
-                                                    trans_payee, '', 'y', trans_amt, '', output_dict)
+                        transferUtils.insert_entry_into_dict(budget_category_dict, trans_ref, trans_date,
+                                                             trans_payee, '', 'y', trans_amt, '',
+                                                             output_dict)
                         line_num += 1
                     # end for each transaction
                 # end if <STMTTRN> found in line
@@ -1088,7 +954,7 @@ class TransferMonthlyFilesToDB(object):
                     continue  # ignore blank lines
 
                 # Clear any commas inside quoted fields
-                line = self.clear_commas_in_quotes(' ', line)
+                line = transferUtils.clear_commas_in_quotes(' ', line)
 
                 # Look for in-line comments and keep them
                 comment = ''
@@ -1129,12 +995,14 @@ class TransferMonthlyFilesToDB(object):
                 bud_cat = self.lookup_payee_category(trans_payee, trans_date)
 
                 # process the extra budget fields which may mean extra DATABASE records
-                budget_category_dict = self.process_budget_fields(field[expected_fields:], trans_amt,
-                                                                  bud_cat, trans_date, trans_ref)
+                budget_category_dict = transferUtils.process_budget_fields(field[expected_fields:],
+                                                                           trans_amt, bud_cat,
+                                                                           trans_date, trans_ref)
 
                 # insert the record(s) into the dictionary
-                self.insert_entry_into_dict(budget_category_dict, trans_ref, trans_date, trans_payee,
-                                            '', 'y', trans_amt, comment, output_dict)
+                transferUtils.insert_entry_into_dict(budget_category_dict, trans_ref, trans_date,
+                                                     trans_payee, '', 'y', trans_amt, comment,
+                                                     output_dict)
                 line_num += 1
             # end for
         print('read_monthly_barclay_file processed {} records from {}\n'.format(line_num, file_name))
