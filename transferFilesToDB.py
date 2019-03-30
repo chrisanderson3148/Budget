@@ -591,7 +591,7 @@ class TransferMonthlyFilesToDB(object):
         "Status",               "Date",         "Description",                                              "Debit",       "Credit",   "Member Name"
         "Cleared",           "06/02/2016",       "E 470 EXPRESS TOLLS                     ",               "32.55",           "",      "CHRIS ANDERSON"
 
-        On or after 06/03/2016 ('new_format'):
+        On or after 06/03/2016 ('format_v2'):
             0                     1                   2                                                       3               4             5
         "Status",               "Date",         "Description",                                              "Debit",       "Credit",   "Member Name"
         "Cleared",           "06/03/2016",       "AMAZON.COM                           XXXX-XXXX-XXXX-3003","8.65",           "",      "KATHY ANDERSON"
@@ -600,10 +600,18 @@ class TransferMonthlyFilesToDB(object):
         "Status",               "Date",         "Description",                                              "Debit",       "Credit"
         "Cleared",           "11/30/2016",      "KING SOOPERS #0729 FUEL  ERIE         CO",                    "",          "22.88"
 
+        On or after 01/10/2019:
+            0                1                    2                                                       3            4          5
+        Status,            Date,             Description,                                               Debit,       Credit,  Member Name
+        Cleared,           06/03/2016,       "AMAZON.COM                           XXXX-XXXX-XXXX-3003",8.65,           ,     KATHY ANDERSON
+
 
         The only difference between the two formats is very small: The earlier format does not have the
         crypto-card number at the end of the description fields.
         Both Debit and Credit values are positive.
+        
+        The 3rd format is the same as the previous format, except all double-quotes are removed except
+        around the Description field. There are also no
 
         TODO: Talk to Citi about adding transaction reference fields to download file
         DONE: Talked to Citi about adding transaction ID fields. They have passed the request on to their
@@ -613,17 +621,21 @@ class TransferMonthlyFilesToDB(object):
         line_num = 0
         expected_fields = 6
         output_dict = {}
+        format_v2 = False
+        format_v3 = False
+
         with open(file_name) as file_ptr:
             line = file_ptr.readline()
             while line:
                 # Check for normal end-of-line characters. If not, read the next line and join together.
-                if ord(line[-2]) != 13 and ord(line[-1]) == 10:
+                # if ord(line[-2]) != 13 and ord(line[-1]) == 10:
                     # print('Jacked line: "{}" {}-{}'.format(line, ord(line[-2]), ord(line[-1])))
-                    line2 = file_ptr.readline()  # read in the next line
-                    line = line[:-1] + line2  # strip off last char of first line and join 2nd line to it.
-                    print('\nJoined: {}'.format(line.strip()))
-                else:
-                    print('\nNormal: {}'.format(line.strip()))
+                #     line2 = file_ptr.readline()  # read in the next line
+                #     line = line[:-1] + line2  # strip off last char of first line and join 2nd line to it.
+                #     print('\nJoined: {}'.format(line.strip()))
+                # else:
+                #     print('\nNormal: {}'.format(line.strip()))
+                print('\nNormal: {}'.format(line.strip()))
 
                 # strip all leading and trailing spaces and new-lines
                 line = line.rstrip().lstrip()
@@ -643,17 +655,26 @@ class TransferMonthlyFilesToDB(object):
                     comment = line[idx+2:]
                     line = line[:idx]
 
+                # skip if it's the header line
+                test_fields = line.split(',')
+                if 'status' in test_fields[0].lower():
+                    # test if each field is surrounded by double-quotes. If so, format_v2; else format_v3
+                    if test_fields[0][0] == '"' and test_fields[0][-1] == '"':
+                        format_v2 = True
+                    else:
+                        format_v3 = True
+                    line = file_ptr.readline()
+                    continue
+                elif not format_v2 and not format_v3:
+                    print('No header line found in {}'.format(file_name))
+                    sys.exit(1)
+
                 # remove all double-quote characters (by this point it is
                 # guaranteed that there are no extraneous commas)
                 line = line.translate(None, '"')
 
                 # split the line into fields (comma-separated)
                 fields = line.split(',')
-
-                # skip if it's the header line
-                if 'status' in fields[0].lower():
-                    line = file_ptr.readline()
-                    continue
 
                 # Skip if it's a pending transaction. Sometimes transaction details change when they
                 # transition from Pending to Cleared and a slightly different form of the exact same
@@ -673,28 +694,35 @@ class TransferMonthlyFilesToDB(object):
 
                 # parse the second fields -- transaction date
                 trans_date = fields[1]  # mm/dd/yyyy
-                trans_date_obj = datetime.datetime.strptime(trans_date, "%m/%d/%Y").date()
-                new_format = False
 
-                # all dates > 6/2/2016 are new_format
-                if trans_date_obj > datetime.datetime.strptime('6/2/2016', '%m/%d/%Y').date():
-                    new_format = True
+                # don't parse or insert format_v3 Citi records transacted before 1/1/2019
+                # This prevents double records since the payee field has changed and therefore the
+                # calculated trans_ref field will be different.
+                datefields = [int(n) for n in trans_date.split('/')]
+                trans_date_object = datetime.date(datefields[2], datefields[0], datefields[1])
+                if format_v3 and trans_date_object < datetime.date(2019, 1, 1):
+                    print('Citi card records transacted prior to 1 Jan 2019 are not processed')
+                    line = file_ptr.readline()
+                    continue
 
                 # transaction amount (fields 3 and 4 are mutually exclusive:
                 # one or the other has a value, not both)
                 # BUT THEY BOTH MAY BE EMPTY!
-                if fields[3]:
+                if fields[3]:  # debit value (no sign)
                     trans_amt = '-'+fields[3]  # Debits need to be negative value
-                elif fields[4]:
-                    trans_amt = fields[4]
+                elif fields[4]:  # credit value (has a negative sign)
+                    trans_amt = fields[4].translate(None, '-')  # strip off negative sign
                 else:
                     trans_amt = '0.00'
 
                 # transaction payee
+                # format_v2: strip off optional credit card number at end of fields (cut len to 37)
+                # format_v3: reconstruct format_v2 payee format:
+                #            25 char right-padded,13 char right-padded,2 char
                 trans_payee = fields[2]
 
-                # strip-off optional credit card number at end of fields
-                if new_format:
+                # strip-off optional credit card number at end of fields for format_v2 only
+                if format_v2:
                     # strip off crypto-card-number
                     trans_payee = trans_payee[0:37]
 
