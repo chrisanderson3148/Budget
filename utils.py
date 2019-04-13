@@ -17,3 +17,6 @@ class Logger(object):
         if self.print_to_console:
             print(message)
         self.log_file.write(message + '\n')
+
+    def __del__(self):
+        self.log_file.close()

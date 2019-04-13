@@ -8,7 +8,6 @@ import MySQLdb
 import transferCheckUtils
 from utils import Logger
 from transferFilesToDB import TransferMonthlyFilesToDB
-from transferChecks import TransferChecks
 
 
 class ProcessDownloads(object):
@@ -81,37 +80,37 @@ class ProcessDownloads(object):
         # handle credit union transactions including checks
         if os.path.isfile(self.CK_FILE):  # process checks first
             self.logger.log('\nprocessing credit union checks download file...')
-            CK_dict = transferCheckUtils.read_checks_file(self.CK_FILE)
-            self.insert_dict_into_checks_db(CK_dict, ck_keys)
+            t_dict = transferCheckUtils.read_checks_file(self.CK_FILE)
+            self.insert_dict_into_checks_db(t_dict, ck_keys)
 
         if os.path.isfile(self.CU_FILE):  # process cleared transactions second
             self.logger.log('\nprocessing credit union download file...')
-            CU_dict = transfer.read_monthly_cu_file(self.CU_FILE)
-            self.insert_dict_into_main_db(CU_dict, db_keys)
+            t_dict = transfer.read_monthly_cu_file(self.CU_FILE)
+            self.insert_dict_into_main_db(t_dict, db_keys)
 
         self.clear_cu_checks()  # mark cleared checks
 
         # if os.path.isfile(AX_FILE):
-        #     my_log.log('\nprocessing American Express download file...')
-        #     AE_dict = TF.read_monthly_amex_file(AX_FILE)
-        #     insert_dict_into_main_db(AE_dict, db_keys)
+        #     self.my_log.log('\nprocessing American Express download file...')
+        #     t_dict = TF.read_monthly_amex_file(AX_FILE)
+        #     self.insert_dict_into_main_db(t_dict, db_keys)
 
         if os.path.isfile(self.CI_FILE):
             self.logger.log('\nprocessing CitiCard download file...')
-            CI_dict = transfer.read_monthly_citi_file(self.CI_FILE)
-            self.insert_dict_into_main_db(CI_dict, db_keys)
+            t_dict = transfer.read_monthly_citi_file(self.CI_FILE)
+            self.insert_dict_into_main_db(t_dict, db_keys)
 
         if os.path.isfile(self.DI_FILE):
             self.logger.log('\nprocessing Discover download file...')
 
             # process a download file, not a monthly file
-            DC_dict = transfer.read_monthly_discover_file(self.DI_FILE, True)
-            self.insert_dict_into_main_db(DC_dict, db_keys)
+            t_dict = transfer.read_monthly_discover_file(self.DI_FILE, True)
+            self.insert_dict_into_main_db(t_dict, db_keys)
 
         # if os.path.isfile(self.BY_FILE):
-        #     my_log.log('\nprocessing Barclay download file...')
-        #     BY_dict = TF.read_download_barclay_file(self.BY_FILE)
-        #     insert_dict_into_main_db(BY_dict, db_keys)
+        #     self.my_log.log('\nprocessing Barclay download file...')
+        #     t_dict = TF.read_download_barclay_file(self.BY_FILE)
+        #     self.insert_dict_into_main_db(t_dict, db_keys)
 
         self.logger.log('\n' + ('Inserted ' if self.DO_INSERT else 'Did not insert ') +
                         str(self.records_inserted) + ' records into DB')
