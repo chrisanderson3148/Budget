@@ -8,4 +8,4 @@ new
 __init__.py
 pylintrc
 .idea/
-process_downloads_log
+process_download_log
