@@ -3,7 +3,9 @@ catfiles
 downloads
 log
 payee
+tests
 new
 __init__.py
 pylintrc
 .idea/
+process_downloads_log

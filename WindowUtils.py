@@ -2,9 +2,7 @@
 import time
 import curses
 import WindowList
-from Window import PopupWindow
-from Window import MessageWindow
-from Window import ScreenWindow
+import Window
 
 
 def popup_message_auto(message):
@@ -12,7 +10,7 @@ def popup_message_auto(message):
 
     :param str message: the message to display in my content area
     """
-    _my_win = MessageWindow(5, curses.COLOR_BLACK, curses.COLOR_YELLOW)
+    _my_win = Window.MessageWindow(5, curses.COLOR_BLACK, curses.COLOR_YELLOW)
     _my_win.create(5, len(message)+5, title=' Message ')
     WindowList.add_window(_my_win.win)
     _my_win.win.bkgd(' ', curses.color_pair(5))
@@ -37,7 +35,7 @@ def popup_message_ok(message, title=' Message '):
     :param str|list message: the message to display
     :param str title: the title of the window (default is ' Message ')
     """
-    _my_win = MessageWindow(5, curses.COLOR_BLACK, curses.COLOR_YELLOW)
+    _my_win = Window.MessageWindow(5, curses.COLOR_BLACK, curses.COLOR_YELLOW)
 
     # Sometimes we get unicode strings from our source. Just in case we do, convert it to ASCII.
     if isinstance(message, unicode):
@@ -85,7 +83,7 @@ def popup_message_ok(message, title=' Message '):
     _my_win.win.refresh()
 
     while True:
-        i = ScreenWindow.screen.getch()
+        i = Window.ScreenWindow.screen.getch()
         if i == ord('\n'):
             break
 
@@ -105,7 +103,7 @@ def popup_get_multiple_choice(win_title, choices, default):
     :param str default: the default choice which is the one that is highlighted first
     :rtype: str
     """
-    _my_win = PopupWindow(5, curses.COLOR_BLACK, curses.COLOR_YELLOW)
+    _my_win = Window.PopupWindow(5, curses.COLOR_BLACK, curses.COLOR_YELLOW)
     _len_choices = 0
     for choice in choices:
         _len_choices += len(choice)
@@ -145,7 +143,7 @@ def popup_get_multiple_choice(win_title, choices, default):
         i += 1
 
     while True:
-        i = ScreenWindow.screen.getch()
+        i = Window.ScreenWindow.screen.getch()
         if i == ord('\t'):
             _idx = (_idx + 1) % len(_tab_arr)
         elif i == ord('\n'):
@@ -189,7 +187,7 @@ def popup_get_multiple_choice_vert(win_title, choices, default):
     :param str default: the default choice which is the one that is highlighted first
     :rtype: str
     """
-    _my_win = PopupWindow(5, curses.COLOR_BLACK, curses.COLOR_YELLOW)
+    _my_win = Window.PopupWindow(5, curses.COLOR_BLACK, curses.COLOR_YELLOW)
 
     _max_choice_width = 0
     for _choice in choices:
@@ -241,7 +239,7 @@ def popup_get_multiple_choice_vert(win_title, choices, default):
     # handle selection process
     previous_y = current_y
     while True:
-        command = ScreenWindow.screen.getch()
+        command = Window.ScreenWindow.screen.getch()
         if command == ord('\t') or command == ord('j'):  # move selector down
             if highlighted_choice + 1 < len(choices):
                 prev_highlighted_choice = highlighted_choice
@@ -303,7 +301,7 @@ def popup_get_text(win_title):
     :param str win_title: an instructive message describing what is wanted
     :rtype: str
     """
-    _my_win = PopupWindow(6, curses.COLOR_MAGENTA, curses.COLOR_YELLOW)
+    _my_win = Window.PopupWindow(6, curses.COLOR_MAGENTA, curses.COLOR_YELLOW)
     _my_wid = len(win_title) + 5
 
     _my_win.create(5, _my_wid, top=max(1, _my_win.s_height / 3 - 2),

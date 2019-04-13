@@ -282,6 +282,7 @@ class MessageWindow(MyWindow):
     :param int fg_color: foreground color
     :param int bg_color: background color
     """
+
     def __init__(self, color_pair, fg_color, bg_color):
         self.color_pair = color_pair
         self.fg_color = fg_color

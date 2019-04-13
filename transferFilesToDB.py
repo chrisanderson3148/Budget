@@ -12,6 +12,7 @@ import pprint
 import hashlib
 import MySQLdb
 import transferUtils
+import utils
 from transferPayee import TransferPayee
 
 filterwarnings('ignore', category=MySQLdb.Warning)
@@ -51,6 +52,8 @@ class TransferMonthlyFilesToDB(object):
     :param Any cursor: the DATABASE CURSOR object
     """
 
+    DEFAULT_BUDGET_CATEGORY = 'UNKNOWN'
+
     def __init__(self, cursor):
         self.cur = cursor
         # Initialize payee table
@@ -82,11 +85,11 @@ class TransferMonthlyFilesToDB(object):
         """
         for key, value in the_dict.iteritems():
             # if indent == 0: print '\n'
-            print('  ' * indent + str(key))
+            utils.logger('  ' * indent + str(key))
             if isinstance(value, dict):
                 self.pretty(value, indent+1)
             else:
-                print('  ' * (indent+1) + str(value))
+                utils.logger('  ' * (indent+1) + str(value))
 
     def lookup_credit_union_check_category(self, check_num, amount, transaction_date):
         """Return the payee and budget dictionary for the given check number
@@ -108,12 +111,12 @@ class TransferMonthlyFilesToDB(object):
                 else:
                     key = 0
                 payee = row[1]
-                budget_category = row[2] if row[2] else 'UNKNOWN'
+                budget_category = row[2] if row[2] else self.DEFAULT_BUDGET_CATEGORY
                 budget_amount = str(row[3]) if not row[3] is None and row[3] > 0.0 else amount
                 budget_date = row[4].strftime('%m/%d/%Y') if not row[4] is None else transaction_date
                 budget_dict[key] = [budget_category, budget_amount, budget_date]
         else:
-            print('No matching check ' + check_num + ' found in checks DATABASE')
+            utils.logger('No matching check ' + check_num + ' found in checks DATABASE')
             budget_dict[0] = ['UNKNOWN', amount, transaction_date]
         return payee, budget_dict
 
@@ -138,10 +141,10 @@ class TransferMonthlyFilesToDB(object):
         for key in self.payroll_ignore_transfer_dict:
             if key in payee:
                 category = self.payroll_ignore_transfer_dict[key]
-                print('Payee "{}" match "{}" with category "{}"'.format(payee, key, category))
+                utils.logger('Payee "{}" match "{}" with category "{}"'.format(payee, key, category))
                 return category
 
-        print('No payroll/ignore/transfer match found in "{}"'.format(payee))
+        utils.logger('No payroll/ignore/transfer match found in "{}"'.format(payee))
         if 'transfer' in payee.lower():
             return 'TRANSFER'
 
@@ -152,9 +155,8 @@ class TransferMonthlyFilesToDB(object):
             if match_object:
                 cats = self.payee_dict[key][1].split(';')
                 if len(cats) == 1:
-                    print('Payee "{}" match "{}" with category "{}"'.format(payee,
-                                                                            self.payee_dict[key][0],
-                                                                            cats[0]))
+                    utils.logger('Payee "{}" match "{}" with category "{}"'.format(
+                        payee, self.payee_dict[key][0], cats[0]))
                     return cats[0]
                 else:
                     i = 0
@@ -173,8 +175,8 @@ class TransferMonthlyFilesToDB(object):
 
         #
         # If all else fails, return the default
-        print('Payee "'+payee+'" no match found')
-        return 'UNKNOWN'
+        utils.logger('Payee "'+payee+'" no match found')
+        return self.DEFAULT_BUDGET_CATEGORY
 
     def read_monthly_cu_file(self, file_name):
         """Read in the downloaded Credit Union file line-by-line, and insert transactions in a dictionary
@@ -238,6 +240,11 @@ class TransferMonthlyFilesToDB(object):
         line_num = 0
         expected_fields = 11
         output_dict = {}
+        index_transaction_date = 1
+        index_transaction_id = 6
+        index_transaction_amount = 4
+        index_transaction_check_num = 5
+        index_payee = 7
         with open(file_name) as file_ptr:
             for line in file_ptr:
                 desc = ''
@@ -250,25 +257,20 @@ class TransferMonthlyFilesToDB(object):
                 #
                 if line_num == 0:
                     if line == first_line:
-                        index_transaction_date = 1
-                        index_transaction_id = 6
-                        index_transaction_amount = 4
-                        index_transaction_check_num = 5
-                        index_payee = 7
                         line_num += 1
                     else:
-                        print('###############################################')
-                        print('###############################################')
-                        print('###############################################')
-                        print
-                        print(fname+' has unexpected header.')
-                        print('expected/got\n{}\n{}'.format(firstline, line))
-                        print
-                        print('###############################################')
-                        print('###############################################')
-                        print('###############################################')
+                        utils.logger('###############################################')
+                        utils.logger('###############################################')
+                        utils.logger('###############################################')
+                        utils.logger('')
+                        utils.logger('{} has unexpected header.'.format(file_name))
+                        utils.logger('expected/got\n{}\n{}'.format(first_line, line))
+                        utils.logger('')
+                        utils.logger('###############################################')
+                        utils.logger('###############################################')
+                        utils.logger('###############################################')
                         
-                        self.unexpectedheader.append(path.basename(fname))
+                        self.unexpected_header.append(path.basename(file_name))
                         return dict()
                 #
                 # Process all other lines
@@ -277,24 +279,24 @@ class TransferMonthlyFilesToDB(object):
                     # Clear any commas inside quoted fields
                     line = transferUtils.clear_commas_in_quotes(' ', line)
 
-                    # Look for in-line comments and keep them
+                    # Look for in-line comments, strip them from the line, but keep them for later
                     comment = ''
                     idx = line.find('//')
                     if idx >= 0:
                         comment = line[idx:]
                         line = line[:idx]
 
-                    # remove all double-quote characters (by this point it is guarenteed that there are
+                    # remove all double-quote characters (by this point it is guaranteed that there are
                     # no extraneous commas)
                     line = line.translate(None, '"')
 
-                    # split the line into fields (comma-separated)
+                    # split the line into comma-separated fields
                     fields = line.split(',')
 
                     # verify there are no FEWER than the expected number of fields (can be greater)
                     if len(fields) < expected_fields:
-                        print('Missing fields in file {}. Expected at least {} but got {}. Line:\n{}'
-                              .format(file_name, expected_fields, len(fields), line))
+                        utils.logger('Missing fields in file {}. Expected at least {} but got {}. '
+                                     'Line:\n{}'.format(file_name, expected_fields, len(fields), line))
                         sys.exit(1)
 
                     if fields[expected_fields:]:
@@ -329,7 +331,6 @@ class TransferMonthlyFilesToDB(object):
                     # optional extra budget fields
                     else:
                         # Lookup the default budget category from the payee DATABASE
-
                         # defaults to 'UNKNOWN'
                         bud_cat = self.lookup_payee_category(transaction_payee, trans_date)
 
@@ -340,9 +341,6 @@ class TransferMonthlyFilesToDB(object):
                         budget_category_dict = transferUtils.process_budget_fields(
                             fields[expected_fields:], bud_amt, bud_cat, trans_date, tid)
                         
-
-                    # end if
-
                     transferUtils.insert_entry_into_dict(
                         budget_category_dict,
                         tid,
@@ -359,7 +357,7 @@ class TransferMonthlyFilesToDB(object):
             # end for each line
         # end with open
 
-        print('readMonthlyCUFile processed', line_num, 'records from ' + file_name + '\n')
+        utils.logger('readMonthlyCUFile processed {} records from {}\n'.format(line_num, file_name))
         return output_dict
 
     def read_monthly_amex_file(self, file_name):
@@ -399,8 +397,8 @@ class TransferMonthlyFilesToDB(object):
                 # verify there are no FEWER than the expected number of fields
                 # (can be greater)
                 if len(field) < expected_fields:
-                    print('Missing fields in file {}. Expected at least {} but got {}. Line:'
-                          '\n{}'.format(file_name, expected_fields, len(field), line))
+                    utils.logger('Missing fields in file {}. Expected at least {} but got {}. Line:'
+                                 '\n{}'.format(file_name, expected_fields, len(field), line))
                     sys.exit(1)
 
                 # parse the first field -- transaction date
@@ -431,7 +429,7 @@ class TransferMonthlyFilesToDB(object):
                                                      output_dict)
                 line_num += 1
             # end for
-        print('read_monthly_amex_file processed {} records from {}\n'.format(line_num, file_name))
+        utils.logger('read_monthly_amex_file processed {} records from {}\n'.format(line_num, file_name))
         return output_dict
 
     def read_monthly_citi_file(self, file_name):
@@ -495,7 +493,7 @@ class TransferMonthlyFilesToDB(object):
                 #     print('\nJoined: {}'.format(line.strip()))
                 # else:
                 #     print('\nNormal: {}'.format(line.strip()))
-                print('\nNormal: {}'.format(line.strip()))
+                utils.logger('\nNormal: {}'.format(line.strip()))
 
                 # strip all leading and trailing spaces and new-lines
                 line = line.rstrip().lstrip()
@@ -526,7 +524,7 @@ class TransferMonthlyFilesToDB(object):
                     line = file_ptr.readline()
                     continue
                 elif not format_v2 and not format_v3:
-                    print('No header line found in {}'.format(file_name))
+                    utils.logger('No header line found in {}'.format(file_name))
                     sys.exit(1)
 
                 # remove all double-quote characters (by this point it is
@@ -548,8 +546,9 @@ class TransferMonthlyFilesToDB(object):
 
                 # verify there are no FEWER than the expected number of fields (can be greater)
                 if len(fields) < expected_fields:
-                    print('Missing fields in file {}. Expected at least {} '
-                          'but got {}. Line:\n{}'.format(file_name, expected_fields, len(fields), line))
+                    utils.logger('Missing fields in file {}. Expected at least {} '
+                                 'but got {}. Line:\n{}'.format(file_name, expected_fields, len(fields),
+                                                                line))
                     sys.exit(1)
 
                 # parse the second fields -- transaction date
@@ -561,7 +560,7 @@ class TransferMonthlyFilesToDB(object):
                 datefields = [int(n) for n in trans_date.split('/')]
                 trans_date_object = datetime.date(datefields[2], datefields[0], datefields[1])
                 if format_v3 and trans_date_object < datetime.date(2019, 1, 1):
-                    print('Citi card records transacted prior to 1 Jan 2019 are not processed')
+                    utils.logger('Citi card records transacted prior to 1 Jan 2019 are not processed')
                     line = file_ptr.readline()
                     continue
 
@@ -596,7 +595,7 @@ class TransferMonthlyFilesToDB(object):
                 # value
                 hash_key = trans_date+trans_amt+trans_payee+fields[5]
                 trans_ref = hashlib.md5(hash_key).hexdigest()
-                print(hash_key+' => '+trans_ref)
+                utils.logger(hash_key+' => '+trans_ref)
 
                 # process the extra budget fields which may mean extra DATABASE records
                 budget_category_dict = transferUtils.process_budget_fields(fields[expected_fields:],
@@ -610,7 +609,7 @@ class TransferMonthlyFilesToDB(object):
                 line_num += 1
                 line = file_ptr.readline()
             # end while
-        print('read_monthly_citi_file processed {} records from {}\n'.format(line_num, file_name))
+        utils.logger('read_monthly_citi_file processed {} records from {}\n'.format(line_num, file_name))
         return output_dict
 
     def read_monthly_discover_file(self, file_name, download=False):
@@ -652,7 +651,7 @@ class TransferMonthlyFilesToDB(object):
                 if not line:
                     continue  # ignore blank lines
                 if line.startswith('<!--'):
-                    print('read_monthly_discover_file: Skipping line "'+line+'"')
+                    utils.logger('read_monthly_discover_file: Skipping line "'+line+'"')
                     continue
 
                 # download files have header line; legacy monthly files do not
@@ -663,8 +662,8 @@ class TransferMonthlyFilesToDB(object):
 
                     fields = line.split(',')
                     if len(fields) != expected_fields:
-                        print('Discover download file header line has {} field(s) instead of expected '
-                              '{}'.format(len(fields), expected_fields))
+                        utils.logger('Discover download file header line has {} field(s) instead of expected '
+                                     '{}'.format(len(fields), expected_fields))
                         sys.exit(1)
                     line_num += 1
                     continue
@@ -692,8 +691,8 @@ class TransferMonthlyFilesToDB(object):
                 # verify there are no FEWER than the expected number of fields
                 # (can be greater)
                 if len(field) < expected_fields:
-                    print('Missing fields in file {}. Expected at least {} but got {}. Line:\n{}'
-                          .format(file_name, expected_fields, len(field), line))
+                    utils.logger('Missing fields in file {}. Expected at least {} but got {}. Line:\n{}'
+                                 .format(file_name, expected_fields, len(field), line))
                     sys.exit(1)
 
                 # parse the first field -- transaction date
@@ -737,8 +736,8 @@ class TransferMonthlyFilesToDB(object):
 
                 # check_dict is here to make sure the record reference is unique
                 while trans_ref in check_dict:
-                    print('Discover transaction reference "{}" is not unique. Appending "x" to '
-                          'it'.format(trans_ref))
+                    utils.logger('Discover transaction reference "{}" is not unique. Appending "x" to '
+                                 'it'.format(trans_ref))
                     # If it's already being used, add a character to it
                     trans_ref = trans_ref + 'x'
 
@@ -766,7 +765,8 @@ class TransferMonthlyFilesToDB(object):
                                                      output_dict)
                 line_num += 1
             # end for
-        print('read_monthly_discover_file processed {} records from {}\n'.format(line_num, file_name))
+        utils.logger('read_monthly_discover_file processed {} records from {}\n'.format(line_num,
+                                                                                        file_name))
         return output_dict
 
     def read_monthly_chase_file(self, file_name):
@@ -814,8 +814,8 @@ class TransferMonthlyFilesToDB(object):
                 # verify there are no FEWER than the expected number of fields
                 # (can be greater)
                 if len(field) < expected_fields:
-                    print('Missing fields in file {}. Expected at least {} but got {}. Line:\n{}'
-                          .format(file_name, expected_fields, len(field), line))
+                    utils.logger('Missing fields in file {}. Expected at least {} but got {}. Line:\n{}'
+                                 .format(file_name, expected_fields, len(field), line))
                     sys.exit(1)
 
                 # parse the date field -- transaction date
@@ -848,7 +848,7 @@ class TransferMonthlyFilesToDB(object):
                                                      output_dict)
                 line_num += 1
             # end for
-        print('read_monthly_chase_file processed {} records from {}\n'.format(line_num, file_name))
+        utils.logger('read_monthly_chase_file processed {} records from {}\n'.format(line_num, file_name))
         return output_dict
 
     def read_download_barclay_file(self, file_name):
@@ -875,15 +875,15 @@ class TransferMonthlyFilesToDB(object):
                                 not '<TRNAMT>' in trans or \
                                 not '<FITID>' in trans or \
                                 not '<NAME>' in trans:
-                            print('Missing fields in file {}. Expected 4 fields, but one or more '
-                                  'are missing: {}'.format(file_name, trans))
+                            utils.logger('Missing fields in file {}. Expected 4 fields, but one or more '
+                                         'are missing: {}'.format(file_name, trans))
                             sys.exit(1)
                         match_obj = re.search(r'<FITID>([^<]+)<', trans)
                         if match_obj:
                             trans_ref = match_obj.group(1)
                         else:
-                            print('Error matching <FITID> in transaction "{}" in file '
-                                  '{}'.format(trans, file_name))
+                            utils.logger('Error matching <FITID> in transaction "{}" in file '
+                                         '{}'.format(trans, file_name))
                             sys.exit(1)
                         match_obj = re.search(r'<DTPOSTED>([^<]+)<', trans)
                         if match_obj:
@@ -893,22 +893,22 @@ class TransferMonthlyFilesToDB(object):
                                           + '/' +
                                           match_obj.group(1)[:4])
                         else:
-                            print('Error matching <DTPOSTED> in transaction "{}" in file {}'
-                                  .format(trans, file_name))
+                            utils.logger('Error matching <DTPOSTED> in transaction "{}" in file {}'
+                                         .format(trans, file_name))
                             sys.exit(1)
                         match_obj = re.search(r'<TRNAMT>([^<]+)<', trans)
                         if match_obj:
                             trans_amt = match_obj.group(1)
                         else:
-                            print('Error matching <TRNAMT> in transaction "{}" in file {}'
-                                  .format(trans, file_name))
+                            utils.logger('Error matching <TRNAMT> in transaction "{}" in file {}'
+                                         .format(trans, file_name))
                             sys.exit(1)
                         match_obj = re.search(r'<NAME>([^<]+)<', trans)
                         if match_obj:
                             trans_payee = match_obj.group(1)
                         else:
-                            print('Error matching <NAME> in transaction "{}" in file {}'
-                                  .format(trans, file_name))
+                            utils.logger('Error matching <NAME> in transaction "{}" in file {}'
+                                         .format(trans, file_name))
                             sys.exit(1)
 
                         # lookup the default budget category from the payee DATABASE
@@ -929,7 +929,8 @@ class TransferMonthlyFilesToDB(object):
                     # end for each transaction
                 # end if <STMTTRN> found in line
             # end for each line in file
-        print('read_download_barclay_file processed {} records from {}\n'.format(line_num, file_name))
+        utils.logger('read_download_barclay_file processed {} records from {}\n'.format(line_num,
+                                                                                        file_name))
         return output_dict
 
     def read_monthly_barclay_file(self, file_name):
@@ -972,8 +973,8 @@ class TransferMonthlyFilesToDB(object):
 
                 # verify there are no FEWER than the expected number of fields (can be greater)
                 if len(field) < expected_fields:
-                    print('Missing fields in file {}. Expected at least {} but got {}. Line:\n'
-                          '{}'.format(file_name, expected_fields, len(field), line))
+                    utils.logger('Missing fields in file {}. Expected at least {} but got {}. Line:\n'
+                                 '{}'.format(file_name, expected_fields, len(field), line))
                     sys.exit(1)
 
                 # parse the date field -- transaction date
@@ -1005,7 +1006,8 @@ class TransferMonthlyFilesToDB(object):
                                                      output_dict)
                 line_num += 1
             # end for
-        print('read_monthly_barclay_file processed {} records from {}\n'.format(line_num, file_name))
+        utils.logger('read_monthly_barclay_file processed {} records from {}\n'.format(line_num,
+                                                                                       file_name))
         return output_dict
 
     def process_file(self, file_name):
@@ -1020,7 +1022,7 @@ class TransferMonthlyFilesToDB(object):
             return
         if '2004' in file_name or '2005' in file_name:
             return
-        print('Processing file ' + file_name)
+        utils.logger('Processing file ' + file_name)
         if 'Discover' in file_name:
             output_dict = self.read_monthly_discover_file('decoded-dbs/' + file_name)
         elif 'Amex' in file_name:
@@ -1058,7 +1060,7 @@ class TransferMonthlyFilesToDB(object):
             self.cur.execute(record)
             local_inserted += 1
 
-        print('Inserted', local_inserted, 'records into DATABASE')
+        utils.logger('Inserted', local_inserted, 'records into DATABASE')
         self.inserted += local_inserted
         self.total_files += 1
         self.files_processed += 1
@@ -1094,5 +1096,5 @@ class TransferMonthlyFilesToDB(object):
                         if row[0] == 0:
                             query = ("update main set tran_checknum = '"+val[3]+"',tran_desc = '"
                                      + val[2] + "' where tran_ID = '" + key + "';")
-                            print(query)
+                            utils.logger(query)
                             self.cur.execute(query)

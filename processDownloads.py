@@ -5,6 +5,8 @@ import sys
 import os
 import traceback
 import MySQLdb
+import transferCheckUtils
+import utils
 from transferFilesToDB import TransferMonthlyFilesToDB
 from transferChecks import TransferChecks
 
@@ -19,9 +21,9 @@ def global_exception_printer(e_type, val, trace_back):
     trs = ''
     for my_trace_back in traceback.format_list(traceback.extract_tb(trace_back)):
         trs += my_trace_back
-    print('**********************************\nException occurred\nType: ' +
-          str(e_type) + '\nValue: ' + str(val) + '\nTraceback:\n' + trs +
-          '*********************************')
+    utils.logger('**********************************\nException occurred\nType: ' +
+                 str(e_type) + '\nValue: ' + str(val) + '\nTraceback:\n' + trs +
+                 '*********************************')
 
 
 def clear_cu_checks():
@@ -35,7 +37,7 @@ def clear_cu_checks():
         CURSOR1.execute(local_query)
     except MySQLdb.Error:
         (my_exception_type, my_value, my_tb) = sys.exc_info()
-        print('clearCUChecks(): Exception executing query: '+local_query)
+        utils.logger('clearCUChecks(): Exception executing query: '+local_query)
         global_exception_printer(my_exception_type, my_value, my_tb)
         sys.exit(1)
 
@@ -49,21 +51,21 @@ def clear_cu_checks():
             CURSOR2.execute(local_query)
         except MySQLdb.Error:
             (my_exception_type, my_value, my_tb) = sys.exc_info()
-            print('clearCUChecks(): Exception executing query: '+local_query)
+            utils.logger('clearCUChecks(): Exception executing query: '+local_query)
             global_exception_printer(my_exception_type, my_value, my_tb)
             sys.exit(1)
 
         updated += 1
     DB.commit()
-    print('Updated', updated, 'checks in checks DATABASE')
+    utils.logger('Updated {} checks in checks DATABASE'.format(updated))
 
 
 def print_unknown_non_check_transactions():
     """Print a list of unknown, non-check transactions"""
     global CURSOR1
 
-    print('\nNon-check transactions marked "UNKNOWN" since 1/1/2006:')
-    print('%-12s %-40s %10s' % ("Tran date", "Description", "Amount"))
+    utils.logger('\nNon-check transactions marked "UNKNOWN" since 1/1/2006:')
+    utils.logger('%-12s %-40s %10s' % ("Tran date", "Description", "Amount"))
 
     my_query = ('select tran_date,tran_desc,tran_amount from main where bud_category = "UNKNOWN" and '
                 'tran_date > "2005-12-31" and tran_desc not like "CHECK%" and tran_desc not like '
@@ -72,25 +74,25 @@ def print_unknown_non_check_transactions():
         CURSOR1.execute(my_query)
     except MySQLdb.Error:
         (my_exception_type, my_value, my_tb) = sys.exc_info()
-        print('print_unknown_non_check_transactions(): Exception executing query: '+my_query)
+        utils.logger('print_unknown_non_check_transactions(): Exception executing query: '+my_query)
         global_exception_printer(my_exception_type, my_value, my_tb)
         sys.exit(1)
 
     amount = 0
     for inner_row in CURSOR1:
-        print('%-12s %-40s $%10.2f' % (inner_row[0].strftime('%m/%d/%Y'),
-                                       inner_row[1][:40], inner_row[2]))
+        utils.logger('%-12s %-40s $%10.2f' % (inner_row[0].strftime('%m/%d/%Y'),
+                                              inner_row[1][:40], inner_row[2]))
         amount += inner_row[2]
-    print('-----------------------------------------------------------------')
-    print('%-53s $%10.2f' % ('Total:', amount))
+    utils.logger('-----------------------------------------------------------------')
+    utils.logger('%-53s $%10.2f' % ('Total:', amount))
 
 
 def print_unrecorded_checks():
     """Print a list of unrecorded checks"""
     global CURSOR1, CURSOR2
 
-    print('\nCleared, unrecorded checks: ')
-    print('%-5s %-12s %8s' % ("CNum", "Cleared date", "Amount"))
+    utils.logger('\nCleared, unrecorded checks: ')
+    utils.logger('%-5s %-12s %8s' % ("CNum", "Cleared date", "Amount"))
 
     my_query = ('select tran_checknum,tran_date,tran_amount from main where tran_checknum != "0" and'
                 ' tran_type = "b";')
@@ -98,7 +100,7 @@ def print_unrecorded_checks():
         CURSOR1.execute(my_query)
     except MySQLdb.Error:
         (my_exception_type, my_value, my_tb) = sys.exc_info()
-        print('print_unrecorded_checks(): Exception executing query: '+my_query)
+        utils.logger('print_unrecorded_checks(): Exception executing query: '+my_query)
         global_exception_printer(my_exception_type, my_value, my_tb)
         sys.exit(1)
 
@@ -111,13 +113,13 @@ def print_unrecorded_checks():
             CURSOR2.execute(my_query)
         except MySQLdb.Error:
             (my_exception_type, my_value, my_tb) = sys.exc_info()
-            print('print_unrecorded_checks(): Exception executing query: '+my_query)
+            utils.logger('print_unrecorded_checks(): Exception executing query: '+my_query)
             global_exception_printer(my_exception_type, my_value, my_tb)
             sys.exit(1)
 
         if CURSOR2.rowcount == 0:
-            print('%-5d %-12s $%7.2f' % (inner_row[0], inner_row[1].strftime('%m/%d/%Y'),
-                                         abs(inner_row[2])))
+            utils.logger('%-5d %-12s $%7.2f' % (inner_row[0], inner_row[1].strftime('%m/%d/%Y'),
+                                                abs(inner_row[2])))
 
 
 def print_uncleared_checks():
@@ -125,8 +127,8 @@ def print_uncleared_checks():
     global CURSOR1
 
     my_dict = dict()
-    print('\nUncleared checks since 1/1/2006: ')
-    print('%-5s %-10s %8s %-30s %s' % ("CNum", "Date", "Amt", "Payee", "Comments"))
+    utils.logger('\nUncleared checks since 1/1/2006: ')
+    utils.logger('%-5s %-10s %8s %-30s %s' % ("CNum", "Date", "Amt", "Payee", "Comments"))
 
     my_query = ('select tnum,tdate,tamt,tpayee,comments from checks where clear_date is null and tdate '
                 '> "2005-12-31" and tamt != 0.0 order by tnum;')
@@ -136,7 +138,7 @@ def print_uncleared_checks():
         CURSOR1.execute(my_query)
     except MySQLdb.Error:
         (my_exception_type, my_value, my_tb) = sys.exc_info()
-        print('print_uncleared_checks(): Exception executing query: '+my_query)
+        utils.logger('print_uncleared_checks(): Exception executing query: '+my_query)
         global_exception_printer(my_exception_type, my_value, my_tb)
         sys.exit(1)
 
@@ -152,7 +154,7 @@ def print_uncleared_checks():
         CURSOR1.execute(my_query)
     except MySQLdb.Error:
         (my_exception_type, my_value, my_tb) = sys.exc_info()
-        print('print_uncleared_checks(): Exception executing query: '+my_query)
+        utils.logger('print_uncleared_checks(): Exception executing query: '+my_query)
         global_exception_printer(my_exception_type, my_value, my_tb)
         sys.exit(1)
 
@@ -162,7 +164,7 @@ def print_uncleared_checks():
                         (inner_row[0], inner_row[1].strftime('%m/%d/%Y'),
                          abs(inner_row[2]), inner_row[3], inner_row[4]))
     for entry in sorted(my_dict):
-        print(my_dict[entry])
+        utils.logger(my_dict[entry])
 
 
 def insert_dict_into_checks_db(download_dict, keys_set):
@@ -194,12 +196,12 @@ def insert_dict_into_checks_db(download_dict, keys_set):
                 CURSOR1.execute(my_query)
             except MySQLdb.Error:
                 (my_exception_type, my_value, my_tb) = sys.exc_info()
-                print('insert_dict_into_checks_db(): Exception executing query: '+my_query)
+                utils.logger('insert_dict_into_checks_db(): Exception executing query: '+my_query)
                 global_exception_printer(my_exception_type, my_value, my_tb)
                 sys.exit(1)
 
-        print('Key '+key+' is not in "checks" DATABASE -- '+('' if DO_INSERT else 'would have ')
-              + 'inserted')
+        utils.logger('Key '+key+' is not in "checks" DATABASE -- '+('' if DO_INSERT else 'would have ')
+                     + 'inserted')
         records_inserted += 1
 
 
@@ -240,7 +242,7 @@ def insert_dict_into_main_db(download_dict, keys_set):
             CURSOR1.execute(check_query)
         except MySQLdb.Error:
             (my_exception_type, my_value, my_tb) = sys.exc_info()
-            print('insert_dict_into_main_db(): Exception executing query: {}'.format(check_query))
+            utils.logger('insert_dict_into_main_db(): Exception executing query: {}'.format(check_query))
             global_exception_printer(my_exception_type, my_value, my_tb)
             sys.exit(1)
 
@@ -248,16 +250,16 @@ def insert_dict_into_main_db(download_dict, keys_set):
         # One match - insert or ignore new record, or replace existing record with it.
         #
         if CURSOR1.rowcount == 1:
-            print('Possible duplicate record with different transaction ID (existing record VS '
-                  'candidate record):')
+            utils.logger('Possible duplicate record with different transaction ID (existing record VS '
+                         'candidate record):')
             existing_record_key = ''
             for row in CURSOR1:
                 existing_record_key = row[0]
-                print('old "{}" "{}" "{}" "{}" "{}" VS new "{}" "{}" "{}" "{}" "{}"'
-                      .format(row[0], row[1], row[2], row[3], row[4], new_key, val[0], val[2],
-                              (val[3] if val[3] else "0"), val[5]))
+                utils.logger('old "{}" "{}" "{}" "{}" "{}" VS new "{}" "{}" "{}" "{}" "{}"'
+                             .format(row[0], row[1], row[2], row[3], row[4], new_key, val[0], val[2],
+                                     (val[3] if val[3] else "0"), val[5]))
             response = raw_input("What to do with this record: [insert|ignore|replace (existing)]? ")
-            print('response="{}"'.format(response))
+            utils.logger('response="{}"'.format(response))
             if response.lower().startswith('ignore'):
                 continue  # do NOT insert this record!!
             if response.lower().startswith('replace'):  # delete existing record first
@@ -267,7 +269,7 @@ def insert_dict_into_main_db(download_dict, keys_set):
                     CURSOR2.execute(delete_query)
                 except MySQLdb.Error:
                     (my_exception_type, my_value, my_tb) = sys.exc_info()
-                    print('insert_dict_into_main_db(): Exception executing query: '+delete_query)
+                    utils.logger('insert_dict_into_main_db(): Exception executing query: '+delete_query)
                     global_exception_printer(my_exception_type, my_value, my_tb)
                     sys.exit(1)
             # otherwise, keep going and insert it
@@ -276,11 +278,11 @@ def insert_dict_into_main_db(download_dict, keys_set):
         # More than one match - insert or ignore new record, no replace
         #
         elif CURSOR1.rowcount > 1:
-            print('Possible duplicate records with different transaction IDs (existing record VS '
-                  'candidate records):')
+            utils.logger('Possible duplicate records with different transaction IDs (existing record VS '
+                         'candidate records):')
             for row in CURSOR1:
-                print('Existing record: "{}" "{}" "{}" "{}" "{}"\nNew record:      "{}" "{}" "{}" "{}" '
-                      '"{}"'.format(
+                utils.logger('Existing record: "{}" "{}" "{}" "{}" "{}"\nNew record:      "{}" "{}" '
+                             '"{}" "{}" "{}"'.format(
                                     row[0], row[1], row[2], row[3], row[4], new_key, val[0], val[2],
                                     (val[3] if val[3] else "0"), val[5]))
             response = raw_input("Insert or ignore new record [insert|ignore]? ")
@@ -302,13 +304,13 @@ def insert_dict_into_main_db(download_dict, keys_set):
                 CURSOR1.execute(my_query)
             except MySQLdb.Error:
                 (my_exception_type, my_value, my_tb) = sys.exc_info()
-                print('insert_dict_into_main_db(): Exception executing query: '+my_query)
+                utils.logger('insert_dict_into_main_db(): Exception executing query: '+my_query)
                 global_exception_printer(my_exception_type, my_value, my_tb)
                 sys.exit(1)
         else:
             val[1] = new_key
-            print('Key ' + new_key + ' is not in "main" DATABASE -- ' +
-                  ('' if DO_INSERT else 'would have ') + 'inserted', val)
+            utils.logger('Key {} is not in "main" DATABASE -- {}inserted {}'.format(
+                new_key, ('' if DO_INSERT else 'would have '), val))
         records_inserted += 1
 
 
@@ -328,18 +330,18 @@ CI_FILE = 'downloads/Citi-RecentActivity.csv'
 # Verify symbolic link to 'downloads' is not broken
 if os.path.isdir('downloads'):
     if os.path.islink('downloads') and not os.path.exists(os.readlink('downloads')):
-        print('The folder "downloads" is a symbolic link, but its target does not exist.')
-        print('To restore it as a symbolic link, re-install vmware-tools:')
-        print('1. cd /home/chrisanderson/Desktop/vmware-tools-distrib')
-        print('2. "sudo perl vmware-install.pl" and enter password for chrisanderson')
-        print('3. Answer all questions with the default (just hit <return>)')
+        utils.logger('The folder "downloads" is a symbolic link, but its target does not exist.')
+        utils.logger('To restore it as a symbolic link, re-install vmware-tools:')
+        utils.logger('1. cd /home/chrisanderson/Desktop/vmware-tools-distrib')
+        utils.logger('2. "sudo perl vmware-install.pl" and enter password for chrisanderson')
+        utils.logger('3. Answer all questions with the default (just hit <return>)')
         sys.exit(1)
 
 # Verify all downloads files exist
 all_exist = True
 for download_file in [CU_FILE, CK_FILE, DI_FILE, CI_FILE]:
     if not os.path.exists(download_file):
-        print('Download file "' + download_file + '" does not exist')
+        utils.logger('Download file "' + download_file + '" does not exist')
         all_exist = False
 if not all_exist:
     sys.exit(1)
@@ -359,7 +361,7 @@ try:
     CURSOR1.execute(query)
 except MySQLdb.Error:
     (exception_type, value, tb) = sys.exc_info()
-    print('Main(): Exception executing query: '+query)
+    utils.logger('Main(): Exception executing query: '+query)
     global_exception_printer(exception_type, value, tb)
     sys.exit(1)
 
@@ -372,7 +374,7 @@ try:
     CURSOR1.execute(query)
 except MySQLdb.Error:
     (exception_type, value, tb) = sys.exc_info()
-    print('Main(): Exception executing query: '+query)
+    utils.logger('Main(): Exception executing query: '+query)
     global_exception_printer(exception_type, value, tb)
     sys.exit(1)
 
@@ -381,45 +383,44 @@ for row in CURSOR1:
     ck_keys.add(row[0])
 
 TF = TransferMonthlyFilesToDB(CURSOR1)
-CK = TransferChecks()
 
 # handle credit union transactions including checks
 if os.path.isfile(CK_FILE):  # process checks first
-    print('\nprocessing credit union checks download file...')
-    CK_dict = CK.read_checks_file(CK_FILE)
+    utils.logger('\nprocessing credit union checks download file...')
+    CK_dict = transferCheckUtils.read_checks_file(CK_FILE)
     insert_dict_into_checks_db(CK_dict, ck_keys)
 
 if os.path.isfile(CU_FILE):  # process cleared transactions second
-    print('\nprocessing credit union download file...')
+    utils.logger('\nprocessing credit union download file...')
     CU_dict = TF.read_monthly_cu_file(CU_FILE)
     insert_dict_into_main_db(CU_dict, db_keys)
 
 clear_cu_checks()  # mark cleared checks
 
 # if os.path.isfile(AX_FILE):
-#     print('\nprocessing American Express download file...')
+#     utils.logger('\nprocessing American Express download file...')
 #     AE_dict = TF.read_monthly_amex_file(AX_FILE)
 #     insert_dict_into_main_db(AE_dict, db_keys)
 
 if os.path.isfile(CI_FILE):
-    print('\nprocessing CitiCard download file...')
+    utils.logger('\nprocessing CitiCard download file...')
     CI_dict = TF.read_monthly_citi_file(CI_FILE)
     insert_dict_into_main_db(CI_dict, db_keys)
 
 if os.path.isfile(DI_FILE):
-    print('\nprocessing Discover download file...')
+    utils.logger('\nprocessing Discover download file...')
 
     # process a download file, not a monthly file
     DC_dict = TF.read_monthly_discover_file(DI_FILE, True)
     insert_dict_into_main_db(DC_dict, db_keys)
 
 # if os.path.isfile(BY_FILE):
-#     print('\nprocessing Barclay download file...')
+#     utils.logger('\nprocessing Barclay download file...')
 #     BY_dict = TF.read_download_barclay_file(BY_FILE)
 #     insert_dict_into_main_db(BY_dict, db_keys)
 
-print('\n' + ('Inserted ' if DO_INSERT else 'Did not insert ') + str(records_inserted)
-      + ' records into DB')
+utils.logger('\n' + ('Inserted ' if DO_INSERT else 'Did not insert ') + str(records_inserted)
+             + ' records into DB')
 
 print_uncleared_checks()
 print_unrecorded_checks()
