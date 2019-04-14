@@ -75,6 +75,8 @@ class TransferMonthlyFilesToDB(transfer_barclay_files.Mixin, transfer_chase_file
     def results(self):
         """Just returns a tuple of total_files, files_processed, inserted, and unexpected_header
 
+        NEVER CALLED
+
         :rtype: tuple
         """
         return self.total_files, self.files_processed, self.inserted, self.unexpected_header
@@ -130,7 +132,7 @@ class TransferMonthlyFilesToDB(transfer_barclay_files.Mixin, transfer_chase_file
             if match_object:
                 cats = self.payee_dict[key][1].split(';')
                 if len(cats) == 1:
-                    self.logger.log('Payee "{}" match "{}" with category "{}"'.
+                    self.logger.log('1 Payee "{}" match "{}" with category "{}"'.
                                     format(payee, self.payee_dict[key][0], cats[0]))
                     return cats[0]
                 else:
@@ -141,11 +143,15 @@ class TransferMonthlyFilesToDB(transfer_barclay_files.Mixin, transfer_chase_file
                             cat_date_string = cat_date_string+'31'
                             cat_date = datetime.datetime.strptime(cat_date_string, '%Y%m%d').date()
                             if bud_date <= cat_date:
+                                self.logger.log('2 Payee "{}" match "{}" with category "{}"'.
+                                                format(payee, self.payee_dict[key][0], cats[0]))
                                 return cat
                             else:
                                 i += 1
                         else:
                             # the last category is the most recent
+                            self.logger.log('3 Payee "{}" match "{}" with category "{}"'.
+                                            format(payee, self.payee_dict[key][0], cats[-1]))
                             return cats[i]
 
         #
@@ -153,91 +159,3 @@ class TransferMonthlyFilesToDB(transfer_barclay_files.Mixin, transfer_chase_file
         self.logger.log('Payee "' + payee + '" no match found')
         return self.DEFAULT_BUDGET_CATEGORY
 
-    def process_file(self, file_name):
-        """NOT USED"""
-        local_inserted = 0
-
-        if not file_name.endswith('.txt'):
-            return
-        if file_name.endswith('cat.txt'):
-            return
-        if file_name.endswith('DB.txt'):
-            return
-        if '2004' in file_name or '2005' in file_name:
-            return
-        self.logger.log('Processing file ' + file_name)
-        if 'Discover' in file_name:
-            output_dict = self.read_monthly_discover_file('decoded-dbs/' + file_name)
-        elif 'Amex' in file_name:
-            output_dict = self.read_monthly_amex_file('decoded-dbs/' + file_name)
-        elif 'Chase' in file_name:
-            output_dict = self.read_monthly_chase_file('decoded-dbs/' + file_name)
-        elif 'Barclay' in file_name:
-            output_dict = self.read_monthly_barclay_file('decoded-dbs/' + file_name)
-        else:
-            output_dict = self.read_monthly_cu_file('decoded-dbs/' + file_name)
-
-        for key, val in output_dict.iteritems():
-            record = ('INSERT into main ('
-                      'tran_date, '
-                      'tran_ID, '
-                      'tran_desc, '
-                      'tran_checknum, '
-                      'tran_type,'
-                      'tran_amount, '
-                      'bud_category, '
-                      'bud_amount, '
-                      'bud_date, '
-                      'comment) '
-                      'VALUES ('
-                      'STR_TO_DATE("'+val[0]+'","%m/%d/%Y"), "'
-                      + key+'", "'
-                      + val[2] + '", "'
-                      + val[3] + '", "'
-                      + val[4] + '", "'
-                      + val[5] + '", "'
-                      + val[6] + '", "'
-                      + val[7] + '", '
-                      'STR_TO_DATE("'+val[8]+'","%m/%d/%Y"), "'
-                      + val[9] + '");')
-            self.cur.execute(record)
-            local_inserted += 1
-
-        self.logger.log('Inserted', local_inserted, 'records into DATABASE')
-        self.inserted += local_inserted
-        self.total_files += 1
-        self.files_processed += 1
-
-        return
-
-    def merge_over_the_counter_checks(self):
-        """NOT USED"""
-        for file_name in glob.glob('decoded-dbs/*.txt'):
-            if '2004' in file_name or '2005' in file_name:
-                continue
-            if 'Discover' in file_name:
-                continue
-            if 'Amex' in file_name:
-                continue
-            if 'Chase' in file_name:
-                continue
-            if 'Barclay' in file_name:
-                continue
-            if file_name.endswith('cat.txt'):
-                continue
-            if file_name.endswith('DB.txt'):
-                continue
-
-            # We are left with credit union files
-            output_dict = self.read_monthly_cu_file(file_name)
-            for key, val in output_dict.iteritems():
-                if val[3].strip():  # Check number is not empty
-                    self.cur.execute("select tran_checknum from main where tran_ID = '"+key+"';")
-                    self.cur.fetchone()
-                    for row in self.cur:
-                        # Check number field does not exist in DATABASE for this transaction
-                        if row[0] == 0:
-                            query = ("update main set tran_checknum = '"+val[3]+"',tran_desc = '"
-                                     + val[2] + "' where tran_ID = '" + key + "';")
-                            self.logger.log(query)
-                            self.cur.execute(query)

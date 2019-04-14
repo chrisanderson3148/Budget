@@ -79,36 +79,36 @@ class ProcessDownloads(object):
 
         # handle credit union transactions including checks
         if os.path.isfile(self.CK_FILE):  # process checks first
-            self.logger.log('\nprocessing credit union checks download file...')
+            self.logger.log('\n**** processing credit union checks download file... ****\n')
             t_dict = transferCheckUtils.read_checks_file(self.CK_FILE)
             self.insert_dict_into_checks_db(t_dict, ck_keys)
 
         if os.path.isfile(self.CU_FILE):  # process cleared transactions second
-            self.logger.log('\nprocessing credit union download file...')
+            self.logger.log('\n**** processing credit union download file... ****\n')
             t_dict = transfer.read_monthly_cu_file(self.CU_FILE)
             self.insert_dict_into_main_db(t_dict, db_keys)
 
         self.clear_cu_checks()  # mark cleared checks
 
         # if os.path.isfile(AX_FILE):
-        #     self.my_log.log('\nprocessing American Express download file...')
+        #     self.my_log.log('\n**** processing American Express download file... ****\n')
         #     t_dict = TF.read_monthly_amex_file(AX_FILE)
         #     self.insert_dict_into_main_db(t_dict, db_keys)
 
         if os.path.isfile(self.CI_FILE):
-            self.logger.log('\nprocessing CitiCard download file...')
+            self.logger.log('\n**** processing CitiCard download file... ****\n')
             t_dict = transfer.read_monthly_citi_file(self.CI_FILE)
             self.insert_dict_into_main_db(t_dict, db_keys)
 
         if os.path.isfile(self.DI_FILE):
-            self.logger.log('\nprocessing Discover download file...')
+            self.logger.log('\n**** processing Discover download file... ****\n')
 
             # process a download file, not a monthly file
             t_dict = transfer.read_monthly_discover_file(self.DI_FILE, True)
             self.insert_dict_into_main_db(t_dict, db_keys)
 
         # if os.path.isfile(self.BY_FILE):
-        #     self.my_log.log('\nprocessing Barclay download file...')
+        #     self.my_log.log('\n**** processing Barclay download file... ****\n')
         #     t_dict = TF.read_download_barclay_file(self.BY_FILE)
         #     self.insert_dict_into_main_db(t_dict, db_keys)
 
