@@ -9,3 +9,4 @@ __init__.py
 pylintrc
 .idea/
 process_download_log
+create_monthly_budget_summaries_log
