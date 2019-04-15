@@ -327,6 +327,8 @@ class ProcessDownloads(object):
                                 delete_query)
                 self.global_exception_printer(my_exception_type, my_value, my_tb)
                 sys.exit(1)
+            self.logger.log("Deleted record with key {} as part of replacing it.".
+                            format(existing_record_key))
             return True  # next, insert the new record
 
         # Insert new record
@@ -385,9 +387,9 @@ class ProcessDownloads(object):
             if self.DO_INSERT:
                 my_query = ('INSERT into main (tran_date,tran_ID,tran_desc,tran_checknum,tran_type,'
                             'tran_amount,bud_category,bud_amount,bud_date,comment) VALUES '
-                            '(STR_TO_DATE("' + val[0] + '","%m/%d/%Y"), "' + new_key+'", "' + val[2]+'", "' +
-                            (val[3] if val[3] else "0") + '", "' + val[4] + '", "' + val[5] + '", "' +
-                            val[6] + '", "' + str(val[7]) + '", STR_TO_DATE("' +
+                            '(STR_TO_DATE("' + val[0] + '","%m/%d/%Y"), "' + new_key+'", "' + val[2] +
+                            '", "' + (val[3] if val[3] else "0") + '", "' + val[4] + '", "' + val[5] +
+                            '", "' + val[6] + '", "' + str(val[7]) + '", STR_TO_DATE("' +
                             (val[8] if len(val[8]) else val[0]) + '","%m/%d/%Y"), "' + val[9] + '");')
 
                 try:
@@ -400,8 +402,9 @@ class ProcessDownloads(object):
                 self.records_inserted += 1  # only increment the records_inserted counter here
             else:  # Log like we are doing an insert, but don't insert and don't count it
                 val[1] = new_key
-                self.logger.log('Key {} is not in "main" DATABASE -- {}inserted {}'.
-                                format(new_key, ('' if self.DO_INSERT else 'would have '), val))
+
+            self.logger.log('Key {} is not in "main" DATABASE -- {}inserted {}'.
+                            format(new_key, ('' if self.DO_INSERT else 'would have '), val))
 
 #
 # MAIN PROGRAM
