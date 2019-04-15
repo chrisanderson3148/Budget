@@ -20,3 +20,17 @@ class Logger(object):
 
     def __del__(self):
         self.log_file.close()
+
+
+def get_valid_response(question, valid_responses, case_sensitive=False):
+    if case_sensitive:
+        while True:
+            response = raw_input("{} {}".format(question, valid_responses))
+            if response in valid_responses:
+                return response
+    else:
+        lower_valid_responses = [resp.lower() for resp in valid_responses]
+        while True:
+            response = raw_input("{} {}".format(question, lower_valid_responses))
+            if response.lower() in lower_valid_responses:
+                return response
