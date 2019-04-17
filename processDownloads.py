@@ -293,6 +293,10 @@ class ProcessDownloads(object):
         :param list[any] val: some fields of the existing record
         :returns: whether or not to continue to insert the new record
         :rtype: bool"""
+        self.INSERT = 'insert'
+        self.IGNORE = 'ignore'
+        self.REPLACE = 'replace'
+
         num_duplicates = self.db_cursor1.rowcount
         existing_record_key = ''
         for row in self.db_cursor1:
@@ -305,18 +309,18 @@ class ProcessDownloads(object):
 
         if num_duplicates == 1:
             response = utils.get_valid_response("What to do with possible duplicate record?",
-                                                ['insert', 'ignore', 'replace'])
+                                                [self.INSERT, self.IGNORE, self.REPLACE])
         else:
             response = utils.get_valid_response("What to do with possible duplicate record?",
-                                                ['insert', 'ignore'])
+                                                [self.INSERT, self.IGNORE])
         self.logger.log('response="{}"'.format(response))
 
         # Ignore new record
-        if response.lower().startswith('ignore'):
+        if response.lower() == self.IGNORE:
             return False
 
         # Replace existing record with new record (delete existing record here, insert in caller)
-        if response.lower().startswith('replace'):
+        if response.lower() == self.REPLACE:
             delete_query = 'DELETE FROM main where tran_id = "{}";'.format(existing_record_key)
             try:
                 # delete existing record from database (first part of replacing with new record)
@@ -332,7 +336,7 @@ class ProcessDownloads(object):
             return True  # next, insert the new record
 
         # Insert new record
-        if response.lower().startswith('insert'):
+        if response.lower() == self.INSERT:
             return True  # just insert the new record
 
     def insert_dict_into_main_db(self, download_dict, keys_set):
