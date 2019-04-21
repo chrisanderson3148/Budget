@@ -50,13 +50,12 @@ class ProcessDownloads(object):
             sys.exit(1)
 
     def __del__(self):
-        self.print_uncleared_checks()
-        self.print_unrecorded_checks()
-        self.print_unknown_non_check_transactions()
         self.db.close()
         self.logger.log('Shutting down...')
 
     def execute(self):
+        self._setup()
+
         # store the list of main DB keys for quick searching
         query_str = 'SELECT tran_ID from main;'
         try:
@@ -107,6 +106,10 @@ class ProcessDownloads(object):
 
         self.logger.log('\n' + ('Inserted ' if self.DO_INSERT else 'Did not insert ') +
                         str(self.records_inserted) + ' records into DB')
+
+        self.print_uncleared_checks()
+        self.print_unrecorded_checks()
+        self.print_unknown_non_check_transactions()
 
     def global_exception_printer(self, e_type, val, trace_back):
         """Prints exceptions that are caught globally, ie, uncaught elsewhere
