@@ -21,6 +21,14 @@ class ProcessDownloads(object):
     def __init__(self):
         self.logger = Logger('process_download_log', append=True, print_to_console=True)
 
+        # Open a connection to the DATABASE
+        self.db = MySQLdb.connect(host='localhost', user='root', passwd='sawtooth', db='officialBudget')
+        self.db_cursor1 = self.db.cursor()
+        self.db_cursor2 = self.db.cursor()
+
+        self.records_inserted = 0
+
+    def _setup(self):
         # Verify symbolic link to 'downloads' is not broken
         if os.path.isdir('downloads'):
             if os.path.islink('downloads') and not os.path.exists(os.readlink('downloads')):
@@ -41,12 +49,12 @@ class ProcessDownloads(object):
         if not all_exist:
             sys.exit(1)
 
-        self.records_inserted = 0
-
-        # Open a connection to the DATABASE
-        self.db = MySQLdb.connect(host='localhost', user='root', passwd='sawtooth', db='officialBudget')
-        self.db_cursor1 = self.db.cursor()
-        self.db_cursor2 = self.db.cursor()
+    def __del__(self):
+        self.print_uncleared_checks()
+        self.print_unrecorded_checks()
+        self.print_unknown_non_check_transactions()
+        self.db.close()
+        self.logger.log('Shutting down...')
 
     def execute(self):
         # store the list of main DB keys for quick searching
@@ -99,11 +107,6 @@ class ProcessDownloads(object):
 
         self.logger.log('\n' + ('Inserted ' if self.DO_INSERT else 'Did not insert ') +
                         str(self.records_inserted) + ' records into DB')
-
-    def __del__(self):
-        self.print_uncleared_checks()
-        self.print_unrecorded_checks()
-        self.print_unknown_non_check_transactions()
 
     def global_exception_printer(self, e_type, val, trace_back):
         """Prints exceptions that are caught globally, ie, uncaught elsewhere

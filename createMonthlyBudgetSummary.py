@@ -37,8 +37,11 @@ class MonthlyBudgetSummaries(object):
         # Open a connection to the DATABASE
         self.database = MySQLdb.connect(host='localhost', user='root', passwd='sawtooth',
                                         db='officialBudget')
-        self.cursor = self.database.cursor()
+        self.db_cursor = self.database.cursor()
         self.logger = Logger('create_monthly_budget_summaries_log')
+
+    def __del__(self):
+        self.database.close()
 
     def write_month_csv(self, my_year, my_month):
         """Write the CSV file with 'my_year' and 'my_month' part of the file name
@@ -56,9 +59,9 @@ class MonthlyBudgetSummaries(object):
                     my_year + "-" + my_month + "-01' and '" + my_year + "-" + my_month +
                     "-31' and tran_checknum = '0' and tran_desc not like 'CHECK %' group by "
                     "bud_category order by bud_category;")
-        self.cursor.execute(my_query)
+        self.db_cursor.execute(my_query)
 
-        rows = self.cursor.fetchall()
+        rows = self.db_cursor.fetchall()
         # save results in dict
         for row in rows:
             key = row[0].rstrip().lstrip()
@@ -69,8 +72,8 @@ class MonthlyBudgetSummaries(object):
         # get the budget categories and sums for the time period from 'checks'
         my_query = ("SELECT bud_cat,sum(bud_amt) from checks where bud_date between '" + my_year +
                     "-" + my_month + "-01' and '" + my_year + "-" + my_month + "-31' group by bud_cat;")
-        self.cursor.execute(my_query)
-        rows = self.cursor.fetchall()
+        self.db_cursor.execute(my_query)
+        rows = self.db_cursor.fetchall()
 
         # update results in dict
         for row in rows:
@@ -110,11 +113,11 @@ class MonthlyBudgetSummaries(object):
 
         # get the budget categories and sums for the time period from 'main'
         buds_summary = dict()
-        self.cursor.execute("SELECT bud_category,sum(bud_amount) from main where bud_date between '" +
-                            my_year + "-" + my_month + "-01' and '" + my_year + "-" + my_month +
+        self.db_cursor.execute("SELECT bud_category,sum(bud_amount) from main where bud_date between '" +
+                               my_year + "-" + my_month + "-01' and '" + my_year + "-" + my_month +
                             "-31' and tran_checknum = '0' and tran_desc not like 'CHECK %' group by "
                             "bud_category order by bud_category;")
-        rows = self.cursor.fetchall()
+        rows = self.db_cursor.fetchall()
 
         # save results in dict
         for row in rows:
@@ -124,10 +127,10 @@ class MonthlyBudgetSummaries(object):
             buds_summary[key] = row[1]
 
         # get the budget categories and sums for the time period from 'checks'
-        self.cursor.execute("SELECT bud_cat,sum(bud_amt) from checks where bud_date between '" +
-                            my_year + "-" + my_month + "-01' and '" + my_year + "-" + my_month +
+        self.db_cursor.execute("SELECT bud_cat,sum(bud_amt) from checks where bud_date between '" +
+                               my_year + "-" + my_month + "-01' and '" + my_year + "-" + my_month +
                             "-31' group by bud_cat;")
-        rows = self.cursor.fetchall()
+        rows = self.db_cursor.fetchall()
 
         # update the results in dict
         for row in rows:
@@ -140,10 +143,10 @@ class MonthlyBudgetSummaries(object):
                 buds_summary[key] = row[1]
 
         # get the budget categories and sums for the time period from 'chasechecks'
-        self.cursor.execute("SELECT bud_cat,sum(bud_amt) from chasechecks where bud_date between '" +
-                            my_year + "-" + my_month + "-01' and '" + my_year + "-" + my_month +
+        self.db_cursor.execute("SELECT bud_cat,sum(bud_amt) from chasechecks where bud_date between '" +
+                               my_year + "-" + my_month + "-01' and '" + my_year + "-" + my_month +
                             "-31' group by bud_cat;")
-        rows = self.cursor.fetchall()
+        rows = self.db_cursor.fetchall()
 
         # update the results in dict
         for row in rows:
@@ -191,8 +194,8 @@ class MonthlyBudgetSummaries(object):
                              "-" + my_month + "-31' and bud_category = '" + budget_category +
                              "' and tran_checknum = '0' and tran_desc not like 'CHECK %' "
                              "order by bud_date;")
-                self.cursor.execute(query)
-                for elem in self.cursor:
+                self.db_cursor.execute(query)
+                for elem in self.db_cursor:
                     store_dict[elem[1].strftime('%Y%m%d')+elem[0]] = ('\t'+elem[1].strftime('%m/%d')+' '
                                                                       + elem[2] + ' %-40s' % elem[3][:40]
                                                                       + ' %10.2f' % elem[4])
@@ -209,8 +212,8 @@ class MonthlyBudgetSummaries(object):
                              "checks WHERE bud_date between '" + my_year + "-" + my_month +
                              "-01' and '" + my_year + "-" + my_month + "-31' and bud_cat = '" +
                              budget_category + "' order by tdate;")
-                self.cursor.execute(query)
-                checks = self.cursor.fetchall()
+                self.db_cursor.execute(query)
+                checks = self.db_cursor.fetchall()
                 for elem in checks:
                     desc = ('Check '+str(elem[1])+': '+elem[2]+('|'+elem[6] if elem[6] else ''))
                     store_dict[elem[4].strftime('%Y%m%d')+elem[0]] = ('\t'+elem[4].strftime('%m/%d')
@@ -231,8 +234,8 @@ class MonthlyBudgetSummaries(object):
                              "WHERE bud_date between '" + my_year + "-" + my_month + "-01' and '" +
                              my_year + "-" + my_month + "-31' and bud_cat = '" + budget_category +
                              "' order by tdate;")
-                self.cursor.execute(query)
-                checks = self.cursor.fetchall()
+                self.db_cursor.execute(query)
+                checks = self.db_cursor.fetchall()
                 for elem in checks:
                     desc = 'ChaseCheck '+str(elem[1])+': '+elem[2]
                     store_dict[elem[4].strftime('%Y%m%d')+elem[0]] = ('\t'+elem[4].strftime('%m/%d')
