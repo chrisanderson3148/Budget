@@ -3,6 +3,7 @@
 from __future__ import print_function
 import sys
 import os
+import inspect
 import traceback
 import MySQLdb
 import transferCheckUtils
@@ -44,7 +45,7 @@ class ProcessDownloads(object):
         all_exist = True
         for download_file in [self.CU_FILE, self.CK_FILE, self.DI_FILE, self.CI_FILE]:
             if not os.path.exists(download_file):
-                self.logger.log('Download file "' + download_file + '" does not exist')
+                self.logger.log('Download file "{}" does not exist'.format(download_file))
                 all_exist = False
         if not all_exist:
             sys.exit(1)
@@ -53,30 +54,34 @@ class ProcessDownloads(object):
         self.db.close()
         self.logger.log('Shutting down...')
 
+    def execute_cursor1(self, query_string):
+        try:
+            self.db_cursor1.execute(query_string)
+        except MySQLdb.Error:
+            (exception_type, value, tb) = sys.exc_info()
+            self.logger.log('{}(): Exception executing query: {}'.format(inspect.stack()[1][3],
+                                                                         query_string))
+            self.global_exception_printer(exception_type, value, tb)
+            sys.exit(1)
+
+    def execute_cursor2(self, query_string):
+        try:
+            self.db_cursor2.execute(query_string)
+        except MySQLdb.Error:
+            (exception_type, value, tb) = sys.exc_info()
+            self.logger.log('{}(): Exception executing query: {}'.format(inspect.stack()[1][3],
+                                                                         query_string))
+            self.global_exception_printer(exception_type, value, tb)
+            sys.exit(1)
+
     def execute(self):
         self._setup()
 
-        # store the list of main DB keys for quick searching
-        query_str = 'SELECT tran_ID from main;'
-        try:
-            self.db_cursor1.execute(query_str)
-        except MySQLdb.Error:
-            (exception_type, value, tb) = sys.exc_info()
-            self.logger.log('Main(): Exception executing query: ' + query_str)
-            self.global_exception_printer(exception_type, value, tb)
-            sys.exit(1)
-
+        # store the list of main DB and checks keys for quick searching
+        self.execute_cursor1('SELECT tran_ID from main;')
         db_keys = set(row[0] for row in self.db_cursor1)
 
-        query = 'SELECT tnum from checks;'
-        try:
-            self.db_cursor1.execute(query)
-        except MySQLdb.Error:
-            (exception_type, value, tb) = sys.exc_info()
-            self.logger.log('Main(): Exception executing query: ' + query)
-            self.global_exception_printer(exception_type, value, tb)
-            sys.exit(1)
-
+        self.execute_cursor1('SELECT tnum from checks;')
         ck_keys = set(row[0] for row in self.db_cursor1)
 
         transfer = TransferMonthlyFilesToDB(self.db_cursor1, self.logger)
@@ -104,8 +109,9 @@ class ProcessDownloads(object):
             t_dict = transfer.read_monthly_discover_file(self.DI_FILE, True)
             self.insert_dict_into_main_db(t_dict, db_keys)
 
-        self.logger.log('\n' + ('Inserted ' if self.DO_INSERT else 'Did not insert ') +
-                        str(self.records_inserted) + ' records into DB')
+        self.logger.log('\n{}{} records into DB'.
+                        format(('Inserted ' if self.DO_INSERT else 'Would have inserted '),
+                               self.records_inserted))
 
         self.print_uncleared_checks()
         self.print_unrecorded_checks()
@@ -121,37 +127,25 @@ class ProcessDownloads(object):
         trs = ''
         for my_trace_back in traceback.format_list(traceback.extract_tb(trace_back)):
             trs += my_trace_back
-        self.logger.log('**********************************\nException occurred\nType: ' + str(e_type) +
-                        '\nValue: ' + str(val) + '\nTraceback:\n' + trs +
-                        '*********************************')
+        self.logger.log('**********************************')
+        self.logger.log('Exception occurred\nType: {}\nValue: {}\nTraceback:\n{}'.
+                        format(e_type, val, trs))
+        self.logger.log('**********************************')
 
     def clear_cu_checks(self):
         """Runs query to identify main table check entries and attempt to clear them"""
         updated = 0
         local_query = ('select tran_checknum,tran_date from main where tran_checknum != "0" and '
                        'tran_type = "b";')
-        try:
-            self.db_cursor1.execute(local_query)
-        except MySQLdb.Error:
-            (my_exception_type, my_value, my_tb) = sys.exc_info()
-            self.logger.log('clearCUChecks(): Exception executing query: ' + local_query)
-            self.global_exception_printer(my_exception_type, my_value, my_tb)
-            sys.exit(1)
+        self.execute_cursor1(local_query)
 
         for inner_row in self.db_cursor1:
             check_num = str(inner_row[0])
             transaction_date = inner_row[1]
 
-            local_query = ('update checks set clear_date = "' +
-                           str(transaction_date) +
-                           '" where tchecknum = "' + check_num+'";')
-            try:
-                self.db_cursor2.execute(local_query)
-            except MySQLdb.Error:
-                (my_exception_type, my_value, my_tb) = sys.exc_info()
-                self.logger.log('clearCUChecks(): Exception executing query: ' + local_query)
-                self.global_exception_printer(my_exception_type, my_value, my_tb)
-                sys.exit(1)
+            local_query = ('update checks set clear_date = "{}" where tchecknum = "{}";'.
+                           format(transaction_date, check_num))
+            self.execute_cursor2(local_query)
 
             updated += 1
         self.db.commit()
@@ -160,108 +154,77 @@ class ProcessDownloads(object):
     def print_unknown_non_check_transactions(self):
         """Print a list of unknown, non-check transactions"""
         self.logger.log('\nNon-check transactions marked "UNKNOWN" since 1/1/2006:')
-        self.logger.log('%-12s %-40s %10s' % ("Tran date", "Description", "Amount"))
+        self.logger.log('{:12s} {:40s} {:>11s}'.format("Tran date", "Description", "Amount"))
 
         my_query = ('select tran_date,tran_desc,tran_amount from main where bud_category = "UNKNOWN" '
                     'and tran_date > "2005-12-31" and tran_desc not like "CHECK%" and tran_desc not '
                     'like "Check%" order by tran_date;')
-        try:
-            self.db_cursor1.execute(my_query)
-        except MySQLdb.Error:
-            (my_exception_type, my_value, my_tb) = sys.exc_info()
-            self.logger.log('print_unknown_non_check_transactions(): Exception executing query: ' +
-                            my_query)
-            self.global_exception_printer(my_exception_type, my_value, my_tb)
-            sys.exit(1)
+        self.execute_cursor1(my_query)
 
         amount = 0
         for inner_row in self.db_cursor1:
-            self.logger.log('%-12s %-40s $%10.2f' % (inner_row[0].strftime('%m/%d/%Y'),
-                                                     inner_row[1][:40], inner_row[2]))
+            self.logger.log('{:12s} {:40s} ${:>10.2f}'.format(inner_row[0].strftime('%m/%d/%Y'),
+                                                              inner_row[1][:40], inner_row[2]))
             amount += inner_row[2]
         self.logger.log('-----------------------------------------------------------------')
-        self.logger.log('%-53s $%10.2f' % ('Total:', amount))
+        self.logger.log('{:53s} ${:>10.2f}'.format('Total:', amount))
 
     def print_unrecorded_checks(self):
         """Print a list of unrecorded checks"""
         self.logger.log('\nCleared, unrecorded checks: ')
-        self.logger.log('%-5s %-12s %8s' % ("CNum", "Cleared date", "Amount"))
+        self.logger.log('{:5s} {:12s} {:>8s}'.format("CNum", "Cleared date", "Amount"))
 
         my_query = ('select tran_checknum,tran_date,tran_amount from main where tran_checknum != "0" and'
                     ' tran_type = "b";')
-        try:
-            self.db_cursor1.execute(my_query)
-        except MySQLdb.Error:
-            (my_exception_type, my_value, my_tb) = sys.exc_info()
-            self.logger.log('print_unrecorded_checks(): Exception executing query: ' + my_query)
-            self.global_exception_printer(my_exception_type, my_value, my_tb)
-            sys.exit(1)
+        self.execute_cursor1(my_query)
 
         # for every cleared CU check, see if it also exists as a transaction in
         # the checks DATABASE, with at least an amount
         for inner_row in self.db_cursor1:
-            my_query = ('select tchecknum from checks where tchecknum = "'+str(inner_row[0])
-                        + '" and tamt is not null;')
-            try:
-                self.db_cursor2.execute(my_query)
-            except MySQLdb.Error:
-                (my_exception_type, my_value, my_tb) = sys.exc_info()
-                self.logger.log('print_unrecorded_checks(): Exception executing query: ' + my_query)
-                self.global_exception_printer(my_exception_type, my_value, my_tb)
-                sys.exit(1)
+            my_query = ('select tchecknum from checks where tchecknum = "{}" and tamt is not null;'.
+                        format(inner_row[0]))
+            self.execute_cursor2(my_query)
 
             if self.db_cursor2.rowcount == 0:
-                self.logger.log('%-5d %-12s $%7.2f' % (inner_row[0], inner_row[1].strftime('%m/%d/%Y'),
-                                                       abs(inner_row[2])))
+                self.logger.log('{:5d} {:12s} ${:>7.2f}'.format(inner_row[0],
+                                                                inner_row[1].strftime('%m/%d/%Y'),
+                                                                abs(inner_row[2])))
 
     def print_uncleared_checks(self):
         """Print a list of uncleared checks"""
         my_dict = dict()
         self.logger.log('\nUncleared checks since 1/1/2006: ')
-        self.logger.log('%-5s %-10s %8s %-30s %s' % ("CNum", "Date", "Amt", "Payee", "Comments"))
+        self.logger.log('{:5s} {:10s} {:>8s} {:30s} {}'.
+                        format("CNum", "Date", "Amt", "Payee", "Comments"))
 
         my_query = ('select tnum,tdate,tamt,tpayee,comments from checks where clear_date is null and '
                     'tdate > "2005-12-31" and tamt != 0.0 order by tnum;')
-        try:
-            # uncleared checks have no cleared date, transacted in 2006 or later, and have an amount (not
-            # cancelled)
-            self.db_cursor1.execute(my_query)
-        except MySQLdb.Error:
-            (my_exception_type, my_value, my_tb) = sys.exc_info()
-            self.logger.log('print_uncleared_checks(): Exception executing query: ' + my_query)
-            self.global_exception_printer(my_exception_type, my_value, my_tb)
-            sys.exit(1)
+        self.execute_cursor1(my_query)
 
         for inner_row in self.db_cursor1:
             key = (str(inner_row[1])+inner_row[0]+str(abs(inner_row[2]))+inner_row[3]+inner_row[4])
-            my_dict[key] = ('%-5s %10s $%7.2f %-30s %s' %
-                            (inner_row[0], inner_row[1].strftime('%m/%d/%Y'),
-                             abs(inner_row[2]), inner_row[3], inner_row[4]))
+            my_dict[key] = ('{:5s} {:10s} ${:>7.2f} {:30s} {}'.
+                            format(inner_row[0], inner_row[1].strftime('%m/%d/%Y'), abs(inner_row[2]),
+                                   inner_row[3], inner_row[4]))
 
         my_query = ('select tnum,tdate,tamt,tpayee,comments from chasechecks where clear_date is null '
                     'and tdate > "2005-12-31" and tamt != 0.0  order by tnum;')
-        try:
-            self.db_cursor1.execute(my_query)
-        except MySQLdb.Error:
-            (my_exception_type, my_value, my_tb) = sys.exc_info()
-            self.logger.log('print_uncleared_checks(): Exception executing query: ' + my_query)
-            self.global_exception_printer(my_exception_type, my_value, my_tb)
-            sys.exit(1)
+        self.execute_cursor1(my_query)
 
         for inner_row in self.db_cursor1:
             key = (str(inner_row[1]) + inner_row[0] + str(abs(inner_row[2])) + inner_row[3] +
                    inner_row[4])
-            my_dict[key] = ('%-5s %10s $%7.2f %-30s %s' %
-                            (inner_row[0], inner_row[1].strftime('%m/%d/%Y'),
-                             abs(inner_row[2]), inner_row[3], inner_row[4]))
+            my_dict[key] = ('{:5s} {:10s} ${:>7.2f} {:30s} {}'.
+                            format(inner_row[0], inner_row[1].strftime('%m/%d/%Y'), abs(inner_row[2]),
+                                   inner_row[3], inner_row[4]))
         for entry in sorted(my_dict):
             self.logger.log(my_dict[entry])
 
     def insert_dict_into_checks_db(self, download_dict, keys_set):
         """Insert checks in downloadDict into the checks DATABASE
 
-        The records in the downloadDict have all been processed so that bud_cat, bud_amt, and bud_date are
-        filled in.
+        The records in the downloadDict have all been processed so that bud_cat, bud_amt, and bud_date 
+        are filled in.
 
         :param dict download_dict: the records to insert
         :param set keys_set: Later
@@ -280,13 +243,7 @@ class ProcessDownloads(object):
                         + val[6]+'","%m/%d/%Y"),"'+val[7] + '");')
             # If inserting is enabled, insert into DATABASE
             if self.DO_INSERT:
-                try:
-                    self.db_cursor1.execute(my_query)
-                except MySQLdb.Error:
-                    (my_exception_type, my_value, my_tb) = sys.exc_info()
-                    self.logger.log('insert_dict_into_checks_db(): Exception executing query: ' + my_query)
-                    self.global_exception_printer(my_exception_type, my_value, my_tb)
-                    sys.exit(1)
+                self.execute_cursor1(my_query)
 
             self.logger.log('Key {} is not in "checks" DATABASE -- {}'.
                             format(key, ('' if self.DO_INSERT else 'would have ') + 'inserted'))
@@ -298,7 +255,8 @@ class ProcessDownloads(object):
         :param str new_key: the transaction ID of the new record
         :param list[any] val: some fields of the existing record
         :returns: whether or not to continue to insert the new record
-        :rtype: bool"""
+        :rtype: bool
+        """
         self.INSERT = 'insert'
         self.IGNORE = 'ignore'
         self.REPLACE = 'replace'
@@ -328,15 +286,7 @@ class ProcessDownloads(object):
         # Replace existing record with new record (delete existing record here, insert in caller)
         if response.lower() == self.REPLACE:
             delete_query = 'DELETE FROM main where tran_id = "{}";'.format(existing_record_key)
-            try:
-                # delete existing record from database (first part of replacing with new record)
-                self.db_cursor2.execute(delete_query)
-            except MySQLdb.Error:
-                (my_exception_type, my_value, my_tb) = sys.exc_info()
-                self.logger.log('insert_dict_into_main_db(): Exception executing query: ' +
-                                delete_query)
-                self.global_exception_printer(my_exception_type, my_value, my_tb)
-                sys.exit(1)
+            self.execute_cursor2(delete_query)
             self.logger.log("Deleted record with key {} as part of replacing it.".
                             format(existing_record_key))
             return True  # next, insert the new record
@@ -378,14 +328,7 @@ class ProcessDownloads(object):
                            'where tran_date=STR_TO_DATE("' + val[0] + '","%m/%d/%Y") and tran_desc="' +
                            val[2] + '" and tran_amount="' + val[5] + '" and tran_checknum="' +
                            val[3] + '";')
-            try:
-                self.db_cursor1.execute(check_query)
-            except MySQLdb.Error:
-                (my_exception_type, my_value, my_tb) = sys.exc_info()
-                self.logger.log('insert_dict_into_main_db(): Exception executing query: {}'.
-                                format(check_query))
-                self.global_exception_printer(my_exception_type, my_value, my_tb)
-                sys.exit(1)
+            self.execute_cursor1(check_query)
 
             # If the new record possibly matches an existing record, decide what to do with it
             if self.db_cursor1.rowcount > 0:
@@ -401,14 +344,8 @@ class ProcessDownloads(object):
                             '", "' + (val[3] if val[3] else "0") + '", "' + val[4] + '", "' + val[5] +
                             '", "' + val[6] + '", "' + str(val[7]) + '", STR_TO_DATE("' +
                             (val[8] if len(val[8]) else val[0]) + '","%m/%d/%Y"), "' + val[9] + '");')
+                self.execute_cursor1(my_query)
 
-                try:
-                    self.db_cursor1.execute(my_query)
-                except MySQLdb.Error:
-                    (my_exception_type, my_value, my_tb) = sys.exc_info()
-                    self.logger.log('insert_dict_into_main_db(): Exception executing query: ' + my_query)
-                    self.global_exception_printer(my_exception_type, my_value, my_tb)
-                    sys.exit(1)
                 self.records_inserted += 1  # only increment the records_inserted counter here
             else:  # Log like we are doing an insert, but don't insert and don't count it
                 val[1] = new_key
