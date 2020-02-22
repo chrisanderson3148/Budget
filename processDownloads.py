@@ -340,10 +340,11 @@ class ProcessDownloads(object):
             if self.DO_INSERT:
                 my_query = ('INSERT into main (tran_date,tran_ID,tran_desc,tran_checknum,tran_type,'
                             'tran_amount,bud_category,bud_amount,bud_date,comment) VALUES '
-                            '(STR_TO_DATE("' + val[0] + '","%m/%d/%Y"), "' + new_key+'", "' + val[2] +
-                            '", "' + (val[3] if val[3] else "0") + '", "' + val[4] + '", "' + val[5] +
-                            '", "' + val[6] + '", "' + str(val[7]) + '", STR_TO_DATE("' +
-                            (val[8] if len(val[8]) else val[0]) + '","%m/%d/%Y"), "' + val[9] + '");')
+                            '(STR_TO_DATE("' + val[0] + '","%m/%d/%Y"), "' + new_key + '", "' +
+                            val[2][:120] + '", "' + (val[3] if val[3] else "0") + '", "' + val[4] +
+                            '", "' + val[5] + '", "' + val[6] + '", "' + str(val[7]) +
+                            '", STR_TO_DATE("' + (val[8] if len(val[8]) else val[0]) +
+                            '","%m/%d/%Y"), "' + val[9] + '");')
                 self.execute_cursor1(my_query)
 
                 self.records_inserted += 1  # only increment the records_inserted counter here
