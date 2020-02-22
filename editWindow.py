@@ -659,6 +659,7 @@ class EditWindow(MyWindow):
         else:
             old_tid_base = old_tid
 
+        query = ""
         # Make sure transaction ID matches with multiple or single budget entries
         if not old_is_multi and len(old_transaction[g.tBudarr]) > 1:
             WindowUtils.popup_message_ok('update_database(): This transaction ID implies single budget, '
@@ -670,9 +671,9 @@ class EditWindow(MyWindow):
             return
 
         try:
-            db_cursor = self.bud_db.execute_query('select * from ' + ('main' if is_main else 'checks')
-                                                  + ' where ' + ('tran_ID' if is_main else 'tnum')
-                                                  + ' like "' + old_tid_base + '%";')
+            query = ('select * from ' + ('main' if is_main else 'checks') + ' where ' +
+                     ('tran_ID' if is_main else 'tnum') + ' like "' + old_tid_base + '%";')
+            db_cursor = self.bud_db.execute_query(query)
         except MySQLdb.Error, excp:
             WindowUtils.popup_message_ok('update_database(): mysql exception counting old transaction '
                                          'database records: ' + str(excp))
@@ -691,7 +692,8 @@ class EditWindow(MyWindow):
         elif not old_is_multi and num_rows != 1:
             WindowUtils.popup_message_ok('update_database(): This transaction has only one budget entry,'
                                          ' but the ' + ('main' if is_main else 'checks') +
-                                         ' database has ' + str(num_rows) + ' rows instead.')
+                                         ' database has ' + str(num_rows) + ' rows instead. Query="' +
+                                         query + '"')
             return
 
         #

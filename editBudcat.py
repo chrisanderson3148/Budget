@@ -56,7 +56,7 @@ def new_transaction():
     return _new_transaction
 
 
-def do_add_check(my_entry=None):
+def do_add_check(my_entry=None, add_anyway=False):
     """Handle calling the check editor window and returning if there were changes.
 
     :param dict my_entry: (optional) check transaction dictionary to add
@@ -72,7 +72,10 @@ def do_add_check(my_entry=None):
         my_entry = new_transaction()
         new = True
     else:
-        new = False
+        if add_anyway:
+            new = True
+        else:
+            new = False
 
     WindowUtils.popup_message_ok('do_add_check(): '+str(my_entry))
 
@@ -264,7 +267,7 @@ def do_transaction_list_window(
             return
 
         if add_edit:
-            resp = do_add_check(my_entry=data_array[entry_index])
+            resp = do_add_check(my_entry=data_array[entry_index], add_anyway=True)
         elif len(args) == 4:  # main and check transactions are combined edit the selected list item,
             # either check or main -- This may change the contents of this window
             resp = do_edit_win_both(data_array[entry_index])
