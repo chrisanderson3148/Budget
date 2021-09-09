@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 """Edit budget categories module"""
 
@@ -60,6 +60,7 @@ def do_add_check(my_entry=None, add_anyway=False):
     """Handle calling the check editor window and returning if there were changes.
 
     :param dict my_entry: (optional) check transaction dictionary to add
+    :param bool add_anyway: (optional) whether to add check regardless or not
     :rtype: bool
     """
     win = EditWindow(bud_db, 3, curses.COLOR_BLUE, curses.COLOR_YELLOW)
@@ -215,8 +216,7 @@ def get_search_parameters():
     field = WindowUtils.popup_get_multiple_choice_vert('Select one of the columns from table '
                                                        + table +':', columns, '')
     if not field.upper() in columns:
-        WindowUtils.popup_message_ok('No such field "' + field + '" in table ' + table + ': {}'
-                                     .format(columns))
+        WindowUtils.popup_message_ok(f"No such field '{field}' in table '{table}': {columns}")
         return '', '', '', ''
 
     compare = WindowUtils.popup_get_multiple_choice('Select comparison:', ['equals', 'like'], '').strip()
@@ -512,10 +512,8 @@ def get_data_array_content_array(list_query, total_query):
         bud_array = list()
         try:
             transaction_id = row[g.tID].split('-')  # Check transaction ID for multi-budget tag
-        except ValueError:
-            (dummy, value, dummy) = sys.exc_info()
-            WindowUtils.popup_message_ok(['transaction ID type (' + str(type(row[g.tID])) + '): '
-                                          + value.message, list_query])
+        except ValueError as ve:
+            WindowUtils.popup_message_ok([f"transaction ID type ({str(type(row[g.tID]))}): <{ve}>, '{list_query}'"])
             return None, None, None
 
         # Handle multi-budget items
@@ -850,10 +848,9 @@ def handle_edit_budget_by_month_both(year_month):
     :param str year_month: the year and month to query for as 'yyyy-mm'
     """
     try:
-        datetime.datetime.strptime(year_month + '-01', '%Y-%m-%d')
-    except ValueError:
-        (dummy, value, dummy) = sys.exc_info()
-        WindowUtils.popup_message_ok('User entered "' + year_month + '": ' + value.message)
+        datetime.datetime.strptime(f"{year_month}-01", '%Y-%m-%d')
+    except ValueError as ve:
+        WindowUtils.popup_message_ok(f"User entered '{year_month}': {ve}")
         return
 
     list_query, total_query = get_month_query(year_month)
@@ -896,9 +893,8 @@ def handle_edit_check_by_month(year_month):
     """
     try:
         datetime.datetime.strptime(year_month + '-01', '%Y-%m-%d')
-    except ValueError:
-        (dummy, value, dummy) = sys.exc_info()
-        WindowUtils.popup_message_ok('User entered "' + year_month + '": ' + value.message)
+    except ValueError as ve:
+        WindowUtils.popup_message_ok(f"User entered '{year_month}': {ve}")
         return
 
     query = get_check_month_query(year_month)
@@ -1165,7 +1161,7 @@ def get_list_item(top_of_list, left_margin, num_rows, win, my_win=None):
                 win.move(top, left)
                 win.refresh()
         except curses.error:
-            ScreenWindow.my_quit('getListItem win.move({},{}) exception'.format(top, left))
+            ScreenWindow.my_quit(f"getListItem win.move({top},{left}) exception")
 
 
 def global_exception_handler(exception_type, value, trace_back):

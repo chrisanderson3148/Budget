@@ -1,10 +1,10 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """Python executable script to create the monthly budget summary files"""
 
 from __future__ import print_function
 import sys
 import os
-import MySQLdb
+import pymysql
 from utils import Logger
 
 
@@ -35,7 +35,7 @@ class MonthlyBudgetSummaries(object):
 
     def __init__(self):
         # Open a connection to the DATABASE
-        self.database = MySQLdb.connect(host='localhost', user='root', passwd='sawtooth',
+        self.database = pymysql.connect(host='localhost', user='root', passwd='sawtooth',
                                         db='officialBudget')
         self.db_cursor = self.database.cursor()
         self.logger = Logger('create_monthly_budget_summaries_log')
@@ -89,10 +89,10 @@ class MonthlyBudgetSummaries(object):
 
         # see if there are any results to save to the file
         if not buds_summary:
-            self.logger.log('writeMonthlyCsv: No entries for my_month {}'.format(name))
+            self.logger.log(f"writeMonthlyCsv: No entries for my_month {name}")
             return
         else:
-            self.logger.log('writeMonthlyCsv: Month {} has {} entries'.format(name, len(buds_summary)))
+            self.logger.log(f"writeMonthlyCsv: Month {name} has {len(buds_summary)} entries")
 
         # write out to the file
         with open('catfiles/'+name.replace(' ', '')+'cat.csv', 'w') as file_ptr:
@@ -162,10 +162,10 @@ class MonthlyBudgetSummaries(object):
 
         # see if there are any results to save to the file
         if not buds_summary:
-            self.logger.log('writeMonthlyText: No entries for my_month {}'.format(name))
+            self.logger.log(f"writeMonthlyText: No entries for my_month {name}")
             return
         else:
-            self.logger.log('writeMonthlyText: Month {} has {} entries'.format(name, len(buds_summary)))
+            self.logger.log(f"writeMonthlyText: Month {name} has {len(buds_summary)} entries")
 
         # write out to the file
         with open('catfiles/' + name.replace(' ', '') + 'cat.txt', 'w') as file_ptr:
@@ -264,7 +264,7 @@ if len(sys.argv) > 1:
     else:
         YEAR_HAS_MONTH = False
 else:
-    print('Usage {} yyyy[-mm]'.format(sys.argv[0]))
+    print(f"Usage {sys.argv[0]} yyyy[-mm]")
     sys.exit(1)
 
 # Verify symbolic link to 'catfiles' is not broken

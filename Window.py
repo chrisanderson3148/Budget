@@ -33,7 +33,7 @@ class ScreenWindow(object):
         height, width = cls.screen.getmaxyx()
         cls.HEIGHT = height
         cls.WIDTH = width
-        cls.screen.addstr(0, (width - len(title)) / 2, title, curses.A_STANDOUT)
+        cls.screen.addstr(0, (width - len(title)) // 2, title, curses.A_STANDOUT)
         cls.screen.refresh()
 
         # Set some globals
@@ -167,13 +167,13 @@ class MyWindow(ScreenWindow):
     def draw_border(self):
         """Draw my border."""
         self.win.box(self.vch, self.hch)
-        self.win.addstr(0, (self.width-len(self.title))/2, self.title, curses.A_STANDOUT)
+        self.win.addstr(0, (self.width-len(self.title)) // 2, self.title, curses.A_STANDOUT)
         if self.window_type != 'popup' and self.window_type != 'message':
             self.win.addstr(0, self.width - 10, 'Page %d/%d' % (self.current_page, self.pages),
                             curses.A_STANDOUT)
             self.win.addstr(0, 2, 'Pos: %d,%d' % (self.curr_x, self.curr_y), curses.A_STANDOUT)
         if self.window_type == 'message':
-            self.win.addstr(self.height-1, (self.width-2)/2, ' OK ', curses.A_STANDOUT)
+            self.win.addstr(self.height-1, (self.width-2) // 2, ' OK ', curses.A_STANDOUT)
         self.win.move(self.curr_y, self.curr_x)
         self.win.refresh()
         self.log.write('drawBorder[main] window (title='+self.title+')\n')
@@ -267,7 +267,7 @@ class PopupWindow(MyWindow):
     def draw_border(self):
         """Draw my border."""
         self.win.box(self.vch, self.hch)
-        self.win.addstr(0, (self.width-len(self.title))/2, self.title, curses.A_STANDOUT)
+        self.win.addstr(0, (self.width-len(self.title)) // 2, self.title, curses.A_STANDOUT)
         self.win.move(self.curr_y, self.curr_x)
         self.win.refresh()
         self.read_content_lines()
@@ -293,8 +293,8 @@ class MessageWindow(MyWindow):
     def draw_border(self):
         """Draw my border."""
         self.win.box(self.vch, self.hch)
-        self.win.addstr(0, (self.width-len(self.title))/2, self.title, curses.A_STANDOUT)
-        self.win.addstr(self.height-1, (self.width-2)/2, ' OK ', curses.A_STANDOUT)
+        self.win.addstr(0, (self.width-len(self.title)) // 2, self.title, curses.A_STANDOUT)
+        self.win.addstr(self.height-1, (self.width-2) // 2, ' OK ', curses.A_STANDOUT)
         self.win.move(self.curr_y, self.curr_x)
         self.win.refresh()
         self.read_content_lines()

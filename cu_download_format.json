@@ -1,0 +1,64 @@
+{
+  "field_types": [
+    {
+      "name": "Transaction ID",
+      "data_type": "freestr"
+    },
+    {
+      "name": "Posting Date",
+      "data_type": "date",
+      "regex": "^\\d{1,2}/\\d{1,2}/\\d{4}$"
+    },
+    {
+      "name": "Effective Date",
+      "data_type": "date",
+      "regex": "^\\d{1,2}/\\d{1,2}/\\d{4}$"
+    },
+    {
+      "name": "Transaction Type",
+      "data_type": "str",
+      "regex": "^(Credit|Debit)$"
+    },
+    {
+      "name": "Amount",
+      "data_type": "float",
+      "regex": "^-?\\d+.\\d+$"
+    },
+    {
+      "name": "Check Number",
+      "data_type": "str",
+      "regex": "^\\d*$"
+    },
+    {
+      "name": "Reference Number",
+      "data_type": "str",
+      "regex": "^\\d+$"
+    },
+    {
+      "name": "Description",
+      "data_type": "freestr"
+    },
+    {
+      "name": "Transaction Category",
+      "data_type": "freestr"
+    },
+    {
+      "name": "Type",
+      "data_type": "str",
+      "regex": "^(ACH|Deposit|Withdrawal)$"
+    },
+    {
+      "name": "Balance",
+      "data_type": "float",
+      "regex": "^-?\\d+.\\d+$"
+    },
+    {
+      "name": "Memo",
+      "data_type": "freestr"
+    },
+    {
+      "name": "Extended Description",
+      "data_type": "freestr"
+    }
+  ]
+}

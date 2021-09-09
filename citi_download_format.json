@@ -1,0 +1,33 @@
+{
+  "field_types": [
+    {
+      "name": "Status",
+      "data_type": "str",
+      "regex": "^(Cleared|Pending)$"
+    },
+    {
+      "name": "Date",
+      "data_type": "date",
+      "regex": "^\\d{1,2}/\\d{1,2}/\\d{4}$"
+    },
+    {
+      "name": "Description",
+      "data_type": "freestr"
+    },
+    {
+      "name": "Debit",
+      "data_type": "float",
+      "regex": "^(|\\d+.\\d+)$"
+    },
+    {
+      "name": "Credit",
+      "data_type": "float",
+      "regex": "^(|-\\d+.\\d+)$"
+    },
+    {
+      "name": "Member Name",
+      "data_type": "str",
+      "regex": "^(CHRIS ANDERSON|KATHY ANDERSON)$"
+    }
+  ]
+}

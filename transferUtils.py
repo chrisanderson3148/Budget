@@ -19,7 +19,7 @@ def clear_commas_in_quotes(replace_char, line):
             break
         idx2 = line.find('"', idx1+1)  # index of closing quote
         if idx2 == -1:  # Didn't find a closing quote? Barf
-            print('Improperly formed line: opening " but no closing " in line\n{}'.format(line))
+            print(f"Improperly formed line: opening \" but no closing \" in line\n{line}")
             sys.exit(1)
 
         # replace all found commas with replace_char within the opening and closing quotes
@@ -33,18 +33,17 @@ def clear_commas_in_quotes(replace_char, line):
         # move after closing quote to begin another search for an opening quote
         start = idx2 + 1
     # now line is clear of confusing commas
-    line = line.translate(None, '"')  # remove all double-quotes
+    line = line.replace('"', '')  # remove all double-quotes
     return line
 
 
-def process_budget_fields(extra_field, transaction_amount, default_category, transaction_date,
-                          transaction_reference):
+def process_budget_fields(extra_field, transaction_amount, default_category, transaction_date, transaction_reference):
     """Process the budget fields in the payee file (???)
     Returns a dictionary of the payee file
 
     Each field in extra_field can be like: 'BUDCAT[=BUDAMT[=BUDDATE]]', or 'DATE=<BUDDATE>'
 
-    :param str extra_field:
+    :param list[str] extra_field:
     :param str transaction_amount:
     :param str default_category:
     :param str transaction_date:
@@ -93,30 +92,29 @@ def process_budget_fields(extra_field, transaction_amount, default_category, tra
     # remainder is a double and is always POSITIVE
     remainder = abs(float(transaction_amount))
 
-    for key, val in collections.OrderedDict(sorted(budget_dict.items())).iteritems():
-        if not val[0]:
+    # for key, val in collections.OrderedDict(sorted(budget_dict.items())).iteritems():
+    for key in budget_dict:
+        if not budget_dict[key][0]:
             budget_dict[key][0] = default_category  # default
 
         # The assumption is that all budget amounts are positive, but use
         # the same sign as the transaction amount
-        if not val[1]:  # no budget amount?
+        if not budget_dict[key][1]:  # no budget amount?
             # assign any remainder to it
             budget_dict[key][1] = '%.2f' % (-1.0*remainder if tran_amt_isneg else remainder)
             remainder = 0.0
         else:  # otherwise decrement remainder by the budget amount
             # keep track of the remainder
-            remainder = remainder - float(val[1])
+            remainder = remainder - float(budget_dict[key][1])
             if tran_amt_isneg and not budget_dict[key][1].startswith('-'):
                 budget_dict[key][1] = '-'+budget_dict[key][1]
             if remainder < 0.0:  # something didn't add up
                 remainder = 0.0
-                print('Calculating amount for {} and got a remainder less than zero (transaction_'
-                      'reference={}, extra fields={})'.format(val, transaction_reference, ','
-                                                              .join(extra_field)))
+                print(f"Calculating amount for {budget_dict[key]} and got a remainder less than zero (transaction_"
+                      f"reference={transaction_reference}, extra fields={','.join(extra_field)})")
         # end if
-        if not val[2]:  # no budget date?
-            budget_dict[key][2] = transaction_date # assign transaction date
-            # end if
+        if not budget_dict[key][2]:  # no budget date?
+            budget_dict[key][2] = transaction_date  # assign transaction date
     # end for
     return budget_dict
 

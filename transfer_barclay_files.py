@@ -28,8 +28,8 @@ class Mixin(object):
                                 not '<TRNAMT>' in trans or \
                                 not '<FITID>' in trans or \
                                 not '<NAME>' in trans:
-                            self.logger.log('Missing fields in file {}. Expected 4 fields, but one or '
-                                            'more are missing: {}'.format(file_name, trans))
+                            self.logger.log(f"Missing fields in file {file_name}. Expected 4 fields, but one or "
+                                            f"more are missing: {trans}")
                             sys.exit(1)
                         match_obj = re.search(r'<FITID>([^<]+)<', trans)
                         if match_obj:
@@ -119,15 +119,15 @@ class Mixin(object):
 
                 # remove all double-quote characters (by this point it is guaranteed that there are no
                 # extraneous commas)
-                line = line.translate(None, '"')
+                line = line.replace('"', '')
 
                 # split the line into fields (comma-separated)
                 field = line.split(',')
 
                 # verify there are no FEWER than the expected number of fields (can be greater)
                 if len(field) < expected_fields:
-                    self.logger.log('Missing fields in file {}. Expected at least {} but got {}. '
-                                    'Line:\n{}'.format(file_name, expected_fields, len(field), line))
+                    self.logger.log(f"Missing fields in file {file_name}. Expected at least {expected_fields} but "
+                                    f"got {len(field)}. Line:\n{line}")
                     sys.exit(1)
 
                 # parse the date field -- transaction date

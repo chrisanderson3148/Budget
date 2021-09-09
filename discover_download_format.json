@@ -1,0 +1,27 @@
+{
+  "field_types": [
+    {
+      "name": "Trans. Date",
+      "data_type": "date",
+      "regex": "^\\d{1,2}/\\d{1,2}/\\d{4}$"
+    },
+    {
+      "name": "Post Date",
+      "data_type": "date",
+      "regex": "^\\d{1,2}/\\d{1,2}/\\d{4}$"
+    },
+    {
+      "name": "Description",
+      "data_type": "freestr"
+    },
+    {
+      "name": "Amount",
+      "data_type": "float",
+      "regex": "^\\d+.\\d+$"
+    },
+    {
+      "name": "Category",
+      "data_type": "freestr"
+    }
+  ]
+}

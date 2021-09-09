@@ -9,7 +9,7 @@ class Logger(object):
         now_is = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.log('\n\n\n\n')
         self.log('*' * (len(now_is) + 18))
-        self.log('******** {} ********'.format(now_is))
+        self.log(f"******** {now_is} ********")
         self.log('*' * (len(now_is) + 18))
         self.log('\n\n')
 
@@ -25,12 +25,12 @@ class Logger(object):
 def get_valid_response(question, valid_responses, case_sensitive=False):
     if case_sensitive:
         while True:
-            response = raw_input("{} {}".format(question, valid_responses))
+            response = input(f"{question} {valid_responses}")
             if response in valid_responses:
                 return response
     else:
         lower_valid_responses = [resp.lower() for resp in valid_responses]
         while True:
-            response = raw_input("{} {}".format(question, lower_valid_responses))
+            response = input(f"{question} {lower_valid_responses}")
             if response.lower() in lower_valid_responses:
                 return response

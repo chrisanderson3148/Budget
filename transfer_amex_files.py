@@ -32,7 +32,7 @@ class Mixin(object):
 
                 # remove all double-quote characters (by this point it is
                 # guaranteed that there are no extraneous commas)
-                line = line.translate(None, '"')
+                line = line.replace('"', '')
 
                 # split the line into fields (comma-separated)
                 field = line.split(',')

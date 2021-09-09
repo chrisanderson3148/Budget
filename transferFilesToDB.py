@@ -7,16 +7,10 @@ import glob
 import json
 from warnings import filterwarnings
 import pprint
-import MySQLdb
-import transfer_cu_files
-import transfer_amex_files
-import transfer_citi_files
-import transfer_discover_files
-import transfer_chase_files
-import transfer_barclay_files
+import pymysql
 from transferPayee import TransferPayee
 
-filterwarnings('ignore', category=MySQLdb.Warning)
+filterwarnings('ignore', category=pymysql.Warning)
 
 # Formats of output monthly files by source for one-time transfer to DATABASE.
 #  Credit Union -- header line and 11 double-quoted, comma-separated fields
@@ -47,9 +41,7 @@ filterwarnings('ignore', category=MySQLdb.Warning)
 #   data is created to replace it.
 
 
-class TransferMonthlyFilesToDB(transfer_barclay_files.Mixin, transfer_chase_files.Mixin,
-                               transfer_discover_files.Mixin, transfer_citi_files.Mixin,
-                               transfer_amex_files.Mixin, transfer_cu_files.Mixin, object):
+class TransferMonthlyFilesToDB(object):
     """Class to transfer monthly files to DATABASE
 
     :param Any cursor: the DATABASE CURSOR object
@@ -118,10 +110,10 @@ class TransferMonthlyFilesToDB(transfer_barclay_files.Mixin, transfer_chase_file
         for key in self.payroll_ignore_transfer_dict:
             if key in payee:
                 category = self.payroll_ignore_transfer_dict[key]
-                self.logger.log('Payee "{}" match "{}" with category "{}"'.format(payee, key, category))
+                self.logger.log(f"Payee '{payee}' match '{key}' with category '{category}'")
                 return category
 
-        self.logger.log('No payroll/ignore/transfer match found in "{}"'.format(payee))
+        self.logger.log(f"No payroll/ignore/transfer match found in '{payee}'")
         if 'transfer' in payee.lower():
             return 'TRANSFER'
 
@@ -158,4 +150,3 @@ class TransferMonthlyFilesToDB(transfer_barclay_files.Mixin, transfer_chase_file
         # If all else fails, return the default
         self.logger.log('Payee "' + payee + '" no match found')
         return self.DEFAULT_BUDGET_CATEGORY
-

@@ -1,6 +1,6 @@
 """Module to handle mySQL activities"""
 from __future__ import print_function
-import MySQLdb
+import pymysql
 
 
 class BudgetDB(object):
@@ -13,7 +13,7 @@ class BudgetDB(object):
     """
     def __init__(self, host, user, password, db_name):
         # Open a connection to the DATABASE
-        self.db_connection = MySQLdb.connect(host=host, user=user, passwd=password, db=db_name)
+        self.db_connection = pymysql.connect(host=host, user=user, passwd=password, db=db_name)
         self.cursor = self.db_connection.cursor()
         self.cursor2 = self.db_connection.cursor()
 
@@ -48,7 +48,7 @@ class BudgetDB(object):
         """Execute the query against the first database CURSOR
 
         :param str query: the query to execute
-        :rtype: MySQLdb.cursors.Cursor
+        :rtype: pymysql.cursors.Cursor
         """
         self.cursor.execute(query)
         return self.cursor
@@ -57,7 +57,7 @@ class BudgetDB(object):
         """Execute the query against the alternate, extra database CURSOR
 
         :param str query: the query to execute
-        :rtype: MySQLdb.cursors.Cursor
+        :rtype: pymysql.cursors.Cursor
         """
         self.cursor2.execute(query)
         return self.cursor2

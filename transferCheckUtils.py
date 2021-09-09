@@ -24,7 +24,7 @@ def parse_budget_fields(extra_field):
     'BUDCAT[=BUDAMT[=BUDDATE]]', or
     'DATE=<BUDDATE>'
 
-    :param str extra_field:
+    :param list[str] extra_field:
     """
     bud_cat = ''
     bud_amt = ''
@@ -75,25 +75,31 @@ def read_checks_file(file_name):
         for line in file_ptr:
             # Clean up line
             # strip leading and trailing blanks
-            line = line.rstrip().lstrip()
+            line = line.strip()
+
+            # ignore blank lines
             if not line:
                 continue  # ignore blank lines
+
+            # ignore full-line comments
             if line.startswith('#'):
-                continue  # ignore full-line comments
+                continue
             if line.startswith('//'):
-                continue  # ignore full-line comments
+                continue
+
+            # gather end-of-line comments
             comment = ''
             idx = line.find('#')
             if idx >= 0:
-                comment = line[idx+1:].lstrip()
+                comment = line[idx+1:].strip()
                 line = line[:idx]  # strip off any comments
             idx = line.find('//')
             if idx >= 0:
-                comment = line[idx+2:].lstrip()
+                comment = line[idx+2:].strip()
                 line = line[:idx]  # strip off any comments
 
             # remove all double-quote characters
-            comment = comment.translate(None, '"')
+            comment = comment.replace('"', '')
 
             # Parse line
             if len(line) < 7:
@@ -110,7 +116,7 @@ def read_checks_file(file_name):
             amt = field[0].strip()
 
             # Parse the date
-            if len(field) > 1: # if there are 2 or more fields, set the date
+            if len(field) > 1:  # if there are 2 or more fields, set the date
                 date = field[1].strip()
             else:
                 date = ''
@@ -130,6 +136,10 @@ def read_checks_file(file_name):
 
             # remainder is a double and is always POSITIVE
             remainder = abs(float(amt))
+            print(f"bud_dict={bud_dict}")
+            print(f"bud_dict.items()={bud_dict.items()}")
+            print(f"line {line_num} '{line}'")
+            # for key, val in collections.OrderedDict(bud_dict.items()):
             for key, val in collections.OrderedDict(sorted(bud_dict.items())).iteritems():
                 if not val[0]:
                     bud_dict[key][0] = 'UNKNOWN'  # default
@@ -149,8 +159,7 @@ def read_checks_file(file_name):
                         bud_dict[key][1] = '-'+bud_dict[key][1]
                     if remainder < 0.0:  # something didn't add up
                         remainder = 0.0
-                        print('Calculating amount for {} and got a remainder less than zero.'
-                              .format(val))
+                        print(f"Calculating amount for {val} and got a remainder less than zero.")
                 if not val[2]:  # no budget date?
                     bud_dict[key][2] = date  # assign transaction date
 
@@ -159,7 +168,7 @@ def read_checks_file(file_name):
                                        bud_dict[0][0], bud_dict[0][1], bud_dict[0][2], comment]
             else:
                 key_prefix = check_num
-                for key, bud in collections.OrderedDict(sorted(bud_dict.items())).iteritems():
+                for key, bud in collections.OrderedDict(sorted(bud_dict.items())):
                     my_key = key_prefix + '-' + str(key)
                     out_dict[my_key] = [check_num, amt, date, payee, bud[0], bud[1], bud[2], comment]
                     transactions += 1

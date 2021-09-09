@@ -1,8 +1,10 @@
 import sys
 import transferUtils
+import transferFilesToDB
 
 
-class Mixin(object):
+class ChaseMixin(object):
+
     def read_monthly_chase_file(self, file_name):
         """Read in the downloaded Chase Bank file line-by-line, and insert transactions in a dictionary.
         OBSOLETE
@@ -24,7 +26,7 @@ class Mixin(object):
         output_dict = dict()
         with open(file_name) as file_ptr:
             for line in file_ptr:
-                line = line.rstrip().lstrip()
+                line = line.strip()
                 if not line:
                     continue  # ignore blank lines
 
@@ -38,33 +40,22 @@ class Mixin(object):
                     comment = line[idx+2:]
                     line = line[:idx]
 
-                # remove all double-quote characters (by this point it is guaranteed that there are no
-                # extraneous commas)
-                line = line.translate(None, '"')
-
                 # split the line into fields (comma-separated)
-                field = line.split(',')
-
-                # verify there are no FEWER than the expected number of fields
-                # (can be greater)
-                if len(field) < expected_fields:
-                    self.logger.log('Missing fields in file {}. Expected at least {} but got {}. '
-                                    'Line:\n{}'.format(file_name, expected_fields, len(field), line))
-                    sys.exit(1)
+                fields = line.split(',')
 
                 # parse the date field -- transaction date
-                trans_date = field[1][4:6]+'/'+field[1][6:8]+'/'+field[1][0:4]
+                trans_date = fields[1][4:6]+'/'+fields[1][6:8]+'/'+fields[1][0:4]
 
                 # parse the transaction reference
                 # The reference will be the entire line stripped of commas and spaces
                 trans_ref = line.replace(',', '').replace(' ', '')
 
                 # transaction amount
-                trans_amt = field[3]
+                trans_amt = fields[3]
 
                 # transaction payee
                 # strip out extra spaces
-                trans_payee = ' '.join(field[2].split())
+                trans_payee = ' '.join(fields[2].split())
 
                 # Lookup the default budget category from the payee DATABASE
                 # defaults to 'UNKNOWN'
@@ -72,14 +63,12 @@ class Mixin(object):
 
                 # process the extra budget fields which may mean extra DATABASE
                 # records
-                budget_category_dict = transferUtils.process_budget_fields(field[expected_fields:],
-                                                                           trans_amt, bud_cat,
-                                                                           trans_date, trans_ref)
+                budget_category_dict = transferUtils.process_budget_fields(
+                    fields[expected_fields:], trans_amt, bud_cat, trans_date, trans_ref)
 
                 # insert the record(s) into the dictionary
-                transferUtils.insert_entry_into_dict(budget_category_dict, trans_ref, trans_date,
-                                                     trans_payee, '', 'c', trans_amt, comment,
-                                                     output_dict)
+                transferUtils.insert_entry_into_dict(
+                    budget_category_dict, trans_ref, trans_date, trans_payee, '', 'c', trans_amt, comment, output_dict)
                 line_num += 1
                 # end for
         self.logger.log('read_monthly_chase_file processed {} records from {}\n'.

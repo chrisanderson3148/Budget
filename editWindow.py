@@ -1,7 +1,7 @@
 """Module encapsulates methods relating to transaction edit windows"""
 import curses
 import datetime
-import MySQLdb
+import pymysql
 import copy
 from Window import MyWindow
 from Window import ScreenWindow
@@ -30,7 +30,7 @@ class EditWindow(MyWindow):
     def draw_border(self):
         """Draw a border around me."""
         self.win.box(self.vch, self.hch)
-        self.win.addstr(0, (self.width-len(self.title))/2, self.title, curses.A_STANDOUT)
+        self.win.addstr(0, (self.width-len(self.title)) // 2, self.title, curses.A_STANDOUT)
         self.win.addstr(0, self.width - 10, 'Page %d/%d' % (self.current_page, self.pages),
                         curses.A_STANDOUT)
         self.win.addstr(0, 2, 'Pos: %d,%d'%(self.curr_x, self.curr_y), curses.A_STANDOUT)
@@ -147,7 +147,7 @@ class EditWindow(MyWindow):
                 display_values.insert(0, entered_value.upper())
             # if there were no matches, ask if he wants to keep it or not
             else:
-                ans = WindowUtils.popup_get_yes_no("No matching values. Use '{}'?".format(entered_value))
+                ans = WindowUtils.popup_get_yes_no(f"No matching values. Use '{entered_value}'?")
                 if ans.lower() == 'no':
                     return "unknown"
                 else:
@@ -468,7 +468,7 @@ class EditWindow(MyWindow):
                 # convert field back to floating point
                 new_transaction[g.tAmount] = amount
             except ValueError:
-                WindowUtils.popup_message_ok('"{}" is not a float!'.format(new_value))
+                WindowUtils.popup_message_ok(f"'{new_value}' is not a float!")
 
         if field_name == 'tdate':  # Checks only
             try:
@@ -498,7 +498,7 @@ class EditWindow(MyWindow):
                 bud_array[budget_entry][1] = float(new_value)
                 new_transaction[g.tBudarr] = bud_array
             except ValueError:
-                WindowUtils.popup_message_ok('"{}" is not a float!'.format(new_value))
+                WindowUtils.popup_message_ok(f"'{new_value}' is not a float!")
 
         if field_name == 'date':
             try:
@@ -527,9 +527,8 @@ class EditWindow(MyWindow):
             db_cursor = self.bud_db.execute_query('select * from ' + ('main' if is_main else 'checks')
                                                   + ' where ' + ('tran_ID' if is_main else 'tnum')
                                                   + ' like "' + tid + '%";')
-        except MySQLdb.Error, excp:
-            WindowUtils.popup_message_ok('mysql exception counting transaction database records with '
-                                         'transaction id ' + tid + ': ' + str(excp))
+        except pymysql.Error as excp:
+            WindowUtils.popup_message_ok(f"mysql exception counting transaction database records with transaction id {tid}: {str(excp)}")
             return
         num_rows = db_cursor.rowcount
         if num_rows > 0:
@@ -558,7 +557,7 @@ class EditWindow(MyWindow):
                              + new_transaction[g.tComment] + '");')
                     try:
                         self.bud_db.execute_query(query)
-                    except MySQLdb.Error, excp:
+                    except pymysql.Error as excp:
                         WindowUtils.popup_message_ok([query, 'add_database()-main-multi:', 'mysql '
                                                       'exception inserting new multibudget '
                                                       'main transaction records:', str(excp)])
@@ -584,7 +583,7 @@ class EditWindow(MyWindow):
                                 + '"' if new_transaction[g.tClearDate] else 'NULL') + ');')
                     try:
                         self.bud_db.execute_query(query)
-                    except MySQLdb.Error, excp:
+                    except pymysql.Error as excp:
                         WindowUtils.popup_message_ok([query, 'add_database()-checks-multi:',
                                                       'mysql exception inserting new multibudget checks '
                                                       'transaction records:', str(excp)])
@@ -606,7 +605,7 @@ class EditWindow(MyWindow):
                          '"' + new_transaction[g.tComment] + '");')
                 try:
                     self.bud_db.execute_query(query)
-                except MySQLdb.Error, excp:
+                except pymysql.Error as excp:
                     WindowUtils.popup_message_ok([query, 'add_database()-main-single:', 'mysql exception '
                                                   'inserting new single budget main transaction record:',
                                                   str(excp)])
@@ -631,7 +630,7 @@ class EditWindow(MyWindow):
                             if new_transaction[g.tClearDate] else 'NULL') + ');')
                 try:
                     self.bud_db.execute_query(query)
-                except MySQLdb.Error, excp:
+                except pymysql.Error as excp:
                     WindowUtils.popup_message_ok([query, 'add_database()-checks-single:',
                                                   'mysql exception inserting new single budget checks '
                                                   'transaction record:', str(excp)])
@@ -674,7 +673,7 @@ class EditWindow(MyWindow):
             query = ('select * from ' + ('main' if is_main else 'checks') + ' where ' +
                      ('tran_ID' if is_main else 'tnum') + ' like "' + old_tid_base + '%";')
             db_cursor = self.bud_db.execute_query(query)
-        except MySQLdb.Error, excp:
+        except pymysql.Error as excp:
             WindowUtils.popup_message_ok('update_database(): mysql exception counting old transaction '
                                          'database records: ' + str(excp))
             return
@@ -704,7 +703,7 @@ class EditWindow(MyWindow):
             self.bud_db.execute_query('delete from ' + ('main' if is_main else 'checks') + ' where '
                                       + ('tran_ID' if is_main else 'tnum')
                                       + ' like "' + old_tid_base + '%";')
-        except MySQLdb.Error, excp:
+        except pymysql.Error as excp:
             WindowUtils.popup_message_ok(['update_database():',
                                           'mysql exception deleting old transaction database record(s):',
                                           str(excp)])
@@ -747,7 +746,7 @@ class EditWindow(MyWindow):
                              + new_transaction[g.tComment] + '");')
                     try:
                         self.bud_db.execute_query(query)
-                    except MySQLdb.Error, excp:
+                    except pymysql.Error as excp:
                         WindowUtils.popup_message_ok([query,
                                                       'update_database()-main-multi: mysql exception '
                                                       'inserting new multibudget main transaction '
@@ -775,7 +774,7 @@ class EditWindow(MyWindow):
                                 if new_transaction[g.tClearDate] else 'NULL') + ');')
                     try:
                         self.bud_db.execute_query(query)
-                    except MySQLdb.Error, excp:
+                    except pymysql.Error as excp:
                         WindowUtils.popup_message_ok([query,
                                                       'update_database()-checks-multi: mysql exception '
                                                       'inserting new multibudget checks transaction '
@@ -798,7 +797,7 @@ class EditWindow(MyWindow):
                          + new_transaction[g.tComment] + '");')
                 try:
                     self.bud_db.execute_query(query)
-                except MySQLdb.Error, excp:
+                except pymysql.Error as excp:
                     WindowUtils.popup_message_ok([query,
                                                   'update_database()-main-single: mysql exception '
                                                   'inserting new single budget main transaction record:',
@@ -824,7 +823,7 @@ class EditWindow(MyWindow):
                             if new_transaction[g.tClearDate] else 'NULL') + ');')
                 try:
                     self.bud_db.execute_query(query)
-                except MySQLdb.Error, excp:
+                except pymysql.Error as excp:
                     WindowUtils.popup_message_ok([query,
                                                   'update_database()-main-single: mysql exception '
                                                   'inserting new single budget checks transaction '

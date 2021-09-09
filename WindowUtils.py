@@ -38,8 +38,8 @@ def popup_message_ok(message, title=' Message '):
     _my_win = Window.MessageWindow(5, curses.COLOR_BLACK, curses.COLOR_YELLOW)
 
     # Sometimes we get unicode strings from our source. Just in case we do, convert it to ASCII.
-    if isinstance(message, unicode):
-        message = message.encode('ascii', 'replace')
+    # if isinstance(message, str):
+    #     message = message.encode('ascii', 'replace')
 
     if isinstance(message, str):
         _max_len = 80
@@ -47,8 +47,8 @@ def popup_message_ok(message, title=' Message '):
             _msg_chunks = [message[i:i+_max_len] for i in range(0, len(message), _max_len)]
             _my_ht = len(_msg_chunks) + 4
 
-            _my_win.create(_my_ht, _max_len + 5, top=max(1, _my_win.s_height / 3 - _my_ht / 2),
-                           left=max(1, (_my_win.s_width - (_max_len + 5)) / 2), title=title)
+            _my_win.create(_my_ht, _max_len + 5, top=max(1, _my_win.s_height // 3 - _my_ht // 2),
+                           left=max(1, (_my_win.s_width - (_max_len + 5)) // 2), title=title)
             WindowList.add_window(_my_win.win)
             _my_win.win.bkgd(' ', curses.color_pair(5))
             pos_y = 2
@@ -57,8 +57,8 @@ def popup_message_ok(message, title=' Message '):
                 pos_y += 1
         else:
             _my_wid = max(len(message) + 5, len(title)+5)
-            _my_win.create(5, _my_wid, top=max(1, (_my_win.s_height / 3 - 2)),
-                           left=max(1, (_my_win.s_width - _my_wid) / 2), title=title)
+            _my_win.create(5, _my_wid, top=max(1, (_my_win.s_height // 3 - 2)),
+                           left=max(1, (_my_win.s_width - _my_wid) // 2), title=title)
             WindowList.add_window(_my_win.win)
             _my_win.win.bkgd(' ', curses.color_pair(5))
             _my_win.win.addstr(2, 2, message)
@@ -69,8 +69,8 @@ def popup_message_ok(message, title=' Message '):
                 _max_len = len(_msg)
         _wid = max(_max_len+5, len(title)+5)
         _my_win.create(4 + len(message), _wid,
-                       top=max(1, (_my_win.s_height / 3 - (4 + len(message)) / 2)),
-                       left=max(1, (_my_win.s_width - _wid) / 2), title=title)
+                       top=max(1, (_my_win.s_height // 3 - (4 + len(message)) // 2)),
+                       left=max(1, (_my_win.s_width - _wid) // 2), title=title)
         WindowList.add_window(_my_win.win)
         _my_win.win.bkgd(' ', curses.color_pair(5))
         pos_y = 2
@@ -114,8 +114,8 @@ def popup_get_multiple_choice(win_title, choices, default):
         # add some buffer on each end of the list of choices
         _win_wid = _len_choices + 5
 
-    _my_win.create(5, _win_wid, top=max(1, (_my_win.s_height / 3 - 2)),
-                   left=max(1, (_my_win.s_width - _win_wid) / 2), title=win_title)
+    _my_win.create(5, _win_wid, top=max(1, (_my_win.s_height // 3 - 2)),
+                   left=max(1, (_my_win.s_width - _win_wid) // 2), title=win_title)
     WindowList.add_window(_my_win.win)
     _my_win.win.bkgd(' ', curses.color_pair(5))
     _tab_arr = list()
@@ -183,7 +183,7 @@ def popup_get_multiple_choice_vert(win_title, choices, default):
     Returns the string of the choice the user selected.
 
     :param str win_title: the title of the window - helpful if it instructs the user
-    :param list choices: a list of strings, one per choice
+    :param list[str] choices: a list of strings, one per choice
     :param str default: the default choice which is the one that is highlighted first
     :rtype: str
     """
@@ -203,8 +203,8 @@ def popup_get_multiple_choice_vert(win_title, choices, default):
     _win_wid = max(len(win_title), _max_choice_width) + 5
     _win_ht = max_displayed_choices + 3
 
-    _my_win.create(_win_ht, _win_wid, top=max(1, (_my_win.s_height / 3 - _win_ht / 2)),
-                   left=max(1, (_my_win.s_width - _win_wid) / 2), title=win_title)
+    _my_win.create(_win_ht, _win_wid, top=max(1, (_my_win.s_height // 3 - _win_ht // 2)),
+                   left=max(1, (_my_win.s_width - _win_wid) // 2), title=win_title)
     WindowList.add_window(_my_win.win)
     _my_win.win.bkgd(' ', curses.color_pair(5))
     _tab_arr = list()
@@ -304,8 +304,8 @@ def popup_get_text(win_title):
     _my_win = Window.PopupWindow(6, curses.COLOR_MAGENTA, curses.COLOR_YELLOW)
     _my_wid = len(win_title) + 5
 
-    _my_win.create(5, _my_wid, top=max(1, _my_win.s_height / 3 - 2),
-                   left=max(1, (_my_win.s_width - _my_wid) / 2), title=win_title)
+    _my_win.create(5, _my_wid, top=max(1, _my_win.s_height // 3 - 2),
+                   left=max(1, (_my_win.s_width - _my_wid) // 2), title=win_title)
     WindowList.add_window(_my_win.win)
     _my_win.win.bkgd(' ', curses.color_pair(6))
     _my_win.win.addstr(2, 3, '            ', curses.A_UNDERLINE)
@@ -316,4 +316,4 @@ def popup_get_text(win_title):
     curses.noecho()
 
     _my_win.delete()
-    return _text
+    return _text.decode('utf-8')

@@ -1,15 +1,17 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 
 from __future__ import print_function
 import sys
 import os
 import inspect
 import traceback
-import MySQLdb
-import transferCheckUtils
+import pymysql
+import transfer_cu_files
+import transfer_citi_files
+import transfer_discover_files
+import transferFilesToDB
 import utils
 from utils import Logger
-from transferFilesToDB import TransferMonthlyFilesToDB
 
 
 class ProcessDownloads(object):
@@ -17,35 +19,34 @@ class ProcessDownloads(object):
     CK_FILE = 'downloads/checks'
     DI_FILE = 'downloads/Discover-RecentActivity.csv'
     CI_FILE = 'downloads/Citi-RecentActivity.csv'
-    DO_INSERT = True  # set to True to actually insert into DATABASE
 
-    def __init__(self):
+    def __init__(self, do_insert=True):
         self.logger = Logger('process_download_log', append=True, print_to_console=True)
 
         # Open a connection to the DATABASE
-        self.db = MySQLdb.connect(host='localhost', user='root', passwd='sawtooth', db='officialBudget')
+        self.db = pymysql.connect(host='localhost', user='root', passwd='sawtooth', db='officialBudget')
         self.db_cursor1 = self.db.cursor()
         self.db_cursor2 = self.db.cursor()
 
         self.records_inserted = 0
+        self.DO_INSERT = do_insert
 
     def _setup(self):
         # Verify symbolic link to 'downloads' is not broken
-        if os.path.isdir('downloads'):
-            if os.path.islink('downloads') and not os.path.exists(os.readlink('downloads')):
-                self.logger.log('The folder "downloads" is a symbolic link, but its target does not '
-                                'exist.')
-                self.logger.log('To restore it as a symbolic link, re-install vmware-tools:')
-                self.logger.log('1. cd /home/chrisanderson/Desktop/vmware-tools-distrib')
-                self.logger.log('2. "sudo perl vmware-install.pl" and enter password for chrisanderson')
-                self.logger.log('3. Answer all questions with the default (just hit <return>)')
-                sys.exit(1)
+        # if os.path.isdir('downloads'):
+        #     if os.path.islink('downloads') and not os.path.exists(os.readlink('downloads')):
+        #         self.logger.log("The folder 'downloads' is a symbolic link, but its target does not exist.")
+        #         self.logger.log("To restore it as a symbolic link, re-install vmware-tools:")
+        #         self.logger.log("1. cd /home/chrisanderson/Desktop/vmware-tools-distrib")
+        #         self.logger.log("2. 'sudo perl vmware-install.pl' and enter password for chrisanderson")
+        #         self.logger.log("3. Answer all questions with the default (just hit <return>)")
+        #         sys.exit(1)
 
         # Verify all downloads files exist
         all_exist = True
         for download_file in [self.CU_FILE, self.CK_FILE, self.DI_FILE, self.CI_FILE]:
             if not os.path.exists(download_file):
-                self.logger.log('Download file "{}" does not exist'.format(download_file))
+                self.logger.log(f"Download file '{download_file}' does not exist")
                 all_exist = False
         if not all_exist:
             sys.exit(1)
@@ -57,21 +58,18 @@ class ProcessDownloads(object):
     def execute_cursor1(self, query_string):
         try:
             self.db_cursor1.execute(query_string)
-        except MySQLdb.Error:
-            (exception_type, value, tb) = sys.exc_info()
-            self.logger.log('{}(): Exception executing query: {}'.format(inspect.stack()[1][3],
-                                                                         query_string))
-            self.global_exception_printer(exception_type, value, tb)
+        except pymysql.Error as sqlexc:
+            self.logger.log(f"{inspect.stack()[1][3]}(): Exception executing query: {query_string}")
+            self.global_exception_printer(f"{sqlexc}")
             sys.exit(1)
 
     def execute_cursor2(self, query_string):
         try:
             self.db_cursor2.execute(query_string)
-        except MySQLdb.Error:
-            (exception_type, value, tb) = sys.exc_info()
-            self.logger.log('{}(): Exception executing query: {}'.format(inspect.stack()[1][3],
-                                                                         query_string))
-            self.global_exception_printer(exception_type, value, tb)
+        except pymysql.Error as sqlexc:
+            # (exception_type, value, tb) = sys.exc_info()
+            self.logger.log(f"{inspect.stack()[1][3]}(): Exception executing query: {query_string}")
+            self.global_exception_printer(f"{sqlexc}")
             sys.exit(1)
 
     def execute(self):
@@ -84,34 +82,34 @@ class ProcessDownloads(object):
         self.execute_cursor1('SELECT tnum from checks;')
         ck_keys = set(row[0] for row in self.db_cursor1)
 
-        transfer = TransferMonthlyFilesToDB(self.db_cursor1, self.logger)
+        transfer = transferFilesToDB.TransferMonthlyFilesToDB(self.db_cursor1, self.logger)
 
         # handle credit union transactions including checks
-        if os.path.isfile(self.CK_FILE):  # process checks first
-            self.logger.log('\n**** processing credit union checks download file... ****\n')
-            t_dict = transferCheckUtils.read_checks_file(self.CK_FILE)
-            self.insert_dict_into_checks_db(t_dict, ck_keys)
+        # This is archaic.
+        # if os.path.isfile(self.CK_FILE):  # process checks first
+        #     self.logger.log('\n**** processing credit union checks download file... ****\n')
+        #     t_dict = transferCheckUtils.read_checks_file(self.CK_FILE)
+        #     self.insert_dict_into_checks_db(t_dict, ck_keys)
 
         if os.path.isfile(self.CU_FILE):  # process cleared transactions second
             self.logger.log('\n**** processing credit union download file... ****\n')
-            t_dict = transfer.read_monthly_cu_file(self.CU_FILE)
+            t_dict = transfer_cu_files.read_monthly_cu_file(self.CU_FILE, transfer, self.logger)
             self.insert_dict_into_main_db(t_dict, db_keys)
 
         self.clear_cu_checks()  # mark cleared checks
 
         if os.path.isfile(self.CI_FILE):
             self.logger.log('\n**** processing CitiCard download file... ****\n')
-            t_dict = transfer.read_monthly_citi_file(self.CI_FILE)
+            t_dict = transfer_citi_files.read_monthly_citi_file(self.CI_FILE, transfer, self.logger)
             self.insert_dict_into_main_db(t_dict, db_keys)
 
         if os.path.isfile(self.DI_FILE):
             self.logger.log('\n**** processing Discover download file... ****\n')
-            t_dict = transfer.read_monthly_discover_file(self.DI_FILE, True)
+            t_dict = transfer_discover_files.read_monthly_discover_file(self.DI_FILE, transfer, self.logger)
             self.insert_dict_into_main_db(t_dict, db_keys)
 
-        self.logger.log('\n{}{} records into DB'.
-                        format(('Inserted ' if self.DO_INSERT else 'Would have inserted '),
-                               self.records_inserted))
+        self.logger.log(f"\n{('Inserted ' if self.DO_INSERT else 'INSERT DISABLED: Would have inserted ')}"
+                        f"{self.records_inserted} records into DB")
 
         self.print_uncleared_checks()
         self.print_unrecorded_checks()
@@ -149,7 +147,7 @@ class ProcessDownloads(object):
 
             updated += 1
         self.db.commit()
-        self.logger.log('Updated {} checks in checks DATABASE'.format(updated))
+        self.logger.log(f"Updated {updated} checks in checks DATABASE")
 
     def print_unknown_non_check_transactions(self):
         """Print a list of unknown, non-check transactions"""
@@ -277,7 +275,7 @@ class ProcessDownloads(object):
         else:
             response = utils.get_valid_response("What to do with possible duplicate record?",
                                                 [self.INSERT, self.IGNORE])
-        self.logger.log('response="{}"'.format(response))
+        self.logger.log(f"response='{response}'")
 
         # Ignore new record
         if response.lower() == self.IGNORE:
@@ -285,10 +283,9 @@ class ProcessDownloads(object):
 
         # Replace existing record with new record (delete existing record here, insert in caller)
         if response.lower() == self.REPLACE:
-            delete_query = 'DELETE FROM main where tran_id = "{}";'.format(existing_record_key)
+            delete_query = f'DELETE FROM main where tran_id = "{existing_record_key}";'
             self.execute_cursor2(delete_query)
-            self.logger.log("Deleted record with key {} as part of replacing it.".
-                            format(existing_record_key))
+            self.logger.log(f"Deleted record with key {existing_record_key} as part of replacing it.")
             return True  # next, insert the new record
 
         # Insert new record
@@ -301,7 +298,10 @@ class ProcessDownloads(object):
         :param dict download_dict: The dictionary of records to (possibly) insert
         :param set keys_set: The existing transaction IDs in the database
         """
-        for key, val in download_dict.iteritems():
+        # for key, val in download_dict.iteritems():
+        for key in download_dict:
+            val = download_dict[key]
+
             if '|' in key:
                 old_key = key.split('|')[0]
                 new_key = key.split('|')[1]
@@ -324,15 +324,15 @@ class ProcessDownloads(object):
             # will get inserted into the database as duplicate transactions with different transaction 
             # IDs and cause problems that are hard to clean up later.
             # Check with the user if the record should be inserted anyway. If not, don't insert it.
-            check_query = ('SELECT tran_ID,tran_date,tran_desc,tran_checknum,tran_amount from main '
-                           'where tran_date=STR_TO_DATE("' + val[0] + '","%m/%d/%Y") and tran_desc="' +
-                           val[2] + '" and tran_amount="' + val[5] + '" and tran_checknum="' +
-                           val[3] + '";')
+            check_query = (f'SELECT tran_ID,tran_date,tran_desc,tran_checknum,tran_amount from main where '
+                           f'tran_date=STR_TO_DATE("{val[0]}","%m/%d/%Y") and '
+                           f'tran_desc="{val[2]}" and tran_amount="{val[5]}" and '
+                           f'tran_checknum="{val[3]}";')
             self.execute_cursor1(check_query)
 
             # If the new record possibly matches an existing record, decide what to do with it
             if self.db_cursor1.rowcount > 0:
-                self.logger.log('Possible duplicate record with different transaction ID')
+                self.logger.log("Possible duplicate record with different transaction ID")
                 if not self._resolve_possible_duplicate_record(new_key, val):
                     continue  # skip inserting the new record
 
@@ -340,23 +340,22 @@ class ProcessDownloads(object):
             if self.DO_INSERT:
                 my_query = ('INSERT into main (tran_date,tran_ID,tran_desc,tran_checknum,tran_type,'
                             'tran_amount,bud_category,bud_amount,bud_date,comment) VALUES '
-                            '(STR_TO_DATE("' + val[0] + '","%m/%d/%Y"), "' + new_key + '", "' +
-                            val[2][:120] + '", "' + (val[3] if val[3] else "0") + '", "' + val[4] +
-                            '", "' + val[5] + '", "' + val[6] + '", "' + str(val[7]) +
-                            '", STR_TO_DATE("' + (val[8] if len(val[8]) else val[0]) +
-                            '","%m/%d/%Y"), "' + val[9] + '");')
+                            f'(STR_TO_DATE("{val[0]}","%m/%d/%Y"), "{new_key}", "{val[2][:120]}", '
+                            f'"{(val[3] if val[3] else "0")}", "{val[4]}", "{val[5]}", "{val[6]}", "{str(val[7])}", '
+                            f'STR_TO_DATE("{(val[8] if len(val[8]) else val[0])}","%m/%d/%Y"), "{val[9]}");')
                 self.execute_cursor1(my_query)
 
                 self.records_inserted += 1  # only increment the records_inserted counter here
             else:  # Log like we are doing an insert, but don't insert and don't count it
                 val[1] = new_key
 
-            self.logger.log('Key {} is not in "main" DATABASE -- {}inserted {}'.
-                            format(new_key, ('' if self.DO_INSERT else 'would have '), val))
+            self.logger.log(f"Key {new_key} is not in 'main' DATABASE -- "
+                            f"{('' if self.DO_INSERT else 'would have ')}inserted {val}")
 
 #
 # MAIN PROGRAM
 #
 
-process_downloads = ProcessDownloads()
+
+process_downloads = ProcessDownloads(do_insert=False)
 process_downloads.execute()
