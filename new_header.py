@@ -31,7 +31,7 @@ def print_curr_vs_new_header_field_names(curr_header, new_header):
     return differences
 
 
-def copy_curr_to_new_header(curr_header, new_header, i):
+def copy_curr_rules_to_new_header(curr_header, new_header, i):
     """Like the name says.
 
     :param h.Header curr_header: current header
@@ -39,47 +39,22 @@ def copy_curr_to_new_header(curr_header, new_header, i):
     :param int i: index of both curr and new header field"""
     for j in range(curr_header.num_fields):
         if curr_header.fields[j].name == new_header.fields[i].name:
-            new_header.fields[i].data_type = curr_header.fields[j].data_type
-            new_header.fields[i].regex = curr_header.fields[j].regex
+            new_header.fields[i].set_data_type(curr_header.fields[j].data_type)
+            new_header.fields[i].set_regex(curr_header.fields[j].regex)
             print(f"Copied curr_header field {j} to new_header field {i}")
             break
 
 
-def create_new_header_rules(new_header, i):
-    """Create new rules for given new header field.
-
-    :param h.Header new_header: new header
-    :param int i: index of new header field to create rules
-    """
-    print(f"\nNew header field {i}: {new_header.fields[i]}")
-    while True:
-        ans = input("Enter data type for field (one of 'int', 'float', 'date', 'str', or 'freestr'): ")
-        if ans.lower() in ["int", "float", "date", "str", "freestr"]:
-            new_header.fields[i].set_data_type(ans.lower())
-            break
-        else:
-            print(f"{ans.lower()} is not in that list. Try again.")
-    print(f"New header field {i}: {new_header.fields[i]}")
-    if new_header.fields[i].data_type in ["float", "int", "date", "str"]:
-        ans = input("Enter regex for field: ")
-        new_header.fields[i].set_regex(ans)
-        print(f"New header field {i}: {new_header.fields[i]}")
-    else:
-        print(f"data_type {ans} does not have a regex")
-
-
-def save_new_header(curr_header, new_header):
-    """Like the name says.
+def copy_new_header_field_rules(curr_header, new_header):
+    """Copy field rules from curr_header for new_header fields with matching names
 
     :param h.Header curr_header: current header
     :param h.Header new_header: new header
     """
+    # Go through each new header field and copy current field rules for fields with matching names
     for i in range(new_header.num_fields):
         if new_header.fields[i].name in [chf.name for chf in curr_header.fields]:
-            copy_curr_to_new_header(curr_header, new_header, i)
-        else:
-            create_new_header_rules(new_header, i)
-    print("Not saving new header at this time")
+            copy_curr_rules_to_new_header(curr_header, new_header, i)
 
 
 def manage_cu_header_rules():
@@ -87,14 +62,16 @@ def manage_cu_header_rules():
     with open("downloads/ExportedTransactions.csv", "r") as f:
         new_header_field_names = f.readline().strip().replace('"', '').split(',')
     new_header = h.Header(field_name_list=new_header_field_names)
-    differences = print_curr_vs_new_header_field_names(curr_header, new_header)
+    print_curr_vs_new_header_field_names(curr_header, new_header)
 
-    if differences:
-        ans = input("Would you like to save the new header? (y/n) ")
-        if ans.lower() in ["yes", "y"]:
-            save_new_header(curr_header, new_header)
-    else:
-        print("No differences - not saving")
+    # Copy over field rules from current header matching fields name
+    copy_new_header_field_rules(curr_header, new_header)
+
+    ans = input("Would you like to save the new header? (y/n) ")
+    if ans.lower() in ["yes", "y"]:
+        print("First edit the new header field rules")
+        new_header.edit_header()
+        new_header.save_header()
 
 
 def manage_citi_header_rules():

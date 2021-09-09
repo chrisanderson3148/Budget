@@ -32,6 +32,28 @@ class FieldRule(object):
     def set_regex(self, regex):
         self._regex = regex
 
+    def edit_field_rules(self):
+        """Edit rules for the header."""
+        print(f"\nField: {self}")
+        while True:
+            ans = input("Enter data type for field (one of 'int', 'float', 'date', 'str', or 'freestr'): ")
+            if ans.lower() in ["int", "float", "date", "str", "freestr"]:
+                self._data_type = ans.lower()
+                break
+            elif ans == "":
+                print("Use current value")
+                break
+            else:
+                print(f"{ans.lower()} is not in that list. Try again.")
+        print(f"Field: {self}")
+        if self._data_type in ["float", "int", "date", "str"]:
+            ans = input("Enter regex for field: ")
+            if ans != "":
+                self._regex = ans
+            print(f"Field: {self}")
+        else:
+            print(f"data_type {self._data_type} does not have a regex")
+
     def __repr__(self):
         return f"{{ name: '{self._name}', data_type: '{self._data_type}', regex: '{self._regex}' }}"
 
@@ -95,6 +117,14 @@ class Header(object):
             else:
                 assert re.match(self._fields[i].regex, list_of_field_values[i]), (
                     f"Field {i} value {list_of_field_values[i]} did not validate from regex {self._fields[i].regex}")
+
+    def edit_header(self):
+        """Edit field rules for each field in header."""
+        for field in self._fields:
+            field.edit_field_rules()
+
+    def save_header(self):
+        print("Save not yet implemented")
 
     def __repr__(self):
         rstr = "header = {\n  field_types: ["
