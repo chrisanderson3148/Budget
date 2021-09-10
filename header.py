@@ -1,5 +1,7 @@
+import os
 import json
 import re
+from datetime import datetime
 
 
 class FieldRule(object):
@@ -124,18 +126,36 @@ class Header(object):
             field.edit_field_rules()
 
     def save_header(self, file_name):
-        """Save this header to a new file.
+        """Save off file_name to another file name, then overwrite file_name.
 
-        :param str file_name: Name of the new json file"""
+        :param str file_name: Name of the new json file
+        """
+        # First move off the original file to a new name
+        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        move_off_name = f"old-{file_name.split('.')[0]}-replaced-{timestamp}.json"
+        os.replace(file_name, move_off_name)
+        print(f"Moved {file_name} to {move_off_name}")
+
+        # Then overwrite the original file name
         with open(file_name, "w") as f:
-            f.write(f"{{\n    \"field_types\": [\n")
+            f.write(f"{{\n{' '*2}\"field_types\": [\n")
             for i in range(self._num_fields):
-                rules = f"{self._fields[i]}".replace("\\", "\\\\")
-                if i == self._num_fields - 1:
-                    f.write(f"        {rules}\n")
+                f.write(f"{' '*4}{{\n")
+
+                f.write(f'{" "*6}"name": "{self._fields[i].name}",\n')
+
+                if self._fields[i].regex:  # write data_type with comma and regex field without
+                    f.write(f'{" " * 6}"data_type": "{self._fields[i].data_type}",\n')
+                    regex = self._fields[i].regex.replace("\\", "\\\\")
+                    f.write(f'{" "*6}"regex": "{regex}"\n')
+                else:  # just write data_type field without comma
+                    f.write(f'{" " * 6}"data_type": "{self._fields[i].data_type}"\n')
+
+                if i < self._num_fields - 1:  # Don't write a comma after the last field
+                    f.write(f"{' '*4}}},\n")
                 else:
-                    f.write(f"        {rules},\n")
-            f.write("    ]\n}")
+                    f.write(f"{' '*4}}}\n")
+            f.write(f"{' '*2}]\n}}\n")
 
     def __repr__(self):
         rstr = "header = {\n  field_types: ["

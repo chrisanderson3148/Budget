@@ -73,13 +73,8 @@ def manage_header_rules(json_file_name, downloads_file_name):
     if ans.lower() in ["yes", "y"]:
         print("First edit the new header field rules")
         new_header.edit_header()
-        while True:
-            fname = input("\n\nEnter the name of the file for the new header: ")
-            if not path.exists(fname):
-                break
-            print(f"File {fname} exists. Please use another name.")
-        new_header.save_header(fname)
-        print(f"File {fname} saved")
+        new_header.save_header(json_file_name)
+        print(f"{json_file_name} saved (old json file renamed)")
 
 
 if len(sys.argv) != 2 or sys.argv[1] not in ["cu", "citi", "discover"]:
