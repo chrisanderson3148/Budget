@@ -1,5 +1,7 @@
 #!/usr/bin/python3
+from os import path
 import sys
+import os
 import header as h
 import json
 
@@ -57,9 +59,9 @@ def copy_new_header_field_rules(curr_header, new_header):
             copy_curr_rules_to_new_header(curr_header, new_header, i)
 
 
-def manage_cu_header_rules():
-    curr_header = h.Header(json_file="cu_download_format.json")
-    with open("downloads/ExportedTransactions.csv", "r") as f:
+def manage_header_rules(json_file_name, downloads_file_name):
+    curr_header = h.Header(json_file=json_file_name)
+    with open(f"downloads/{downloads_file_name}", "r") as f:
         new_header_field_names = f.readline().strip().replace('"', '').split(',')
     new_header = h.Header(field_name_list=new_header_field_names)
     print_curr_vs_new_header_field_names(curr_header, new_header)
@@ -71,23 +73,13 @@ def manage_cu_header_rules():
     if ans.lower() in ["yes", "y"]:
         print("First edit the new header field rules")
         new_header.edit_header()
-        new_header.save_header()
-
-
-def manage_citi_header_rules():
-    curr_header = h.Header(json_file="citi_download_format.json")
-    with open("downloads/Citi-RecentActivity.CSV", "r") as f:
-        new_header_field_names = f.readline().strip().replace('"', '').split(',')
-    new_header = h.Header(field_name_list=new_header_field_names)
-    print_curr_vs_new_header_field_names(curr_header, new_header)
-
-
-def manage_discover_header_rules():
-    curr_header = h.Header(json_file="discover_download_format.json")
-    with open("downloads/Discover-RecentActivity.csv", "r") as f:
-        new_header_field_names = f.readline().strip().replace('"', '').split(',')
-    new_header = h.Header(field_name_list=new_header_field_names)
-    print_curr_vs_new_header_field_names(curr_header, new_header)
+        while True:
+            fname = input("\n\nEnter the name of the file for the new header: ")
+            if not path.exists(fname):
+                break
+            print(f"File {fname} exists. Please use another name.")
+        new_header.save_header(fname)
+        print(f"File {fname} saved")
 
 
 if len(sys.argv) != 2 or sys.argv[1] not in ["cu", "citi", "discover"]:
@@ -96,10 +88,10 @@ if len(sys.argv) != 2 or sys.argv[1] not in ["cu", "citi", "discover"]:
 
 source = sys.argv[1]
 if source == "cu":
-    manage_cu_header_rules()
+    manage_header_rules("cu_download_format.json", "ExportedTransactions.csv")
 elif source == "citi":
-    manage_citi_header_rules()
+    manage_header_rules("citi_download_format.json", "Citi-RecentActivity.CSV")
 else:
-    manage_discover_header_rules()
+    manage_header_rules("discover_download_format.json", "Discover-RecentActivity.csv")
 
 print("All done.")

@@ -55,7 +55,7 @@ class FieldRule(object):
             print(f"data_type {self._data_type} does not have a regex")
 
     def __repr__(self):
-        return f"{{ name: '{self._name}', data_type: '{self._data_type}', regex: '{self._regex}' }}"
+        return f'{{ "name": "{self._name}", "data_type": "{self._data_type}", "regex": "{self._regex}" }}'
 
 
 class Header(object):
@@ -123,8 +123,19 @@ class Header(object):
         for field in self._fields:
             field.edit_field_rules()
 
-    def save_header(self):
-        print("Save not yet implemented")
+    def save_header(self, file_name):
+        """Save this header to a new file.
+
+        :param str file_name: Name of the new json file"""
+        with open(file_name, "w") as f:
+            f.write(f"{{\n    \"field_types\": [\n")
+            for i in range(self._num_fields):
+                rules = f"{self._fields[i]}".replace("\\", "\\\\")
+                if i == self._num_fields - 1:
+                    f.write(f"        {rules}\n")
+                else:
+                    f.write(f"        {rules},\n")
+            f.write("    ]\n}")
 
     def __repr__(self):
         rstr = "header = {\n  field_types: ["
