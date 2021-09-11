@@ -243,7 +243,7 @@ class EditWindow(MyWindow):
             # edit current field
             elif (i == ord('r') or i == ord('e')) and not readonly:
                 curses.echo()
-                text = self.win.getstr()  # read the value of the field
+                text = self.win.getstr().decode('utf8')  # read the value of the field in python3
                 curses.noecho()
 
                 # replace all " with ' because of the mysql update query will fail on " (it uses " to
@@ -317,7 +317,7 @@ class EditWindow(MyWindow):
                 idx = (idx + 1) % len(tab_array)
             if i == ord('r') or i == ord('e'):
                 curses.echo()
-                text = self.win.getstr()
+                text = self.win.getstr().decode('utf8')  # read the value of the string in Python3
                 curses.noecho()
 
                 # replace all " with ' because of the mysql update query will fail on "

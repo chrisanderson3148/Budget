@@ -357,5 +357,5 @@ class ProcessDownloads(object):
 #
 
 
-process_downloads = ProcessDownloads(do_insert=False)
+process_downloads = ProcessDownloads()
 process_downloads.execute()

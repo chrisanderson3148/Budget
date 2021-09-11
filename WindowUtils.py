@@ -312,8 +312,8 @@ def popup_get_text(win_title):
     _my_win.win.move(2, 3)
 
     curses.echo()
-    _text = _my_win.win.getstr(2, 3)
+    _text = _my_win.win.getstr(2, 3).decode('utf8')
     curses.noecho()
 
     _my_win.delete()
-    return _text.decode('utf-8')
+    return _text
