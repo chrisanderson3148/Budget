@@ -151,9 +151,9 @@ class Header(object):
                 else:  # just write data_type field without comma
                     f.write(f'{" " * 6}"data_type": "{self._fields[i].data_type}"\n')
 
-                if i < self._num_fields - 1:  # Don't write a comma after the last field
+                if i < self._num_fields - 1:  # write a comma after the field
                     f.write(f"{' '*4}}},\n")
-                else:
+                else:  # except when it's the last field
                     f.write(f"{' '*4}}}\n")
             f.write(f"{' '*2}]\n}}\n")
 
