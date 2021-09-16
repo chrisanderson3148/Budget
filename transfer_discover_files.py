@@ -31,6 +31,7 @@ def read_monthly_discover_file(file_name, transfer, logger):
     expected_fields = header.num_fields
     check_dict = {}
     output_dict = {}
+    trans_type = field_map['type']
 
     with open(file_name, "r") as file_ptr:
         for line in file_ptr:
@@ -124,7 +125,7 @@ def read_monthly_discover_file(file_name, transfer, logger):
 
             # insert the record(s) into the dictionary
             transferUtils.insert_entry_into_dict(
-                budget_category_dict, trans_ref, trans_date, trans_payee, '', 'd', trans_amt_string, comment,
+                budget_category_dict, trans_ref, trans_date, trans_payee, '', trans_type, trans_amt_string, comment,
                 output_dict)
             line_num += 1
         # end for line in

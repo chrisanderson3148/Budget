@@ -62,6 +62,7 @@ def read_monthly_citi_file(file_name, transfer, logger):
     output_dict = {}
     format_v2 = False
     format_v3 = False
+    trans_type = field_map['type']
 
     with open(file_name, "r") as file_ptr:
         line_num = 0
@@ -189,7 +190,8 @@ def read_monthly_citi_file(file_name, transfer, logger):
 
             # insert the record(s) into the dictionary
             transferUtils.insert_entry_into_dict(
-                budget_category_dict, trans_ref, trans_date, trans_payee, '', 'C', trans_amt, comment, output_dict)
+                budget_category_dict, trans_ref, trans_date, trans_payee, '', trans_type, trans_amt, comment,
+                output_dict)
             line_num += 1
             line = file_ptr.readline()
         # end while

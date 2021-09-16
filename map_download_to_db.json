@@ -1,24 +1,35 @@
 {
   "cu": {
+    "type": "b",
     "tid": 0,
     "date": 1,
     "amount": 4,
+    "negate": false,
     "reference": 6,
     "payee": 7,
     "check": 5
   },
   "citi": {
+    "type": "C",
     "status": 0,
     "date": 1,
     "debit": 3,
     "credit": 4,
+    "negate": true,
     "payee": 2,
-    "member": 5
+    "member": 5,
+    "md5": true,
+    "tid_fields": ["date", "amount", "payee", "member"]
   },
   "discover": {
+    "type": "d",
     "date1": 0,
     "date2": 1,
     "amount": 3,
-    "payee": 2
+    "negate": true,
+    "payee": 2,
+    "category": 4,
+    "md5": false,
+    "tid_fields": ["date1", "date2", "payee", "amount", "category"]
   }
 }

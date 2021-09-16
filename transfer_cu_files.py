@@ -74,6 +74,7 @@ def read_monthly_cu_file(file_name, transfer, logger):
     with open("map_download_to_db.json", "r") as f:
         field_map = json.load(f)['cu']
     header = h.Header(json_file='cu_download_format.json')
+    trans_type = field_map['type']
 
     line_num = 0
     expected_fields = header.num_fields
@@ -188,7 +189,7 @@ def read_monthly_cu_file(file_name, transfer, logger):
                 desc if check_num else ' '.join(transaction_payee.split()) if transaction_payee
                 else fields[index_payee],
                 check_num,
-                'b',
+                trans_type,
                 fields[index_transaction_amount],
                 comment,
                 output_dict)
