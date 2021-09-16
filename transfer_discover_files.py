@@ -43,9 +43,12 @@ def read_monthly_discover_file(file_name, transfer, logger):
             # Clear any commas inside quoted fields and strip any " characters
             line = transferUtils.clear_commas_in_quotes(' ', line)
 
-            if line.startswith('<!--'):
-                logger.log(f"read_monthly_discover_file: Skipping line '{line}'")
-                continue
+            # Look for in-line comments and keep them
+            comment = ''
+            idx = line.find('//')
+            if idx >= 0:
+                comment = line[idx+2:]
+                line = line[:idx]
 
             fields = line.split(',')
 
@@ -71,12 +74,8 @@ def read_monthly_discover_file(file_name, transfer, logger):
                 line_num += 1
                 continue
 
-            # Look for in-line comments and keep them
-            comment = ''
-            idx = line.find('//')
-            if idx >= 0:
-                comment = line[idx+2:]
-                line = line[:idx]
+            # validate remaining lines against regex templates
+            header.validate_data_field_values(fields)
 
             # parse the first field -- transaction date
             trans_date = fields[field_map['date1']]

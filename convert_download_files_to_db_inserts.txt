@@ -1,0 +1,21 @@
+CU                                           Citi                                            Discover
+    for each line in download file               for each line in download file                  for each line in download file
+        strip line                                   strip line                                      strip line
+        ignore blank line                            ignore blank lines                              ignore blank lines
+        clear commas in quotes                       clear commas in quotes                          clear commas in quotes
+        capture inline comments                      capture inline comments                         capture inline comments
+        split fields from line                       split fields from line                          split fields from line
+        validate first-line header                   validate first-line header                      validate first-line header
+	                                        ---> filter out "pending" entries                    
+        validate rest of lines                       validate rest of lines                          validate rest of lines
+      * get trans_date                             * get trans_date                                * get trans_date
+                                                ---* process 'credit' and 'debit' for amount       * process amount
+      * >>get different TIDs based on date                                                         * create TID and modify if already in db
+      * get payee                                  * get payee (and strip)                         * get payee
+   ---> if check_num field is not empty              get bud_cat from payee                          get bud_cat from payee
+      *     get check_num and assign default       * create TID (md5)                                transfer bud_cat to budget fields
+        else                                         transfer bud_cat to budget fields               insert into db
+            get bud_cat from payee                   insert into db
+            transfer bud_cat to budget fields
+      * (implied - get amount)
+        insert into db
