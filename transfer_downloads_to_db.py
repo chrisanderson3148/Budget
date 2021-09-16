@@ -126,7 +126,7 @@ def convert_downloads_file(download_file, map_file, format_file, key, transfer, 
             # If there is one for this download, use it. Otherwise create a unique ID by combining the specified
             # fields together from the field_map, and optionally converting it to an md5 checksum.
             if index_transaction_id:
-                transaction_id = fields[index_transaction_id].replace(' ', '')  # strip out all spaces, if any
+                transaction_id = fields[index_transaction_id]
             else:
                 tid = ""
                 for fld in field_map['tid_fields']:
@@ -138,12 +138,26 @@ def convert_downloads_file(download_file, map_file, format_file, key, transfer, 
                         tid += transaction_payee
                     else:  # use whatever field specified - unique to each field map
                         assert fld in field_map, f"Key field '{fld}' not found in field_map for {key}"
-                        tid += fields[field_map[fld]]
-                tid = tid.replace(' ', '')
+                        # Some downloads have more than one date, such as Discover card which has "Trans. Date", and
+                        # "Post Date" and use all the dates in their transaction ID. Right now we assume the original
+                        # date formats are always "mm/dd/yyyy". Future enhancement will allow specification of
+                        # original date formats. Right now there are only 2 supported reformatted date formats.
+                        if fld.startswith('date') and 'tid_date_format' in field_map:
+                            assert field_map['tid_date_format'] in ["yyyymmdd", "mmddyyyy"], (
+                                f"tid_date_format {field_map['tid_date_format']} must be one of 'yyyymmdd' or "
+                                f"'mmddyyyy'")
+                            date_arr = fields[field_map[fld]].split('/')
+                            if field_map['tid_date_format'] == 'yyyymmdd':
+                                tid += f"{date_arr[2]}{date_arr[0]}{date_arr[1]}"
+                            elif field_map['tid_date_format'] == 'mmddyyyy':
+                                tid += f"{date_arr[0]}{date_arr[1]}{date_arr[2]}"
+                        else:
+                            tid += fields[field_map[fld]]
                 if field_map['md5']:
                     transaction_id = hashlib.md5(tid.encode('utf-8')).hexdigest()
                 else:
                     transaction_id = tid
+            transaction_id = transaction_id.replace(' ', '')  # remove all spaces
 
             check_num = ''
             desc = ''
@@ -195,4 +209,3 @@ def convert_downloads_file(download_file, map_file, format_file, key, transfer, 
 
     logger.log(f"convert_downloads_file processed {line_num} records from {download_file}\n")
     return output_dict
-
