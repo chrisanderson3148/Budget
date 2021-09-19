@@ -17,7 +17,7 @@ def convert_downloads_file(download_file, map_file, format_file, key, transfer, 
     :param str key: identifying key in map file. Currently 'cu', 'citi', 'discover'
     :param transferFilesToDB.TransferMonthlyFilesToDB transfer: required object method
     :param Logger logger: logging method
-    :rtype: dict
+    :rtype: list[dict]
     """
     with open("supported_downloads.json", "r") as f:
         supported = json.load(f)
@@ -112,7 +112,7 @@ def convert_downloads_file(download_file, map_file, format_file, key, transfer, 
 
             # amount
             # some download files split the transaction amount into a "credit" field or a "debit" field
-            if index_transaction_amount:
+            if index_transaction_amount is not None:
                 tamt = float(fields[index_transaction_amount])
             else:
                 tamt = float(fields[index_transaction_credit] if fields[index_transaction_credit] else
@@ -125,12 +125,12 @@ def convert_downloads_file(download_file, map_file, format_file, key, transfer, 
             # Some financial institutions include a unique ID field for each transaction in their download.
             # If there is one for this download, use it. Otherwise create a unique ID by combining the specified
             # fields together from the field_map, and optionally converting it to an md5 checksum.
-            if index_transaction_id:
+            if index_transaction_id is not None:
                 transaction_id = fields[index_transaction_id]
             else:
                 tid = ""
                 for fld in field_map['tid_fields']:
-                    if fld == "date":
+                    if fld == "date" and 'tid_date_format' not in field_map:
                         tid += transaction_date
                     elif fld == "amount":
                         tid += transaction_amount
@@ -161,7 +161,7 @@ def convert_downloads_file(download_file, map_file, format_file, key, transfer, 
 
             check_num = ''
             desc = ''
-            if index_transaction_check_num and fields[index_transaction_check_num]:
+            if index_transaction_check_num is not None and fields[index_transaction_check_num]:
                 # If the record is a check, use the checks DATABASE to fill in the budget fields
                 # For UNRECORDED checks, we will need to fill in budget fields with default values
                 budget_category_dict = dict()

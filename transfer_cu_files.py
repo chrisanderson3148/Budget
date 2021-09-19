@@ -153,6 +153,12 @@ def read_monthly_cu_file(file_name, transfer, logger):
             # For UNRECORDED checks, we will need to fill in budget fields with default values
             check_num = ''
             transaction_payee = fields[index_payee]
+
+            tamt = float(fields[index_transaction_amount])
+            if field_map['negate']:
+                tamt *= -1.0
+            transaction_amount = f"{tamt:.2f}"
+
             budget_category_dict = dict()
             if fields[index_transaction_check_num]:  # a check
                 # value of index_transaction_check_num depends on old or new format
@@ -176,7 +182,7 @@ def read_monthly_cu_file(file_name, transfer, logger):
                 bud_cat = transfer.lookup_payee_category(transaction_payee, trans_date)
 
                 # set the default budget date and amount from the transaction date and amount
-                bud_amt = fields[index_transaction_amount]
+                bud_amt = transaction_amount
 
                 # process the extra budget fields which may mean extra DATABASE records
                 budget_category_dict = transferUtils.process_budget_fields(
@@ -190,7 +196,7 @@ def read_monthly_cu_file(file_name, transfer, logger):
                 else fields[index_payee],
                 check_num,
                 trans_type,
-                fields[index_transaction_amount],
+                transaction_amount,
                 comment,
                 output_dict)
             line_num += 1

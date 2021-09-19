@@ -23,14 +23,14 @@
   },
   "discover": {
     "type": "d",
-    "date1": 0,
+    "date": 0,
     "date2": 1,
     "amount": 3,
     "negate": true,
     "payee": 2,
     "category": 4,
     "md5": false,
-    "tid_fields": ["date1", "date2", "payee", "amount", "category"],
+    "tid_fields": ["date", "date2", "payee", "amount", "category"],
     "tid_date_format": "yyyymmdd"
   }
 }

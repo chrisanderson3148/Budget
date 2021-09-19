@@ -10,6 +10,7 @@ import transfer_cu_files
 import transfer_citi_files
 import transfer_discover_files
 import transferFilesToDB
+import transfer_downloads_to_db
 import utils
 from utils import Logger
 
@@ -91,22 +92,48 @@ class ProcessDownloads(object):
         #     t_dict = transferCheckUtils.read_checks_file(self.CK_FILE)
         #     self.insert_dict_into_checks_db(t_dict, ck_keys)
 
+        if os.path.isfile(self.DI_FILE):
+            self.logger.log('\n**** processing Discover download file... ****\n')
+            t_dict_oldway = transfer_discover_files.read_monthly_discover_file(self.DI_FILE, transfer, self.logger)
+            # t_dict_newway = transfer_downloads_to_db.convert_downloads_file(
+            #     self.DI_FILE, "map_download_to_db.json", "discover_download_format.json", "discover", transfer,
+            #     self.logger)
+            # if t_dict_newway == t_dict_oldway:
+            #     print(f"Discover transfer dicts match")
+            # else:
+            #     print(f"Discover transfer dicts DO NOT MATCH")
+            self.insert_dict_into_main_db(t_dict_oldway, db_keys)
+
         if os.path.isfile(self.CU_FILE):  # process cleared transactions second
             self.logger.log('\n**** processing credit union download file... ****\n')
-            t_dict = transfer_cu_files.read_monthly_cu_file(self.CU_FILE, transfer, self.logger)
-            self.insert_dict_into_main_db(t_dict, db_keys)
+            t_dict_oldway = transfer_cu_files.read_monthly_cu_file(self.CU_FILE, transfer, self.logger)
+            # t_dict_newway = transfer_downloads_to_db.convert_downloads_file(
+            #     self.CU_FILE, "map_download_to_db.json", "cu_download_format.json", "cu", transfer, self.logger)
+            # newkeys = list(t_dict_newway.keys())
+            # oldkeys = list(t_dict_oldway.keys())
+            # assert len(newkeys) == len(oldkeys), f"# keys in new t_dict {len(newkeys)} not equal to old keys {len(oldkeys)}"
+            # if newkeys != oldkeys:
+            #     for i in range(len(newkeys)):
+            #         if newkeys[i] != oldkeys[i]:
+            #             print(f"newkey {newkeys[i]} vs {oldkeys[i]}")
+            # if t_dict_newway == t_dict_oldway:
+            #     print(f"Credit Union transfer dicts match")
+            # else:
+            #     print(f"Credit Union transfer dicts DO NOT MATCH")
+            self.insert_dict_into_main_db(t_dict_oldway, db_keys)
 
         self.clear_cu_checks()  # mark cleared checks
 
         if os.path.isfile(self.CI_FILE):
             self.logger.log('\n**** processing CitiCard download file... ****\n')
-            t_dict = transfer_citi_files.read_monthly_citi_file(self.CI_FILE, transfer, self.logger)
-            self.insert_dict_into_main_db(t_dict, db_keys)
-
-        if os.path.isfile(self.DI_FILE):
-            self.logger.log('\n**** processing Discover download file... ****\n')
-            t_dict = transfer_discover_files.read_monthly_discover_file(self.DI_FILE, transfer, self.logger)
-            self.insert_dict_into_main_db(t_dict, db_keys)
+            t_dict_oldway = transfer_citi_files.read_monthly_citi_file(self.CI_FILE, transfer, self.logger)
+            # t_dict_newway = transfer_downloads_to_db.convert_downloads_file(
+            #     self.CI_FILE, "map_download_to_db.json", "citi_download_format.json", "citi", transfer, self.logger)
+            # if t_dict_newway == t_dict_oldway:
+            #     print(f"Citi transfer dicts match")
+            # else:
+            #     print(f"Citi transfer dicts DO NOT MATCH")
+            self.insert_dict_into_main_db(t_dict_oldway, db_keys)
 
         self.logger.log(f"\n{('Inserted ' if self.DO_INSERT else 'INSERT DISABLED: Would have inserted ')}"
                         f"{self.records_inserted} records into DB")
@@ -357,5 +384,5 @@ class ProcessDownloads(object):
 #
 
 
-process_downloads = ProcessDownloads()
+process_downloads = ProcessDownloads(do_insert=False)
 process_downloads.execute()

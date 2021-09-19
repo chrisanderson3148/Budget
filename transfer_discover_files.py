@@ -79,7 +79,7 @@ def read_monthly_discover_file(file_name, transfer, logger):
             header.validate_data_field_values(fields)
 
             # parse the first field -- transaction date
-            trans_date = fields[field_map['date1']]
+            trans_date = fields[field_map['date']]
 
             # parse the transaction amount
             # Discover reverses the sign of the amounts: no sign (positive)
@@ -90,7 +90,7 @@ def read_monthly_discover_file(file_name, transfer, logger):
 
             # parse the transaction reference
             # some work here to get the dates in the right order and format
-            date1 = fields[field_map['date1']].split('/')
+            date1 = fields[field_map['date']].split('/')
             date2 = fields[field_map['date2']].split('/')
             trans_ref = ''.join([''.join([date1[2],
                                           date1[0],
