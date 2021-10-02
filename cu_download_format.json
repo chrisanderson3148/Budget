@@ -45,7 +45,7 @@
     {
       "name": "Type",
       "data_type": "str",
-      "regex": "^(ACH|Deposit|Withdrawal)$"
+      "regex": "^(ACH|Deposit|Withdrawal|Debit Card)$"
     },
     {
       "name": "Balance",
