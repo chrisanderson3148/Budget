@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/local/bin/python3
 """Python executable script to create the monthly budget summary files"""
 
 from __future__ import print_function

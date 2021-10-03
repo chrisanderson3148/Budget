@@ -2,6 +2,8 @@
 from __future__ import print_function
 import pymysql
 
+import WindowUtils
+
 
 class BudgetDB(object):
     """Class to handle database initialization and closing.

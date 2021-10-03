@@ -17,7 +17,7 @@ def convert_downloads_file(download_file, map_file, format_file, key, transfer, 
     :param str key: identifying key in map file. Currently 'cu', 'citi', 'discover'
     :param transferFilesToDB.TransferMonthlyFilesToDB transfer: required object method
     :param Logger logger: logging method
-    :rtype: list[dict]
+    :rtype: dict
     """
     with open("supported_downloads.json", "r") as f:
         supported = json.load(f)
