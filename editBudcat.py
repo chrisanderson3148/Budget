@@ -1,10 +1,11 @@
-#!/usr/bin/python3
+#!/usr/local/bin/python3
 
 """Edit budget categories module"""
 
 # This module is too big - too many statements
 from __future__ import print_function
 import sys
+from itertools import chain
 import math
 import datetime
 import curses
@@ -213,8 +214,7 @@ def get_search_parameters():
     elif table == 'checks':
         columns = bud_db.checks_columns
 
-    field = WindowUtils.popup_get_multiple_choice_vert('Select one of the columns from table '
-                                                       + table +':', columns, '')
+    field = WindowUtils.popup_get_multiple_choice_vert(f"Select one of the columns from table: {table}", columns, "")
     if not field.upper() in columns:
         WindowUtils.popup_message_ok(f"No such field '{field}' in table '{table}': {columns}")
         return '', '', '', ''
@@ -224,8 +224,7 @@ def get_search_parameters():
         compare = '='
 
     if field.lower() == 'bud_category' and compare == '=':
-        value = WindowUtils.popup_get_multiple_choice_vert('Select a budget category:',
-                                                           bud_db.bud_cat_list, '')
+        value = WindowUtils.popup_get_multiple_choice_vert('Select a budget category:', bud_db.bud_cat_list, '')
     else:
         value = WindowUtils.popup_get_text('Enter the value to search for:')
 
@@ -311,28 +310,24 @@ def get_budcat_query(my_bud_cat, the_year):
 
     if my_bud_cat == 'ALL':
         if the_year == 'all':
-            return ("select * from main where tran_checknum = '0' and tran_desc not like 'CHECK %' order"
-                    "by bud_date;",
-                    "select sum(bud_amount) from main where tran_checknum = '0' and tran_desc not like"
+            return ("select * from main where tran_checknum = '0' and tran_desc not like 'CHECK %' order by bud_date;",
+                    "select sum(bud_amount) from main where tran_checknum = '0' and tran_desc not like "
                     "'CHECK %' order by bud_date;")
-        return ("select * from main where bud_date between '" + the_year + "-01-01' and '" + the_year
-                + "-12-31' and tran_checknum = '0' and tran_desc not like 'CHECK %' "
-                "order by bud_date;",
-                "select sum(bud_amount) from main where bud_date between '" + the_year
-                + "-01-01' and '" + the_year + "-12-31' and tran_checknum = '0' and tran_desc not '"
-                                               "like 'CHECK %' order by bud_date;")
+        return (f"select * from main where bud_date between '{the_year}-01-01' and '{the_year}-12-31' "
+                "and tran_checknum = '0' and tran_desc not like 'CHECK %' order by bud_date;",
+                f"select sum(bud_amount) from main where bud_date between '{the_year}-01-01' and '{the_year}-12-31' "
+                "and tran_checknum = '0' and tran_desc not like 'CHECK %' order by bud_date;")
     else:
         if the_year == 'all':
-            return ("select * from main where bud_category = '" + my_bud_cat
-                    + "' and tran_checknum = '0' and tran_desc not like 'CHECK %' order by bud_date;",
-                    "select sum(bud_amount) from main where bud_category = '" + my_bud_cat + "' and "
-                    "tran_checknum = '0' and tran_desc not like 'CHECK %' order by bud_date;")
-        return ("select * from main where bud_category = '" + my_bud_cat + "' and bud_date between '"
-                + the_year + "-01-01' and '" + the_year + "-12-31' and tran_checknum = '0' and "
-                "tran_desc not like 'CHECK %' order by bud_date;",
-                "select sum(bud_amount) from main where bud_category = '" + my_bud_cat + "' and "
-                "bud_date between '" + the_year + "-01-01' and '" + the_year + "-12-31' and "
-                "tran_checknum = '0' and tran_desc not like 'CHECK %' order by bud_date;")
+            return (f"select * from main where bud_category = '{my_bud_cat}' and tran_checknum = '0' "
+                    "and tran_desc not like 'CHECK %' order by bud_date;",
+                    f"select sum(bud_amount) from main where bud_category = '{my_bud_cat}' and tran_checknum = '0' "
+                    "and tran_desc not like 'CHECK %' order by bud_date;")
+        return (f"select * from main where bud_category = '{my_bud_cat}' and bud_date between '{the_year}-01-01' "
+                f"and '{the_year}-12-31' and tran_checknum = '0' and tran_desc not like 'CHECK %' order by bud_date;",
+                f"select sum(bud_amount) from main where bud_category = '{my_bud_cat}' and bud_date "
+                f"between '{the_year}-01-01' and '{the_year}-12-31' and tran_checknum = '0' and tran_desc not like "
+                "'CHECK %' order by bud_date;")
 
 
 def get_check_budcat_query(my_bud_cat, the_year):
@@ -351,15 +346,15 @@ def get_check_budcat_query(my_bud_cat, the_year):
             return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt,bud_date,"
                     "comments from checks order by bud_date;")
         return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt,bud_date,"
-                "comments from checks where bud_date between '" + the_year + "-01-01' and '"
-                + the_year + "-12-31' order by bud_date;")
+                f"comments from checks where bud_date between '{the_year}-01-01' and '{the_year}-12-31' "
+                "order by bud_date;")
     else:
         if the_year == 'all':
             return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt,bud_date,"
-                    "comments from checks where bud_cat = '" + my_bud_cat + "' order by bud_date;")
+                    f"comments from checks where bud_cat = '{my_bud_cat}' order by bud_date;")
         return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt,bud_date,"
-                "comments from checks where bud_cat = '" + my_bud_cat + "' and bud_date between '"
-                + the_year + "-01-01' and '" + the_year + "-12-31' order by bud_date;")
+                f"comments from checks where bud_cat = '{my_bud_cat}' and bud_date between '{the_year}-01-01' "
+                f"and '{the_year}-12-31' order by bud_date;")
 
 
 def get_check_budcat_query_as_main(my_bud_cat, the_year):
@@ -378,21 +373,19 @@ def get_check_budcat_query_as_main(my_bud_cat, the_year):
                     "comments from checks order by bud_date;",
                     "select sum(bud_amt) from checks;")
         return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt,bud_date,"
-                "comments from checks where bud_date between '" + the_year + "-01-01' and '"
-                + the_year + "-12-31' order by bud_date;",
-                "select sum(bud_amt) from checks where bud_date between '" + the_year
-                + "-01-01' and '" + the_year + "-12-31';")
+                f"comments from checks where bud_date between '{the_year}-01-01' and '{the_year}-12-31' "
+                "order by bud_date;",
+                f"select sum(bud_amt) from checks where bud_date between '{the_year}-01-01' and '{the_year}-12-31';")
     else:
         if the_year == 'all':
             return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt,bud_date,"
-                    "comments from checks where bud_cat = '" + my_bud_cat + "' order by bud_date;",
-                    "select sum(bud_amt) from checks where bud_cat = '" + my_bud_cat + "';")
+                    f"comments from checks where bud_cat = '{my_bud_cat}' order by bud_date;",
+                    f"select sum(bud_amt) from checks where bud_cat = '{my_bud_cat}';")
         return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt,bud_date,"
-                "comments from checks where bud_cat = '" + my_bud_cat + "' and bud_date between '"
-                + the_year + "-01-01' and '" + the_year + "-12-31' order by bud_date;",
-                "select sum(bud_amt) from checks where bud_cat = '" + my_bud_cat + "' and "
-                "bud_date between '" + the_year + "-01-01' and '" + the_year
-                + "-12-31' order by bud_date;")
+                f"comments from checks where bud_cat = '{my_bud_cat}' and bud_date between '{the_year}-01-01' "
+                f"and '{the_year}-12-31' order by bud_date;",
+                f"select sum(bud_amt) from checks where bud_cat = '{my_bud_cat}' and bud_date between "
+                f"'{the_year}-01-01' and '{the_year}-12-31' order by bud_date;")
 
 
 def get_month_query(year_month):
@@ -401,11 +394,10 @@ def get_month_query(year_month):
     :param str year_month: the year and month as 'yyyy-mm'
     :rtype: tuple
     """
-    return ("select * from main where bud_date between '" + year_month + "-01' and '" + year_month
-            + "-31' and tran_checknum = '0' and tran_desc not like 'CHECK %' order by bud_date;",
-            "select sum(bud_amount) from main where bud_date between '" + year_month + "-01' and '"
-            + year_month + "-31' and tran_checknum = '0' and tran_desc not like 'CHECK %' "
-            "order by bud_date;")
+    return (f'select * from main where bud_date like "{year_month}%" and tran_checknum = "0" and tran_desc not like '
+            f'"CHECK %" order by bud_date;',
+            f'select sum(bud_amount) from main where bud_date like "{year_month}%" and tran_checknum = "0" and '
+            f'tran_desc not like "CHECK %" order by bud_date;')
 
 
 def get_check_month_query(year_month):
@@ -415,8 +407,7 @@ def get_check_month_query(year_month):
     :rtype: str
     """
     return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt,bud_date,comments from "
-            "checks where bud_date between '" + year_month + "-01' and '"
-            + year_month + "-31' order by bud_date;")
+            f"checks where bud_date like '{year_month}' order by bud_date;")
 
 
 def get_check_month_query_as_main(year_month):
@@ -426,10 +417,8 @@ def get_check_month_query_as_main(year_month):
     :rtype: tuple
     """
     return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt,bud_date,comments from "
-            "checks where bud_date between '" + year_month + "-01' and '"
-            + year_month + "-31' order by bud_date;",
-            "select sum(bud_amt) from checks where bud_date between '" + year_month + "-01' and '"
-            + year_month + "-31';")
+            f"checks where bud_date like '{year_month}' order by bud_date;",
+            f"select sum(bud_amt) from checks where bud_date like '{year_month}';")
 
 
 def get_uncleared_checks_query():
@@ -462,15 +451,15 @@ def get_search_query(table, field, is_or_like, value, case_sensitive=True):
     :param bool case_sensitive: whether to match on case or not. Default is True
     """
     if table == 'main':
-        return ("select * from main where " + ("BINARY " if case_sensitive else "") + field + " "
-                + is_or_like + " '" + value + "' order by bud_date;",
-                "select sum(bud_amount) from main where " + ("BINARY " if case_sensitive else "")
-                + field + " " + is_or_like + " '" + value + "' order by bud_date;")
+        return (f"select * from main where {('BINARY ' if case_sensitive else '')}{field} {is_or_like} '{value}' "
+                "order by bud_date;",
+                f"select sum(bud_amount) from main where {('BINARY ' if case_sensitive else '')}{field} {is_or_like} "
+                f"'{value}' order by bud_date;")
     return ("select tdate,tnum,tpayee,tchecknum,clear_date,tamt,bud_cat,bud_amt,bud_date,comments "
-            "from checks where " + ("BINARY " if case_sensitive else "") + field + " "
-            + is_or_like + " '" + value + "' order by bud_date;",
-            "select sum(bud_amt) from checks where " + ("BINARY " if case_sensitive else "")
-            + field + " " + is_or_like + " '" + value + "' order by bud_date;")
+            f"from checks where {('BINARY ' if case_sensitive else '')}{field} {is_or_like} '{value}' "
+            "order by bud_date;",
+            f"select sum(bud_amt) from checks where {('BINARY ' if case_sensitive else '')}{field} {is_or_like} "
+            f"'{value}' order by bud_date;")
 
 
 def get_data_array_content_array(list_query, total_query):
@@ -524,8 +513,8 @@ def get_data_array_content_array(list_query, total_query):
             tran_id_pre = row[g.tID][:idx]
 
             # Do second query to grab all records matching the shortened transaction ID
-            cur2 = bud_db.execute_query_2('select bud_category, bud_amount, bud_date from main where '
-                                          'tran_ID like "' + tran_id_pre + '-%" order by bud_date;')
+            cur2 = bud_db.execute_query_2("select bud_category, bud_amount, bud_date from main where tran_ID like "
+                                          f"'{tran_id_pre}-%' order by bud_date;")
 
             # Add all budget results to bud_array
             for brow in cur2:
@@ -615,8 +604,8 @@ def get_data_array_content_array_both(main_list_query, main_total_query, checks_
             tran_id_pre = row[g.tID][:idx]
 
             # Do second query to grab all records matching the shortened transaction ID
-            cur2 = bud_db.execute_query_2('select bud_category, bud_amount, bud_date from main where '
-                                          'tran_ID like "' + tran_id_pre + '-%" order by bud_date;')
+            cur2 = bud_db.execute_query_2("select bud_category, bud_amount, bud_date from main where tran_ID like "
+                                          f"'{tran_id_pre}-%' order by bud_date;")
 
             # Add all budget results to bud
             for brow in cur2:
@@ -660,8 +649,8 @@ def get_data_array_content_array_both(main_list_query, main_total_query, checks_
         if len(transaction_id) > 1 and transaction_id[-1].isdigit():
             idx = row[g.tID].rfind('-')
             tnum_pre = row[g.tID][:idx]
-            cur2 = bud_db.execute_query_2('select bud_cat, bud_amt, bud_date from checks where tnum '
-                                          'like "' + tnum_pre + '-%" order by bud_date;')
+            cur2 = bud_db.execute_query_2("select bud_cat, bud_amt, bud_date from checks where tnum like "
+                                          f"'{tnum_pre}-%' order by bud_date;")
             for brow in cur2:
                 bud.append([brow[0], brow[1], brow[2]])
             the_bud = [row[6], row[7], row[8]]
@@ -697,7 +686,7 @@ def get_data_array_content_array_both(main_list_query, main_total_query, checks_
     for row in elem_array:
         the_bud = row[9]
         # Create the entry in content_array. Multi-budget entries are displayed differently
-        if len(row[g.tBudarr]) > 1: # multi-budget
+        if len(row[g.tBudarr]) > 1:  # multi-budget
             content_row = '%-12s %-40s %4s %s %10.2f %-15s %s' % (
                 (the_bud[2].strftime('%m/%d/%Y')
                  if not the_bud[2] is None else '---'),  # budget date
@@ -764,8 +753,8 @@ def get_check_data_and_content_array(query):
         if len(transaction_id) > 1 and transaction_id[-1].isdigit():
             idx = row[g.tID].rfind('-')
             tnum_pre = row[g.tID][:idx]
-            cur2 = bud_db.execute_query_2('select bud_cat,bud_amt,bud_date from checks where tnum like "'
-                                          + tnum_pre + '-%" order by bud_date;')
+            cur2 = bud_db.execute_query_2("select bud_cat,bud_amt,bud_date from checks where tnum like "
+                                          f"'{tnum_pre}-%' order by bud_date;")
             for brow in cur2:
                 bud_array.append([brow[0], brow[1], brow[2]])
             the_bud = [row[6], row[7], row[8]]
@@ -827,17 +816,16 @@ def handle_edit_budget_by_budcat_both(my_bud_cat, the_year='all'):
     # query to return checks with fields in same order as main query
     check_list_query, check_total_query = get_check_budcat_query_as_main(my_bud_cat, the_year)
 
-    elem_array, content_array, total = get_data_array_content_array_both(
-        list_query, total_query, check_list_query, check_total_query)
+    elem_array, content_array, total = get_data_array_content_array_both(list_query, total_query, check_list_query,
+                                                                         check_total_query)
 
     # elem_array is empty
     if not elem_array:
-        WindowUtils.popup_message_ok('Budget category "' + my_bud_cat +
-                                     '" is not in the DATABASE for year "' + the_year + '"')
+        WindowUtils.popup_message_ok(f"Budget category '{my_bud_cat}' is not in the DATABASE for year '{the_year}'")
         return
 
     do_transaction_list_window(elem_array, content_array, total,
-                               'Budcat=' + my_bud_cat + ',Year=' + the_year + ' Total='+TOTAL_FORMAT,
+                               f"Budcat={my_bud_cat},Year={the_year} Total={TOTAL_FORMAT}",
                                False, False, get_data_array_content_array_both, list_query,
                                total_query, check_list_query, check_total_query)
 
@@ -859,11 +847,10 @@ def handle_edit_budget_by_month_both(year_month):
         list_query, total_query, check_list_query, check_total_query)
 
     if elem_array is None:
-        WindowUtils.popup_message_ok('Month "' + year_month + '" is not in the DATABASE')
+        WindowUtils.popup_message_ok(f"Month '{year_month}' is not in the DATABASE")
         return
 
-    do_transaction_list_window(elem_array, content_array, total, 'Month=' + year_month
-                               + ' Total='+TOTAL_FORMAT,
+    do_transaction_list_window(elem_array, content_array, total, f"Month={year_month} Total={TOTAL_FORMAT}",
                                False, False, get_data_array_content_array_both, list_query,
                                total_query, check_list_query, check_total_query)
 
@@ -877,12 +864,11 @@ def handle_edit_check_by_budget_category(budget_category, the_year='all'):
     query = get_check_budcat_query(budget_category, the_year)
     elem_array, content_array, total = get_check_data_and_content_array(query)
     if elem_array is None:
-        WindowUtils.popup_message_ok('Budget category "' + budget_category
-                                     + '" is not in the "checks" DATABASE for year ' + the_year)
+        WindowUtils.popup_message_ok(f"Budget category '{budget_category}' is not in the 'checks' DATABASE for "
+                                     f"year {the_year}")
         return
     do_transaction_list_window(elem_array, content_array, total,
-                               'Budcat=' + budget_category + ', Year=' + the_year
-                               + ' Total='+TOTAL_FORMAT,
+                               f"Budcat={budget_category}, Year={the_year} Total={TOTAL_FORMAT}",
                                False, False, get_check_data_and_content_array, query)
 
 
@@ -892,7 +878,7 @@ def handle_edit_check_by_month(year_month):
     :param str year_month: the year and month to query for as 'yyyy-mm'
     """
     try:
-        datetime.datetime.strptime(year_month + '-01', '%Y-%m-%d')
+        datetime.datetime.strptime(f"{year_month}-01", "%Y-%m-%d")
     except ValueError as ve:
         WindowUtils.popup_message_ok(f"User entered '{year_month}': {ve}")
         return
@@ -900,10 +886,10 @@ def handle_edit_check_by_month(year_month):
     query = get_check_month_query(year_month)
     elem_array, content_array, total = get_check_data_and_content_array(query)
     if elem_array is None:
-        WindowUtils.popup_message_ok('Month "' + year_month + '" is not in the "checks" DATABASE')
+        WindowUtils.popup_message_ok(f"Month '{year_month}' is not in the 'checks' DATABASE")
         return
-    do_transaction_list_window(elem_array, content_array, total, 'Month=' + year_month
-                               + ' Total='+TOTAL_FORMAT,
+    do_transaction_list_window(elem_array, content_array, total,
+                               f"Month={year_month} Total={TOTAL_FORMAT}",
                                False, False, get_check_data_and_content_array, query)
 
 
@@ -927,8 +913,8 @@ def do_query_cleared_unrecorded_checks():
     # for every cleared CU check, see if it also exists as a transaction in the checks DATABASE, with at
     # least an amount
     for row in cur:
-        cur2 = bud_db.execute_query_2('select tchecknum from checks where tchecknum = "'
-                                      + str(row[0]) + '" and tamt is not null;')
+        cur2 = bud_db.execute_query_2(f"select tchecknum from checks where tchecknum = '{str(row[0])}' "
+                                      "and tamt is not null;")
         if cur2.rowcount == 0:  # The row is a cleared, unrecorded check
             check_entry = []
             bud_array = list()
@@ -972,13 +958,11 @@ def do_query_missing_unrecorded_checks():
 
     # Check #s 2869-2929 and 3882-3989 are missing because of ordering new checkbooks and skipping these
     # ranges. Just skip them as they clutter up the real missing checks.
-    for i in (range(int(first_check), 2869)  # adding ranges like this is not valid in Python 3
-              + range(2930, 3882)
-              + range(3990, int(last_check))):
+    for i in chain(range(int(first_check), 2869), range(2930, 3882), range(3990, int(last_check))):
         if str(i) not in c_num_dict:
             missing_checks.append(str(i))
 
-    WindowUtils.popup_message_ok('There are ' + str(len(missing_checks)) + ' missing checks.')
+    WindowUtils.popup_message_ok(f"There are {len(missing_checks)} missing checks.")
     return missing_checks
 
 
@@ -986,8 +970,8 @@ def handle_cleared_unrecorded_checks():
     """Handle cleared/unrecorded check transactions."""
     elem_array, content_array, total = do_query_cleared_unrecorded_checks()
     if elem_array:
-        do_transaction_list_window(elem_array, content_array, total, 'Cleared, unrecorded checks'
-                                   + ' Total='+TOTAL_FORMAT,
+        do_transaction_list_window(elem_array, content_array, total,
+                                   f"Cleared, unrecorded checks Total={TOTAL_FORMAT}",
                                    True, False, do_query_cleared_unrecorded_checks)
     else:
         WindowUtils.popup_message_ok('There are no cleared, unrecorded checks at this time.')
@@ -1001,7 +985,7 @@ def handle_missing_unrecorded_checks():
 
     lmci = len(missing_checks)
     grouped_missing_checks = []
-    for i in xrange(0, len(missing_checks), 5):
+    for i in range(0, len(missing_checks), 5):
         grouped_missing_checks.append(
             '{} {} {} {} {}'.format(
                 missing_checks[i],
@@ -1051,11 +1035,11 @@ def handle_transaction_search():
     else:
         elem_array, content_array, total = get_check_data_and_content_array(list_query)
     if not elem_array:
-        WindowUtils.popup_message_ok('Nothing returned from search "' + list_query + '"')
+        WindowUtils.popup_message_ok(f"Nothing returned from search '{list_query}'")
         return
 
     # Display the results and manage the window
-    do_transaction_list_window(elem_array, content_array, total, 'Total='+TOTAL_FORMAT,
+    do_transaction_list_window(elem_array, content_array, total, f"Total={TOTAL_FORMAT}",
                                False, True, get_data_array_content_array, list_query, total_query)
 
 
@@ -1174,9 +1158,8 @@ def global_exception_handler(exception_type, value, trace_back):
     trs = ''
     for trace_back_element in traceback.format_list(traceback.extract_tb(trace_back)):
         trs += trace_back_element
-    ScreenWindow.my_quit('**********************************\nException occurred\nType: '
-                         + str(exception_type) + '\nValue: ' + str(value) + '\nTraceback:\n' + trs
-                         + '*********************************')
+    ScreenWindow.my_quit(f"**********************************\nException occurred\nType: {str(exception_type)}\n"
+                         f"Value: {str(value)}\nTraceback:\n{trs}*********************************")
 
 
 # pylint: disable-msg=C0103
@@ -1195,12 +1178,12 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
 
     # Open a connection to the DATABASE (accesses official budget DATABASE)
-    bud_db = BudgetDB('localhost', 'root', 'sawtooth', 'officialBudget')
+    bud_db = BudgetDB('localhost', 'root', '', 'officialBudget')
 
     if len(sys.argv) > 1:
         year = sys.argv[1]
     else:
-        print('Usage '+sys.argv[0]+' <year>')
+        print(f'Usage {sys.argv[0]} <year>')
         sys.exit(1)
 
     # init_screen() must be called to initialize the screen and log

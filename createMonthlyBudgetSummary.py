@@ -35,7 +35,7 @@ class MonthlyBudgetSummaries(object):
 
     def __init__(self):
         # Open a connection to the DATABASE
-        self.database = pymysql.connect(host='localhost', user='root', passwd='sawtooth',
+        self.database = pymysql.connect(host='localhost', user='root', passwd='',
                                         db='officialBudget')
         self.db_cursor = self.database.cursor()
         self.logger = Logger('create_monthly_budget_summaries_log')
