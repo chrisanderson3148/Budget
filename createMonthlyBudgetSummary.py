@@ -109,6 +109,137 @@ class MonthlyBudgetSummaries(object):
         et = datetime.datetime.now() - start
         self.logger.log(f"writeMonthlyCsv: Month {name} has {len(buds_summary)} entries {et}s")
 
+    def write_month_text_few_queries(self, my_year, my_month):
+        """Write the txt file with 'my_year' and 'my_month' part of the file name
+
+        Use only 2 DB queries. Figure out the rest from the data returned from them.
+        my_month is 1-based
+
+        :param str my_year: the year as a string
+        :param str my_month: the my_month name
+        """
+
+        start = datetime.datetime.now()
+        month_num = int(my_month) - 1
+        month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        month = f"{my_year}-{my_month}-%"
+
+        # get all the records for the given month from main, ordered by category and date
+        buds_summary = dict()
+        self.db_cursor.execute(f"SELECT * from main where bud_date like '{month}' and tran_checknum = '0' and "
+                               "tran_desc not like 'CHECK %' order by bud_category,bud_date;")
+        main = self.db_cursor.fetchall()
+
+        # get the budget categories and sums for the time period from 'main'
+        #     0         1       2           3           4          5           6            7        8        9
+        # tran_date,tran_ID,tran_desc,tran_checknum,tran_type,tran_amount,bud_category,bud_amount,bud_date,comment
+        key = ""
+        sum = 0.0
+        for row in main:
+            if key == "":
+                key = row[6].strip()
+                sum = float(row[7])
+            elif key != row[6].strip():
+                if key == 'SCHOOL':
+                    key = 'COLLEGE'
+                buds_summary[key] = sum
+                key = row[6].strip()
+                sum = float(row[7])
+            else:
+                sum += float(row[7])
+        if key != "":
+            if key == 'SCHOOL':
+                key = 'COLLEGE'
+            buds_summary[key] = sum
+
+        # get all the records for the given month from checks, ordered by category and date
+        self.db_cursor.execute(f"SELECT * from checks where bud_date like '{month}' order by bud_cat,bud_date;")
+        checks = self.db_cursor.fetchall()
+
+        # get the budget categories and sums for the time period from 'checks'
+        #   0      1       2    3      4      5       6       7        8         9
+        # tnum,tchecknum,tamt,tdate,tpayee,bud_cat,bud_amt,bud_date,comments,clear_date
+        key = ""
+        sum = 0.0
+        for row in checks:
+            if key == "":
+                key = row[5].strip()
+                sum = float(row[6])
+            elif key != row[5].strip():
+                if key == 'SCHOOL':
+                    key = 'COLLEGE'
+                if key in buds_summary:
+                    buds_summary[key] += sum
+                else:
+                    buds_summary[key] = sum
+                key = row[5].strip()
+                sum = float(row[6])
+            else:
+                sum += float(row[6])
+        if key != "":
+            if key == 'SCHOOL':
+                key = 'COLLEGE'
+            if key in buds_summary:
+                buds_summary[key] += sum
+            else:
+                buds_summary[key] = sum
+
+        name = month_names[month_num] + ' ' + my_year
+
+        # see if there are any results to save to the file
+        et = datetime.datetime.now() - start
+        if not buds_summary:
+            self.logger.log(f"writeMonthlyText: No entries for my_month {name} {et}s")
+            return
+
+        # write out to the file
+        with open(f"catfiles/{name.replace(' ', '')}cat.txt", "w") as file_ptr:
+            file_ptr.write(f"Summary for {name}\r\n\r\n")
+            # main database indices
+            tdate = 0
+            tid = 1
+            tdesc = 2
+            ttype = 4
+            bcat = 6
+            bamt = 7
+
+            # checks database indices
+            tnum = 0
+            tcknum = 1
+            tckdate = 3
+            tckpayee = 4
+            bckcat = 5
+            bckamt = 6
+            ckcomm = 8
+            clrdate = 9
+
+            # Now go through each budget category and print the individual transactions for each
+            for budget_category in sorted(buds_summary):
+                # print the summary line
+                file_ptr.write(f"{budget_category:<20s} {buds_summary[budget_category]:10.2f}\r\n")
+
+                # dictionary to store all the 'main' table results and uncleared check results for later printing
+                budcat_store_dict = dict()
+
+                for elem in main:
+                    if elem[bcat] == budget_category:
+                        key = f"{elem[tdate].strftime('%Y%m%d')}{elem[tid]}"
+                        budcat_store_dict[key] = (f"\t{elem[tdate].strftime('%m/%d')} {elem[ttype]} "
+                                                  f"{elem[tdesc][:40]:<40s} {elem[bamt]:10.2f}")
+
+                for elem in checks:
+                    if elem[bckcat] == budget_category:
+                        desc = f"Check {elem[tcknum]}: {elem[tckpayee]}{(f'|{elem[ckcomm]}' if elem[ckcomm] else '')}"
+                        key = f"{elem[tckdate].strftime('%Y%m%d')}{elem[tnum]}"
+                        budcat_store_dict[key] = (f"\t{elem[tckdate].strftime('%m/%d')} b {desc[:40]:<40s} "
+                                                  f"{elem[bckamt]:10.2f}{('*' if elem[clrdate] is None else '')}")
+
+                for key in sorted(budcat_store_dict):
+                    file_ptr.write(budcat_store_dict[key] + '\r\n')
+                file_ptr.write('\r\n')
+        et = datetime.datetime.now() - start
+        self.logger.log(f"writeMonthlyText: Month {name} has {len(buds_summary)} entries {et}s")
+
     def write_month_text(self, my_year, my_month):
         """Write the txt file with 'my_year' and 'my_month' part of the file name
 
@@ -148,7 +279,7 @@ class MonthlyBudgetSummaries(object):
 
         # update the results in dict
         for row in rows:
-            key = row[0].rstrip().lstrip()
+            key = row[0].strip()
             if key == 'SCHOOL':
                 key = 'COLLEGE'
             if key in buds_summary:
@@ -156,22 +287,7 @@ class MonthlyBudgetSummaries(object):
             else:
                 buds_summary[key] = row[1]
 
-        # get the budget categories and sums for the time period from 'chasechecks'
-        self.db_cursor.execute("SELECT bud_cat,sum(bud_amt) from chasechecks where "
-                               f"bud_date between '{dayfirst}' and '{daylast}' group by bud_cat;")
-        rows = self.db_cursor.fetchall()
-
-        # update the results in dict
-        for row in rows:
-            key = row[0].rstrip().lstrip()
-            if key == 'SCHOOL':
-                key = 'COLLEGE'
-            if key in buds_summary:
-                buds_summary[key] += row[1]
-            else:
-                buds_summary[key] = row[1]
-
-        name = month_names[int(my_month) - 1] + ' ' + my_year
+        name = month_names[month_num] + ' ' + my_year
 
         # see if there are any results to save to the file
         et = datetime.datetime.now() - start
@@ -180,7 +296,7 @@ class MonthlyBudgetSummaries(object):
             return
 
         # write out to the file
-        with open('catfiles/' + name.replace(' ', '') + 'cat.txt', 'w') as file_ptr:
+        with open('catfiles/' + name.replace(' ', '') + 'cat_manyq.txt', 'w') as file_ptr:
             file_ptr.write('Summary for ' + name + '\r\n\r\n')
 
             # Now go through each budget category and print the individual transactions for each
@@ -192,8 +308,7 @@ class MonthlyBudgetSummaries(object):
                 # printing
                 store_dict = dict()
 
-                # select the 'main' table non-check (both Chase and CU) transactions that make up that
-                # my_month/budget summary and store in dict
+                # select the 'main' table non-check transactions that make up my_month/budget summary and store in dict
                 if budget_category == 'COLLEGE':
                     query = ("SELECT tran_ID,tran_date,tran_type,tran_desc,bud_amount FROM main WHERE "
                              f"bud_date between '{dayfirst}' and '{daylast}' and "
@@ -210,8 +325,7 @@ class MonthlyBudgetSummaries(object):
                                                                       + elem[2] + ' %-40s' % elem[3][:40]
                                                                       + ' %10.2f' % elem[4])
 
-                # select the 'checks' table transactions that make up that
-                # my_month/budget summary and store in dict
+                # select the 'checks' table transactions that make up that my_month/budget summary and store in dict
                 if budget_category == 'COLLEGE':
                     query = ("SELECT tnum,tchecknum,tpayee,bud_amt,tdate,clear_date,comments FROM checks WHERE "
                              f"bud_date between '{dayfirst}' and '{daylast}' and "
@@ -229,26 +343,6 @@ class MonthlyBudgetSummaries(object):
                                                                       + ' %10.2f' % elem[3]
                                                                       + '%s' % ('*' if elem[5] is None
                                                                                 else ''))
-
-                # select the 'chasechecks' table transactions that make up that my_month/budget summary
-                # and store in dict
-                # if budget_category == 'COLLEGE':
-                #     query = ("SELECT tnum,tchecknum,tpayee,bud_amt,tdate,clear_date FROM chasechecks WHERE "
-                #              f"bud_date between '{dayfirst}' and '{daylast}' and "
-                #              f"(bud_cat = 'COLLEGE' or bud_cat = 'SCHOOL') order by tdate;")
-                # else:
-                #     query = ("SELECT tnum,tchecknum,tpayee,bud_amt,tdate,clear_date FROM chasechecks WHERE "
-                #              f"bud_date between '{dayfirst}' and '{daylast}' and bud_cat = '{budget_category}' "
-                #              f"order by tdate;")
-                # self.db_cursor.execute(query)
-                # checks = self.db_cursor.fetchall()
-                # for elem in checks:
-                #     desc = 'ChaseCheck '+str(elem[1])+': '+elem[2]
-                #     store_dict[elem[4].strftime('%Y%m%d')+elem[0]] = ('\t'+elem[4].strftime('%m/%d')
-                #                                                       + ' b %-40s' % desc[:40]
-                #                                                       + ' %10.2f' % elem[3]
-                #                                                       + '%s' % ('*' if elem[5] is None
-                #                                                                 else ''))
 
                 for key in sorted(store_dict):
                     file_ptr.write(store_dict[key]+'\r\n')
@@ -288,9 +382,11 @@ if os.path.isdir('catfiles'):
 create = MonthlyBudgetSummaries()
 
 if YEAR_HAS_MONTH:
-    create.write_month_text(YYYYMM[0], YYYYMM[1])
+    # create.write_month_text(YYYYMM[0], YYYYMM[1])
+    create.write_month_text_few_queries(YYYYMM[0], YYYYMM[1])
     create.write_month_csv(YYYYMM[0], YYYYMM[1])
 else:
     for month in range(1, 13):
-        create.write_month_text(YEAR, f'{month:02d}')
+        # create.write_month_text(YEAR, f'{month:02d}')
+        create.write_month_text_few_queries(YEAR, f'{month:02d}')
         create.write_month_csv(YEAR, f'{month:02d}')
