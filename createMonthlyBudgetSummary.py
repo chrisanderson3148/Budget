@@ -98,7 +98,7 @@ class MonthlyBudgetSummaries(object):
         # see if there are any results to save to the file
         et = datetime.datetime.now() - start
         if not buds_summary:
-            self.logger.log(f"writeMonthlyCsv: No entries for my_month {name} {et}s")
+            self.logger.log(f"writeMonthlyCsv: No entries for my_month {name} ({et.total_seconds():.2f}s)")
             return
 
         # write out to the file
@@ -107,7 +107,7 @@ class MonthlyBudgetSummaries(object):
             for budget_category in sorted(buds_summary):
                 file_ptr.write('%s,%.2f\r\n' % (budget_category, buds_summary[budget_category]))
         et = datetime.datetime.now() - start
-        self.logger.log(f"writeMonthlyCsv: Month {name} has {len(buds_summary)} entries {et}s")
+        self.logger.log(f"writeMonthlyCsv: Month {name} has {len(buds_summary)} entries ({et.total_seconds():.2f}s)")
 
     def write_month_text_few_queries(self, my_year, my_month):
         """Write the txt file with 'my_year' and 'my_month' part of the file name
@@ -147,6 +147,7 @@ class MonthlyBudgetSummaries(object):
                 sum = float(row[7])
             else:
                 sum += float(row[7])
+        # take care of last key which hasn't been added to buds_summary yet
         if key != "":
             if key == 'SCHOOL':
                 key = 'COLLEGE'
@@ -176,6 +177,7 @@ class MonthlyBudgetSummaries(object):
                 sum = float(row[6])
             else:
                 sum += float(row[6])
+        # take care of last key which hasn't been added to buds_summary yet
         if key != "":
             if key == 'SCHOOL':
                 key = 'COLLEGE'
@@ -189,7 +191,7 @@ class MonthlyBudgetSummaries(object):
         # see if there are any results to save to the file
         et = datetime.datetime.now() - start
         if not buds_summary:
-            self.logger.log(f"writeMonthlyText: No entries for my_month {name} {et}s")
+            self.logger.log(f"writeMonthlyText: No entries for my_month {name} ({et.total_seconds():.2f}s)")
             return
 
         # write out to the file
@@ -236,9 +238,9 @@ class MonthlyBudgetSummaries(object):
 
                 for key in sorted(budcat_store_dict):
                     file_ptr.write(budcat_store_dict[key] + '\r\n')
-                file_ptr.write('\r\n')
+                file_ptr.write('\r\n')  # write a blank line at the end of each budget category section
         et = datetime.datetime.now() - start
-        self.logger.log(f"writeMonthlyText: Month {name} has {len(buds_summary)} entries {et}s")
+        self.logger.log(f"writeMonthlyText: Month {name} has {len(buds_summary)} entries ({et.total_seconds():.2f}s)")
 
     def write_month_text(self, my_year, my_month):
         """Write the txt file with 'my_year' and 'my_month' part of the file name
@@ -292,7 +294,7 @@ class MonthlyBudgetSummaries(object):
         # see if there are any results to save to the file
         et = datetime.datetime.now() - start
         if not buds_summary:
-            self.logger.log(f"writeMonthlyText: No entries for my_month {name} {et}s")
+            self.logger.log(f"writeMonthlyText: No entries for my_month {name} ({et.total_seconds():.2f}s)")
             return
 
         # write out to the file
@@ -348,7 +350,7 @@ class MonthlyBudgetSummaries(object):
                     file_ptr.write(store_dict[key]+'\r\n')
                 file_ptr.write('\r\n')
         et = datetime.datetime.now() - start
-        self.logger.log(f"writeMonthlyText: Month {name} has {len(buds_summary)} entries {et}s")
+        self.logger.log(f"writeMonthlyText: Month {name} has {len(buds_summary)} entries ({et.total_seconds():.2f}s)")
 
 #
 #
