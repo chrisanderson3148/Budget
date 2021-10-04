@@ -47,8 +47,7 @@ class ScreenWindow(object):
 
         Otherwise it leaves the terminal in a bad state. Optionally leave a quit message on the terminal.
 
-        :param str message: the message to optionally print to the console after curses is gracefully
-        closed.
+        :param str message: the message to optionally print to the console after curses is gracefully closed.
         """
         curses.nocbreak()
         cls.screen.keypad(0)

@@ -1,6 +1,8 @@
 #!/usr/local/bin/python3
 
 from __future__ import print_function
+
+import datetime
 import sys
 import os
 import inspect
@@ -13,6 +15,7 @@ import transferFilesToDB
 import transfer_downloads_to_db
 import utils
 from utils import Logger
+import globals
 
 
 class ProcessDownloads(object):
@@ -25,7 +28,7 @@ class ProcessDownloads(object):
         self.logger = Logger('process_download_log', append=True, print_to_console=True)
 
         # Open a connection to the DATABASE
-        self.db = pymysql.connect(host='localhost', user='root', passwd='', db='officialBudget')
+        self.db = pymysql.connect(host='localhost', user='root', passwd=globals.DB_PASSWORD, db=globals.DB_NAME)
         self.db_cursor1 = self.db.cursor()
         self.db_cursor2 = self.db.cursor()
 
@@ -279,8 +282,8 @@ class ProcessDownloads(object):
         existing_record_key = ''
         for row in self.db_cursor1:
             existing_record_key = row[0]
-            self.logger.log(f"existing record '{row[0]}' '{row[1]}' '{row[2]}' '{row[3]}' '{row[4]}'")
-        self.logger.log(f"new record '{new_key}' '{val[0]}' '{val[2]}' '{val[3] if val[3] else '0'}' '{val[5]}'")
+            self.logger.log(f'existing record "{row[0]}" "{row[1]}" "{row[2]}" "{row[3]}" "{row[4]}"')
+        self.logger.log(f'new record "{new_key}" "{val[0]}" "{val[2]}" "{val[3] if val[3] else "0"}" "{val[5]}"')
 
         if num_duplicates == 1:
             response = utils.get_valid_response("What to do with possible duplicate record?",
@@ -333,10 +336,10 @@ class ProcessDownloads(object):
             # will get inserted into the database as duplicate transactions with different transaction 
             # IDs and cause problems that are hard to clean up later.
             # Check with the user if the record should be inserted anyway. If not, don't insert it.
-            check_query = ("SELECT tran_ID,tran_date,tran_desc,tran_checknum,tran_amount from main where "
-                           f"tran_date=STR_TO_DATE('{val[0]}','%m/%d/%Y') and "
-                           f"tran_desc='{val[2]}' and tran_amount='{val[5]}' and "
-                           f"tran_checknum='{val[3]}';")
+            check_query = ('SELECT tran_ID,tran_date,tran_desc,tran_checknum,tran_amount from main where '
+                           f'tran_date=STR_TO_DATE("{val[0]}","%m/%d/%Y") and '
+                           f'tran_desc="{val[2]}" and tran_amount="{val[5]}" and '
+                           f'tran_checknum="{val[3]}";')
             self.execute_cursor1(check_query)
 
             # If the new record possibly matches an existing record, decide what to do with it
@@ -347,11 +350,11 @@ class ProcessDownloads(object):
 
             # Insert the record into the database
             if self.DO_INSERT:
-                my_query = ("INSERT into main (tran_date,tran_ID,tran_desc,tran_checknum,tran_type,tran_amount,"
-                            f"bud_category,bud_amount,bud_date,comment) VALUES (STR_TO_DATE('{val[0]}','%m/%d/%Y'), "
-                            f"'{new_key}', '{val[2][:120]}', '{(val[3] if val[3] else '0')}', '{val[4]}', '{val[5]}', "
-                            f".{val[6]}., .{str(val[7])}., "
-                            f"STR_TO_DATE('{(val[8] if len(val[8]) else val[0])}','%m/%d/%Y'), '{val[9]}');")
+                my_query = ('INSERT into main (tran_date,tran_ID,tran_desc,tran_checknum,tran_type,tran_amount,'
+                            f'bud_category,bud_amount,bud_date,comment) VALUES (STR_TO_DATE("{val[0]}","%m/%d/%Y"), '
+                            f'"{new_key}", "{val[2][:120]}", "{(val[3] if val[3] else "0")}", "{val[4]}", "{val[5]}", '
+                            f'"{val[6]}", "{str(val[7])}", '
+                            f'STR_TO_DATE("{(val[8] if len(val[8]) else val[0])}","%m/%d/%Y"), "{val[9]}");')
                 self.execute_cursor1(my_query)
 
                 self.records_inserted += 1  # only increment the records_inserted counter here
@@ -366,5 +369,5 @@ class ProcessDownloads(object):
 #
 
 
-process_downloads = ProcessDownloads(do_insert=False)
+process_downloads = ProcessDownloads()
 process_downloads.execute()

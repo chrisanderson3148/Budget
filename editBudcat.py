@@ -13,6 +13,7 @@ import signal
 import traceback
 import WindowUtils
 import WindowList
+import globals
 
 from budgetQueries import BudgetDB
 from editWindow import EditWindow
@@ -21,9 +22,7 @@ from mysettings import g
 
 TOTAL_FORMAT = "${:0,.2f}"
 year = None
-db_password = ""
-db_name = "officialBudget"
-bud_db = BudgetDB("localhost", "root", db_password, db_name)
+bud_db = BudgetDB("localhost", "root", globals.DB_PASSWORD, globals.DB_NAME)
 
 
 def signal_handler(caught_signal, frame):
