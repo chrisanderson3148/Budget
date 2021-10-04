@@ -56,17 +56,12 @@ class MonthlyBudgetSummaries(object):
         start = datetime.datetime.now()
         month_num = int(my_month) - 1
         month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-        month_days = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-        dayfirst = f"{my_year}-{my_month}-01"
-        if int(my_year) % 400 == 0 or (int(my_year) % 100 != 0 and int(my_year) % 4 == 0):
-            month_days[1] = 29
-        daylast = f"{my_year}-{my_month}-{month_days[month_num]}"
+        month = f"{my_year}-{my_month}-%"
 
         # get the budget categories and sums for the time period from 'main'
         buds_summary = dict()
-        my_query = ("SELECT bud_category,sum(bud_amount) from main where "
-                    f"bud_date between '{dayfirst}' and '{daylast}' and tran_checknum = '0' and "
-                    "tran_desc not like 'CHECK %' group by bud_category order by bud_category;")
+        my_query = (f"SELECT bud_category,sum(bud_amount) from main where bud_date like '{month}' and "
+                    "tran_checknum = '0' and tran_desc not like 'CHECK %' group by bud_category order by bud_category;")
         self.db_cursor.execute(my_query)
 
         rows = self.db_cursor.fetchall()
@@ -78,8 +73,7 @@ class MonthlyBudgetSummaries(object):
             buds_summary[key] = row[1]
 
         # get the budget categories and sums for the time period from 'checks'
-        my_query = (f"SELECT bud_cat,sum(bud_amt) from checks where bud_date between '{dayfirst}' and '{daylast}' "
-                    "group by bud_cat;")
+        my_query = f"SELECT bud_cat,sum(bud_amt) from checks where bud_date like '{month}' group by bud_cat;"
         self.db_cursor.execute(my_query)
         rows = self.db_cursor.fetchall()
 
@@ -93,7 +87,7 @@ class MonthlyBudgetSummaries(object):
             else:
                 buds_summary[key] = row[1]
 
-        name = month_names[int(my_month) - 1] + ' ' + my_year
+        name = f"{month_names[month_num]} {my_year}"
 
         # see if there are any results to save to the file
         et = datetime.datetime.now() - start
@@ -102,10 +96,10 @@ class MonthlyBudgetSummaries(object):
             return
 
         # write out to the file
-        with open('catfiles/'+name.replace(' ', '')+'cat.csv', 'w') as file_ptr:
-            file_ptr.write('Summary for '+name+'\r\n')
+        with open(f"catfiles/{name.replace(' ', '')}cat.csv", "w") as f:
+            f.write(f"Summary for {name}\r\n")
             for budget_category in sorted(buds_summary):
-                file_ptr.write('%s,%.2f\r\n' % (budget_category, buds_summary[budget_category]))
+                f.write(f"{budget_category},{buds_summary[budget_category]:.2f}\r\n")
         et = datetime.datetime.now() - start
         self.logger.log(f"writeMonthlyCsv: Month {name} has {len(buds_summary)} entries ({et.total_seconds():.2f}s)")
 
@@ -186,7 +180,7 @@ class MonthlyBudgetSummaries(object):
             else:
                 buds_summary[key] = sum
 
-        name = month_names[month_num] + ' ' + my_year
+        name = f"{month_names[month_num]} {my_year}"
 
         # see if there are any results to save to the file
         et = datetime.datetime.now() - start
@@ -195,8 +189,8 @@ class MonthlyBudgetSummaries(object):
             return
 
         # write out to the file
-        with open(f"catfiles/{name.replace(' ', '')}cat.txt", "w") as file_ptr:
-            file_ptr.write(f"Summary for {name}\r\n\r\n")
+        with open(f"catfiles/{name.replace(' ', '')}cat.txt", "w") as f:
+            f.write(f"Summary for {name}\r\n\r\n")
             # main database indices
             tdate = 0
             tid = 1
@@ -218,7 +212,7 @@ class MonthlyBudgetSummaries(object):
             # Now go through each budget category and print the individual transactions for each
             for budget_category in sorted(buds_summary):
                 # print the summary line
-                file_ptr.write(f"{budget_category:<20s} {buds_summary[budget_category]:10.2f}\r\n")
+                f.write(f"{budget_category:<20s} {buds_summary[budget_category]:10.2f}\r\n")
 
                 # dictionary to store all the 'main' table results and uncleared check results for later printing
                 budcat_store_dict = dict()
@@ -237,8 +231,8 @@ class MonthlyBudgetSummaries(object):
                                                   f"{elem[bckamt]:10.2f}{('*' if elem[clrdate] is None else '')}")
 
                 for key in sorted(budcat_store_dict):
-                    file_ptr.write(budcat_store_dict[key] + '\r\n')
-                file_ptr.write('\r\n')  # write a blank line at the end of each budget category section
+                    f.write(budcat_store_dict[key] + '\r\n')
+                f.write('\r\n')  # write a blank line at the end of each budget category section
         et = datetime.datetime.now() - start
         self.logger.log(f"writeMonthlyText: Month {name} has {len(buds_summary)} entries ({et.total_seconds():.2f}s)")
 
