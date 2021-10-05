@@ -361,11 +361,26 @@ class ProcessDownloads(object):
 
             self.logger.log(f"Key {new_key} is not in 'main' DATABASE -- "
                             f"{('' if self.DO_INSERT else 'would have ')}inserted {val}")
-
 #
 # MAIN PROGRAM
 #
 
 
-process_downloads = ProcessDownloads(do_insert=True, do_validate=True)
+do_insert = False
+do_validate = False
+
+if len(sys.argv) > 1:
+    for arg in sys.argv:
+        if arg == "insert":
+            do_insert = True
+        elif arg == "validate":
+            do_validate = True
+        else:
+            print(f"Usage {sys.argv[0]} [insert] [validate]")
+            print("\t'insert' = insert records into mysql database; otherwise just process and no insert. "
+                  "Default is False.")
+            print("\t'validate' = compare the records of the new way and old way of processing. Default is False.")
+            sys.exit(1)
+
+process_downloads = ProcessDownloads(do_insert=do_insert, do_validate=do_validate)
 process_downloads.execute()
