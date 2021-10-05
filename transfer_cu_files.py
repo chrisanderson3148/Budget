@@ -192,8 +192,7 @@ def read_monthly_cu_file(file_name, transfer, logger):
                 budget_category_dict,
                 tid,
                 trans_date,
-                desc if check_num else ' '.join(transaction_payee.split()) if transaction_payee
-                else fields[index_payee],
+                desc if check_num else transaction_payee,
                 check_num,
                 trans_type,
                 transaction_amount,

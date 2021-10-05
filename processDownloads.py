@@ -24,7 +24,7 @@ class ProcessDownloads(object):
     DI_FILE = 'downloads/Discover-RecentActivity.csv'
     CI_FILE = 'downloads/Citi-RecentActivity.csv'
 
-    def __init__(self, do_insert=True):
+    def __init__(self, do_insert=True, do_validate=False):
         self.logger = Logger('process_download_log', append=True, print_to_console=True)
 
         # Open a connection to the DATABASE
@@ -34,18 +34,9 @@ class ProcessDownloads(object):
 
         self.records_inserted = 0
         self.DO_INSERT = do_insert
+        self.DO_VALIDATE = do_validate
 
     def _setup(self):
-        # Verify symbolic link to 'downloads' is not broken
-        # if os.path.isdir('downloads'):
-        #     if os.path.islink('downloads') and not os.path.exists(os.readlink('downloads')):
-        #         self.logger.log("The folder 'downloads' is a symbolic link, but its target does not exist.")
-        #         self.logger.log("To restore it as a symbolic link, re-install vmware-tools:")
-        #         self.logger.log("1. cd /home/chrisanderson/Desktop/vmware-tools-distrib")
-        #         self.logger.log("2. 'sudo perl vmware-install.pl' and enter password for chrisanderson")
-        #         self.logger.log("3. Answer all questions with the default (just hit <return>)")
-        #         sys.exit(1)
-
         # Verify all downloads files exist
         all_exist = True
         for download_file in [self.CU_FILE, self.CK_FILE, self.DI_FILE, self.CI_FILE]:
@@ -76,6 +67,34 @@ class ProcessDownloads(object):
             self.global_exception_printer(f"{sqlexc}")
             sys.exit(1)
 
+    def _dicts_are_same(self, dict1, dict2):
+        """Verify the two dictionaries are the same.
+        
+        :param dict dict1: the first dictionary
+        :param dict dict2: the second dictionary
+        :rtype: bool
+        """
+        keys = dict1.keys()
+        keys1 = [k for k in keys]
+        keys = dict2.keys()
+        keys2 = [k for k in keys]
+        if len(keys1) != len(keys2):
+            self.logger.log(f"Dict1 has {len(keys1)} keys, while dict2 has {len(keys2)} keys -- no match")
+            return False
+        if keys1 != keys2:
+            self.logger.log(f"dict1 keys are not equal to dict2 keys:\n{keys1} vs \n{keys2}")
+            return False
+        for key in keys1:
+            if not (isinstance(dict1[key], list) and isinstance(dict2[key], list)):
+                self.logger.log(f"Expected both dicts values to be lists, but they are not.")
+                return False
+            list1 = [v for v in dict1[key]]
+            list2 = [v for v in dict2[key]]
+            if list1 != list2:
+                self.logger.log(f"values of dicts[{key}] are not the same:\n{list1} vs\n{list2}")
+                return False
+        return True
+
     def execute(self):
         self._setup()
 
@@ -88,55 +107,34 @@ class ProcessDownloads(object):
 
         transfer = transferFilesToDB.TransferMonthlyFilesToDB(self.db_cursor1, self.logger)
 
-        # handle credit union transactions including checks
-        # This is archaic.
-        # if os.path.isfile(self.CK_FILE):  # process checks first
-        #     self.logger.log('\n**** processing credit union checks download file... ****\n')
-        #     t_dict = transferCheckUtils.read_checks_file(self.CK_FILE)
-        #     self.insert_dict_into_checks_db(t_dict, ck_keys)
-
         if os.path.isfile(self.DI_FILE):
             self.logger.log('\n**** processing Discover download file... ****\n')
-            # t_dict_oldway = transfer_discover_files.read_monthly_discover_file(self.DI_FILE, transfer, self.logger)
             t_dict_newway = transfer_downloads_to_db.convert_downloads_file(
                 self.DI_FILE, "map_download_to_db.json", "discover_download_format.json", "discover", transfer,
                 self.logger)
-            # if t_dict_newway == t_dict_oldway:
-            #     print(f"Discover transfer dicts match")
-            # else:
-            #     print(f"Discover transfer dicts DO NOT MATCH")
+            if self.DO_VALIDATE:
+                t_dict_oldway = transfer_discover_files.read_monthly_discover_file(self.DI_FILE, transfer, self.logger)
+                assert self._dicts_are_same(t_dict_newway, t_dict_oldway), "Discover transfer dicts DO NOT MATCH"
             self.insert_dict_into_main_db(t_dict_newway, db_keys)
 
         if os.path.isfile(self.CU_FILE):  # process cleared transactions second
             self.logger.log('\n**** processing credit union download file... ****\n')
-            # t_dict_oldway = transfer_cu_files.read_monthly_cu_file(self.CU_FILE, transfer, self.logger)
             t_dict_newway = transfer_downloads_to_db.convert_downloads_file(
                 self.CU_FILE, "map_download_to_db.json", "cu_download_format.json", "cu", transfer, self.logger)
-            # newkeys = list(t_dict_newway.keys())
-            # oldkeys = list(t_dict_oldway.keys())
-            # assert len(newkeys) == len(oldkeys), (f"# keys in new t_dict {len(newkeys)} not equal to "
-            #                                       f"old keys {len(oldkeys)}")
-            # if newkeys != oldkeys:
-            #     for i in range(len(newkeys)):
-            #         if newkeys[i] != oldkeys[i]:
-            #             print(f"newkey {newkeys[i]} vs {oldkeys[i]}")
-            # if t_dict_newway == t_dict_oldway:
-            #     print(f"Credit Union transfer dicts match")
-            # else:
-            #     print(f"Credit Union transfer dicts DO NOT MATCH")
+            if self.DO_VALIDATE:
+                t_dict_oldway = transfer_cu_files.read_monthly_cu_file(self.CU_FILE, transfer, self.logger)
+                assert self._dicts_are_same(t_dict_newway, t_dict_oldway), "CU transfer dicts DO NOT MATCH"
             self.insert_dict_into_main_db(t_dict_newway, db_keys)
 
         self.clear_cu_checks()  # mark cleared checks
 
         if os.path.isfile(self.CI_FILE):
             self.logger.log('\n**** processing CitiCard download file... ****\n')
-            # t_dict_oldway = transfer_citi_files.read_monthly_citi_file(self.CI_FILE, transfer, self.logger)
             t_dict_newway = transfer_downloads_to_db.convert_downloads_file(
                 self.CI_FILE, "map_download_to_db.json", "citi_download_format.json", "citi", transfer, self.logger)
-            # if t_dict_newway == t_dict_oldway:
-            #     print(f"Citi transfer dicts match")
-            # else:
-            #     print(f"Citi transfer dicts DO NOT MATCH")
+            if self.DO_VALIDATE:
+                t_dict_oldway = transfer_citi_files.read_monthly_citi_file(self.CI_FILE, transfer, self.logger)
+                assert self._dicts_are_same(t_dict_newway, t_dict_oldway), "Citi transfer dicts DO NOT MATCH"
             self.insert_dict_into_main_db(t_dict_newway, db_keys)
 
         self.logger.log(f"\n{('Inserted ' if self.DO_INSERT else 'INSERT DISABLED: Would have inserted ')}"
@@ -369,5 +367,5 @@ class ProcessDownloads(object):
 #
 
 
-process_downloads = ProcessDownloads()
+process_downloads = ProcessDownloads(do_insert=True, do_validate=True)
 process_downloads.execute()

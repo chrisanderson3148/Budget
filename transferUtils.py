@@ -142,7 +142,7 @@ def insert_entry_into_dict(budget_dict, transaction_reference, transaction_date,
                                               transaction_type, transaction_amount,
                                               bud[0], bud[1], bud[2], transaction_comment]
     else:
-        for key, bud in collections.OrderedDict(sorted(budget_dict.items())).iteritems():
+        for key, bud in collections.OrderedDict(sorted(budget_dict.items())).items():
             my_key = transaction_reference + '-' + str(key)
             output_dict[my_key] = [transaction_date, transaction_reference, transaction_payee,
                                    transaction_check_num, transaction_type, transaction_amount,
