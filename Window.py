@@ -135,14 +135,14 @@ class MyWindow(ScreenWindow):
         self.height = height
         self.width = wid
         if not top:
-            if self.s_height - height > 0:
+            if self.s_height - height > 1:
                 self.top = random.randrange(1, self.s_height - height)
             else:
                 self.top = 1
         else:
             self.top = top
         if not left:
-            if self.s_width - wid > 0:
+            if self.s_width - wid > 1:
                 self.left = random.randrange(1, self.s_width - wid)
             else:
                 self.left = 1

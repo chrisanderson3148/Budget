@@ -221,7 +221,7 @@ class ProcessDownloads(object):
         self.execute_cursor1(my_query)
 
         for inner_row in self.db_cursor1:
-            key = (str(inner_row[1])+inner_row[0]+str(abs(inner_row[2]))+inner_row[3]+inner_row[4])
+            key = f"{str(inner_row[1])}{inner_row[0]}{str(abs(inner_row[2]))}{inner_row[3]}{inner_row[4]}"
             my_dict[key] = (f"{inner_row[0]:5s} {inner_row[1].strftime('%m/%d/%Y'):10s} ${abs(inner_row[2]):>7.2f} "
                             f"{inner_row[3]:30s} {inner_row[4]}")
 
@@ -230,7 +230,7 @@ class ProcessDownloads(object):
         self.execute_cursor1(my_query)
 
         for inner_row in self.db_cursor1:
-            key = (str(inner_row[1]) + inner_row[0] + str(abs(inner_row[2])) + inner_row[3] + inner_row[4])
+            key = f"{str(inner_row[1])}{inner_row[0]}{str(abs(inner_row[2]))}{inner_row[3]}{inner_row[4]}"
             my_dict[key] = (f"{inner_row[0]:5s} {inner_row[1].strftime('%m/%d/%Y'):10s} ${abs(inner_row[2]):>7.2f} "
                             f"{inner_row[3]:30s} {inner_row[4]}")
         for entry in sorted(my_dict):
