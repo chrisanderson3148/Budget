@@ -234,12 +234,11 @@ def get_search_parameters():
     return table, field, compare, value
 
 
-def do_transaction_list_window(
-        data_array, content_array, total, my_title, add_edit, last_page, q_func, *args):
+def do_transaction_list_window(data_array, content_array, total, my_title, add_edit, last_page, q_func, *args):
     """Handle the transaction list window: scrolling, paging, selecting, updating.
 
     :param list data_array: the window contents as list of data values
-    :param list content_array: the window contents as list of strings
+    :param list[str] content_array: the window contents as list of strings
     :param float total: The total of the items in the list
     :param str my_title: the window title. Must have TOTAL_FORMAT (or at least '{}') somewhere in it for
      the total value
@@ -1048,6 +1047,7 @@ def get_list_item(top_of_list, left_margin, num_rows, win, my_win=None):
     :param int num_rows: the number of list elements
     :param Any win: the window object containing the list
     :param Any my_win: not sure how this works
+    :rtype: int
     """
     bottom_of_list = top_of_list + num_rows - 1
     if my_win and my_win.curr_x != 0:
@@ -1164,13 +1164,18 @@ def main():
     # Handle ctrl-c
     signal.signal(signal.SIGINT, signal_handler)
 
+    now = datetime.datetime.now()
     if len(sys.argv) > 1:
         year = sys.argv[1]
         if not year.isnumeric():
-            print(f"Usage: {sys.argv[0]} [year]")
+            print(f"Usage: {sys.argv[0]} [<year as yyyy>]")
+            print("\tDefault is current year")
+            sys.exit(1)
+        elif int(year) < 2005 or int(year) > now.year:
+            print(f"Usage: {sys.argv[0]} [<year between 2005 and {now.year}>]")
+            print("\tDefault is current year")
             sys.exit(1)
     else:
-        now = datetime.datetime.now()
         year = now.year
 
     # init_screen() must be called to initialize the screen and log
@@ -1179,6 +1184,7 @@ def main():
     # Present a list of menu items, then have the user choose one
     sw = ScreenWindow()
     WindowList.initialize()
+    # curses.curs_set(2)
 
     menus = ['Select by budget category for given year',
              'Select by budget category for all years',
