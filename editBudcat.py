@@ -1166,9 +1166,12 @@ def main():
 
     if len(sys.argv) > 1:
         year = sys.argv[1]
+        if not year.isnumeric():
+            print(f"Usage: {sys.argv[0]} [year]")
+            sys.exit(1)
     else:
-        print(f'Usage {sys.argv[0]} <year>')
-        sys.exit(1)
+        now = datetime.datetime.now()
+        year = now.year
 
     # init_screen() must be called to initialize the screen and log
     ScreenWindow.init_screen()

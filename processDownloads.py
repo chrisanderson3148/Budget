@@ -371,6 +371,8 @@ do_validate = False
 
 if len(sys.argv) > 1:
     for arg in sys.argv:
+        if arg == sys.argv[0]:
+            continue
         if arg == "insert":
             do_insert = True
         elif arg == "validate":
