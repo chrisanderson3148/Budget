@@ -65,12 +65,14 @@ class MonthlyBudgetSummaries(object):
         self.db_cursor.execute(my_query)
 
         rows = self.db_cursor.fetchall()
+        # self.logger.log(f"rows={rows}")
         # save results in dict
         for row in rows:
             key = row[0].strip()
             if key == 'SCHOOL':
                 key = 'COLLEGE'
             buds_summary[key] = row[1]
+            # self.logger.log(f"row {key} = '{row[1]}'")
 
         # get the budget categories and sums for the time period from 'checks'
         my_query = f"SELECT bud_cat,sum(bud_amt) from checks where bud_date like '{month}' group by bud_cat;"

@@ -1,6 +1,7 @@
 from __future__ import print_function
 import sys
 import curses
+import inspect
 import random
 import WindowList
 
@@ -18,7 +19,7 @@ class ScreenWindow(object):
     def init_screen(cls):
         """Starts up curses and logging."""
         cls.screen = curses.initscr()
-        cls.log = open('log', 'w')
+        cls.log = open('WindowLog', 'w')
 
         # Initialize color capability
         curses.start_color()
@@ -59,6 +60,9 @@ class ScreenWindow(object):
         print("Closed log file")
         sys.exit(0)
 
+    def my_log(self, message):
+        self.log.write(f"{inspect.stack()[1][3]}: {message}\n")
+
     def draw_menu(self, menus):
         """Draw the menus on the screen.
 
@@ -77,7 +81,7 @@ class ScreenWindow(object):
         :param str title: the title for the screen window
         """
         self.screen.refresh()
-        self.log.write('>>>' + title + '<<< refresh called\n')
+        self.my_log(f">>>{title}<<< refresh called")
 
 
 class MyWindow(ScreenWindow):
@@ -106,7 +110,7 @@ class MyWindow(ScreenWindow):
         self.content_lines = []
         random.seed()
         super(MyWindow, self).__init__()
-        self.log.write('Instantiated window\n')
+        self.my_log("Instantiated window")
 
     def __del__(self):
         pass
@@ -161,7 +165,7 @@ class MyWindow(ScreenWindow):
         self.title = title
         self.win = curses.newwin(self.height, self.width, self.top, self.left)
         self.draw_border()
-        self.log.write('Created window (title='+title+')\n')
+        self.my_log(f"Created window (title={title})")
 
     def draw_border(self):
         """Draw my border."""
@@ -175,7 +179,7 @@ class MyWindow(ScreenWindow):
             self.win.addstr(self.height-1, (self.width-2) // 2, ' OK ', curses.A_STANDOUT)
         self.win.move(self.curr_y, self.curr_x)
         self.win.refresh()
-        self.log.write('drawBorder[main] window (title='+self.title+')\n')
+        self.my_log(f"window (title={self.title})")
 
     def draw_contents(self, last_page=False):
         """Draw my contents.
@@ -203,7 +207,7 @@ class MyWindow(ScreenWindow):
                                                             self.current_page, first_row, last_row)
                 self.my_quit(error_message)
 
-        self.log.write('drawContents window (title='+self.title+')\n')
+        self.my_log(f"window (title={self.title})")
         self.win.refresh()
         self.read_content_lines()
         self.draw_border()
@@ -221,11 +225,11 @@ class MyWindow(ScreenWindow):
         """Delete myself as a window and my entry in the WindowList."""
         self.win.clear()
         self.win.refresh()
-        self.log.write('delete window (title='+self.title+')\n')
+        self.my_log(f"window (title={self.title})")
         del self.win
 
         # pops this window off the window list, then forces a redraw of all remaining windows
-        WindowList.pop_window()
+        WindowList.pop_window(self)
 
     def read_content_lines(self):
         """Read in window contents as list of strings from top to bottom.
@@ -236,7 +240,7 @@ class MyWindow(ScreenWindow):
         """
         for pos_y in range(1, self.height):
             self.content_lines.append(self.win.instr(pos_y, 1))
-        self.log.write('readContentLines window (title='+self.title+')\n')
+        self.my_log(f"window (title={self.title})")
 
     def draw_content_lines(self):
         """Draw my content lines and border."""
@@ -246,7 +250,7 @@ class MyWindow(ScreenWindow):
             pos_y += 1
         self.win.refresh()
         self.draw_border()
-        self.log.write('drawContentLines window (title='+self.title+')\n')
+        self.my_log(f"window (title={self.title})")
 
 
 class PopupWindow(MyWindow):

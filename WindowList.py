@@ -12,9 +12,9 @@ def initialize():
     window_list.append(ScreenWindow.screen)
 
 
-def refresh_windows():
+def refresh_windows(instant):
     """Redraw each window in the window_list and log a message"""
-    ScreenWindow.log.write('WindowList.refreshWindows: window_list='+str(window_list)+'\n')
+    instant.my_log(f"window_list={str(window_list)}")
     for win in window_list:
         win.redrawwin()
         win.refresh()
@@ -28,7 +28,7 @@ def add_window(win):
     window_list.append(win)
 
 
-def pop_window():  # always removes the last window in the list (most recent)
+def pop_window(instant):  # always removes the last window in the list (most recent)
     """Remove the latest window object from the window_list"""
     window_list.pop()
-    refresh_windows()
+    refresh_windows(instant)

@@ -17,7 +17,7 @@
     {
       "name": "Transaction Type",
       "data_type": "str",
-      "regex": "^(Credit|Debit)$"
+      "regex": "^(Credit|Debit|Check)$"
     },
     {
       "name": "Amount",
@@ -45,7 +45,7 @@
     {
       "name": "Type",
       "data_type": "str",
-      "regex": "^(ACH|Deposit|Withdrawal|Debit Card)$"
+      "regex": "^(ACH|Deposit|Withdrawal|Debit Card|Checks)$"
     },
     {
       "name": "Balance",

@@ -1,6 +1,7 @@
 """Module encapsulates methods relating to transaction edit windows"""
 import curses
 import datetime
+import inspect
 import pymysql
 import copy
 from Window import MyWindow
@@ -36,7 +37,7 @@ class EditWindow(MyWindow):
         self.win.addstr(0, 2, 'Pos: %d,%d'%(self.curr_x, self.curr_y), curses.A_STANDOUT)
         self.win.move(self.curr_y, self.curr_x)
         self.win.refresh()
-        self.log.write('draw_border[EditWindow] window (title='+self.title+')\n')
+        self.my_log(f"window (title={self.title})")
 
     def draw_win(self, is_main, transaction_date, transaction_description, transaction_type,
                  transaction_amount, budget_array, transaction_comment, extra_field):
@@ -87,7 +88,7 @@ class EditWindow(MyWindow):
         self.win.addstr(6, 20, 'Balance: '+'%5.2f' % self.balance)
         self.draw_border()
         self.read_content_lines()
-        self.log.write('draw_win[EditWindow] window (title='+self.title+')\n')
+        self.my_log(f"window (title={self.title})")
 
     def refresh(self, is_main, entry):
         """Redraw me.
@@ -133,17 +134,18 @@ class EditWindow(MyWindow):
         # Only supporting field "category" now; other fields just return entered_value.
         if field_name == 'category':
             values = self.get_list_of_budget_categories('main')
+            self.my_log(f"All category values: {values}")
         else:
+            self.my_log(f"Only supported field name is 'category', '{field_name}' was passed in.")
             return entered_value
 
         display_values = []
         # if something was entered, match values that begin with it
         if len(entered_value):
-            for value in values:
-                if value.lower().startswith(entered_value.lower()):
-                    display_values.append(value)
+            display_values = [value for value in values if value.lower().startswith(entered_value.lower())]
             # if there were matches, insert entered_value at top
             if len(display_values):
+                self.my_log(f"There were {len(display_values)} values: {display_values}")
                 display_values.insert(0, entered_value.upper())
             # if there were no matches, ask if he wants to keep it or not
             else:
@@ -155,16 +157,19 @@ class EditWindow(MyWindow):
 
         # if nothing was entered, match all values
         else:
+            self.my_log(f"Entered value is empty")
             display_values = values
 
         # if display_values has anything in it, display it.
         if len(display_values):
             choice = WindowUtils.popup_get_multiple_choice_vert('Choose an existing value',
                                                                 display_values, display_values[0])
+            self.my_log(f"Choice: {choice}")
         # if display_values is empty (nothing matched), return entered_value (very rare)
         else:
             choice = entered_value
 
+        self.my_log(f"Returning choice: {choice}")
         return choice
 
     def main_event_loop(self, is_main, entry, readonly=False):
